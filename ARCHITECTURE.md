@@ -190,11 +190,11 @@ Um ADR é um documento curto que responde: "por que tomamos essa decisão, e o q
 
 | ID | Decisão | Status |
 |----|---------|--------|
-| ADR-001 | Layered Architecture como padrão arquitetural | Aceita |
-| ADR-002 | PostgreSQL como banco de dados | Aceita |
-| ADR-003 | FastAPI como framework do backend | Aceita |
-| ADR-004 | Batch diário como estratégia de coleta | Aceita |
-| ADR-005 | Adapter pattern para isolamento das APIs externas | Aceita |
+| ADR-001 | Layered Architecture como padrão arquitetural | Proposta |
+| ADR-002 | PostgreSQL como banco de dados | Proposta |
+| ADR-003 | FastAPI como framework do backend | Proposta |
+| ADR-004 | Batch diário como estratégia de coleta | Proposta |
+| ADR-005 | Adapter pattern para isolamento das APIs externas | Proposta |
 | ADR-006 | Redis para cache de respostas | Proposta |
 
 > **Regra:** toda mudança de decisão gera uma ADR nova que supersede a anterior.
@@ -204,7 +204,7 @@ Um ADR é um documento curto que responde: "por que tomamos essa decisão, e o q
 
 ## Stack tecnológica
 
-**Decisões registradas em:** `docs/adr/ADR-002` a `ADR-003`
+**Exemplo(Ainda não decidido)**:
 
 | Camada | Tecnologia | Justificativa |
 |--------|-----------|---------------|
