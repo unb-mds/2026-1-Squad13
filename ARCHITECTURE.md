@@ -1,4 +1,5 @@
 # Arquitetura de Software
+
 ## Monitoramento de Tempo de Tramitação de Leis
 
 ---
@@ -93,47 +94,72 @@ Essa abordagem evita o overhead de abstrações prematuras e permite que a equip
 
 ## Estrutura de pastas
 
-```
+````
 /
 ├── ARCHITECTURE.md              ← este arquivo
 ├── README.md                    ← setup e como rodar
 │
 ├── docs/
 │   ├── adr/
-│   │   ├── README.md            ← índice de todas as ADRs
 │   │   ├── ADR-001-layered-architecture.md
 │   │   ├── ADR-002-postgresql.md
 │   │   ├── ADR-003-fastapi.md
 │   │   ├── ADR-004-batch-coleta.md
-│   │   └── ADR-005-adapter-pattern.md
+│   │   ├── ADR-005-adapter-pattern.md
+│   │   └── ADR-006-redis-cache.md
 │   │
 │   └── diagrams/
-│       ├── c4-context.md        ← Nível 1: contexto do sistema
-│       ├── c4-container.md      ← Nível 2: containers e tecnologias
-│       └── c4-component-backend.md  ← Nível 3: módulos do backend
+│       ├── c4-context.md
+│       ├── c4-container.md
+│       └── c4-component-backend.md
 │
-└── src/
-    ├── domain/
-    │   ├── entities/
-    │   │   ├── lei.py
-    │   │   └── tramitacao.py
-    │   └── exceptions.py
-    ├── application/
-    │   └── services/
-    │       ├── buscar_leis_paradas_service.py
-    │       └── gerar_relatorio_service.py
-    ├── infrastructure/
-    │   ├── adapters/
-    │   │   ├── camara_adapter.py
-    │   │   └── senado_adapter.py
-    │   ├── repositories/
-    │   │   └── lei_repository.py
-    │   └── cache/
-    │       └── redis_cache.py
-    └── presentation/
-        └── controllers/
-            └── lei_controller.py
-```
+├── backend/
+│   └── src/
+│       ├── main.py
+│       ├── presentation/
+│       │   └── controllers/
+│       │       └── lei_controller.py
+│       ├── application/
+│       │   └── services/
+│       │       ├── buscar_leis_paradas_service.py
+│       │       └── gerar_relatorio_service.py
+│       ├── domain/
+│       │   ├── entities/
+│       │   │   ├── lei.py
+│       │   │   └── tramitacao.py
+│       │   └── exceptions.py
+│       └── infrastructure/
+│           ├── adapters/
+│           │   ├── camara_adapter.py
+│           │   └── senado_adapter.py
+│           ├── repositories/
+│           │   └── lei_repository.py
+│           └── cache/
+│               └── redis_cache.py
+│
+└── frontend/
+    ├── src/
+    │   ├── app/
+    │   │   ├── router/
+    │   │   ├── providers/
+    │   │   └── layouts/
+    │   ├── shared/
+    │   │   ├── ui/
+    │   │   ├── lib/
+    │   │   ├── types/
+    │   │   └── constants/
+    │   ├── features/
+    │   │   ├── dashboard/
+    │   │   ├── leis/
+    │   │   ├── tramitacoes/
+    │   │   ├── relatorios/
+    │   │   └── filtros/
+    │   ├── pages/
+    │   │   ├── dashboard-page.tsx
+    │   │   ├── leis-paradas-page.tsx
+    │   │   └── relatorios-page.tsx
+    │   └── main.tsx
+    ```
 
 ---
 
@@ -154,8 +180,8 @@ O C4 funciona como um mapa com escalas diferentes: do geral para o detalhe, cada
 | 3 | Component | Devs | Módulos internos de cada container |
 | 4 | Code | Opcional | Classes e interfaces (UML de classes) |
 
-**Por que não UML puro:** genérico demais, ferramentas pesadas, difícil de versionar no Git.  
-**Por que não arc42:** 12 seções, metade seria "não aplicável" no escopo acadêmico.  
+**Por que não UML puro:** genérico demais, ferramentas pesadas, difícil de versionar no Git.
+**Por que não arc42:** 12 seções, metade seria "não aplicável" no escopo acadêmico.
 **Por que não 4+1 Views:** pensado para times grandes com perspectivas radicalmente distintas.
 
 Os diagramas C4 do projeto estão em `docs/diagrams/`.
@@ -189,21 +215,21 @@ Um ADR é um documento curto que responde: "por que tomamos essa decisão, e o q
 
 ## Consequências
 
-**Positivas:** ...  
-**Negativas / trade-offs:** ...  
+**Positivas:** ...
+**Negativas / trade-offs:** ...
 **Riscos:** ...
-```
+````
 
 ### ADRs registradas
 
-| ID | Decisão | Status |
-|----|---------|--------|
-| ADR-001 | Layered Architecture como padrão arquitetural | Proposta |
-| ADR-002 | PostgreSQL como banco de dados | Proposta |
-| ADR-003 | FastAPI como framework do backend | Proposta |
-| ADR-004 | Batch diário como estratégia de coleta | Proposta |
+| ID      | Decisão                                           | Status   |
+| ------- | ------------------------------------------------- | -------- |
+| ADR-001 | Layered Architecture como padrão arquitetural     | Proposta |
+| ADR-002 | PostgreSQL como banco de dados                    | Proposta |
+| ADR-003 | FastAPI como framework do backend                 | Proposta |
+| ADR-004 | Batch diário como estratégia de coleta            | Proposta |
 | ADR-005 | Adapter pattern para isolamento das APIs externas | Proposta |
-| ADR-006 | Redis para cache de respostas | Proposta |
+| ADR-006 | Redis para cache de respostas                     | Proposta |
 
 > **Regra:** toda mudança de decisão gera uma ADR nova que supersede a anterior.
 > Não se edita uma ADR aceita — cria-se ADR-00X com status "Substituída por ADR-00Y".
@@ -214,15 +240,15 @@ Um ADR é um documento curto que responde: "por que tomamos essa decisão, e o q
 
 **Exemplo(Ainda não decidido)**:
 
-| Camada | Tecnologia | Justificativa |
-|--------|-----------|---------------|
-| Backend | FastAPI (Python) | I/O assíncrono reduz tempo de espera nas chamadas às APIs externas |
-| Frontend | React + Vite | Vite resolve build lento; ecossistema conhecido pelo time |
-| Banco de dados | PostgreSQL | Funções de janela para agregações temporais (tempo médio por tema, ano, relator) |
-| Cache | Redis | APIs legislativas têm rate limiting implícito; dados mudam no máximo uma vez ao dia |
-| Worker | Celery + Celery Beat | Coleta periódica agendada sem bloquear a API principal |
-| Container | Docker Compose | Sobe PostgreSQL + Redis + Backend juntos em desenvolvimento |
-| CI/CD | GitHub Actions | Pipeline de testes e deploy integrado ao repositório |
+| Camada         | Tecnologia           | Justificativa                                                                       |
+| -------------- | -------------------- | ----------------------------------------------------------------------------------- |
+| Backend        | FastAPI (Python)     | I/O assíncrono reduz tempo de espera nas chamadas às APIs externas                  |
+| Frontend       | React + Vite         | Vite resolve build lento; ecossistema conhecido pelo time                           |
+| Banco de dados | PostgreSQL           | Funções de janela para agregações temporais (tempo médio por tema, ano, relator)    |
+| Cache          | Redis                | APIs legislativas têm rate limiting implícito; dados mudam no máximo uma vez ao dia |
+| Worker         | Celery + Celery Beat | Coleta periódica agendada sem bloquear a API principal                              |
+| Container      | Docker Compose       | Sobe PostgreSQL + Redis + Backend juntos em desenvolvimento                         |
+| CI/CD          | GitHub Actions       | Pipeline de testes e deploy integrado ao repositório                                |
 
 ---
 
@@ -235,14 +261,15 @@ A API da Câmara (`dadosabertos.camara.leg.br`) e a do Senado (`legis.senado.leg
 
 ### Fontes de dados
 
-| Fonte | Base URL | Formato | Autenticação |
-|-------|----------|---------|--------------|
-| Câmara | dadosabertos.camara.leg.br/api/v2 | JSON | Nenhuma |
-| Senado | legis.senado.leg.br/sicon/rest | JSON | Nenhuma |
+| Fonte  | Base URL                          | Formato | Autenticação |
+| ------ | --------------------------------- | ------- | ------------ |
+| Câmara | dadosabertos.camara.leg.br/api/v2 | JSON    | Nenhuma      |
+| Senado | legis.senado.leg.br/sicon/rest    | JSON    | Nenhuma      |
 
 ### Endpoints utilizados
 
 **Câmara:**
+
 ```
 GET /proposicoes                        → lista proposições (paginado)
 GET /proposicoes/{id}                   → detalhe da proposição
@@ -251,6 +278,7 @@ GET /proposicoes/{id}/autores           → autores
 ```
 
 **Senado:**
+
 ```
 GET /materia/pesquisa                   → busca matérias
 GET /materia/{codigo}                   → detalhe da matéria
@@ -293,68 +321,68 @@ Esta seção mapeia cada decisão técnica ao conhecimento necessário. Serve co
 ### Toda a equipe
 
 - [ ] **Layered Architecture** — como as camadas se comunicam e o que não pode cruzar fronteiras  
-  Recurso: `ARCHITECTURE.md` (este arquivo) + `ADR-001`
+      Recurso: `ARCHITECTURE.md` (este arquivo) + `ADR-001`
 
 - [ ] **Modelo C4** — como ler os diagramas do projeto  
-  Recurso: [c4model.com](https://c4model.com) (introdução em 10 min)
+      Recurso: [c4model.com](https://c4model.com) (introdução em 10 min)
 
 - [ ] **ADRs** — como ler e propor novas decisões  
-  Recurso: `docs/adr/README.md`
+      Recurso: `docs/adr/README.md`
 
 ### Devs (implementação backend)
 
 - [ ] **FastAPI** — roteamento, Pydantic, async/await  
-  Recurso: [fastapi.tiangolo.com/tutorial](https://fastapi.tiangolo.com/tutorial)  
-  Por quê: framework da camada de Apresentação
+      Recurso: [fastapi.tiangolo.com/tutorial](https://fastapi.tiangolo.com/tutorial)  
+      Por quê: framework da camada de Apresentação
 
 - [ ] **HTTPX** — cliente HTTP assíncrono  
-  Recurso: [python-httpx.org](https://www.python-httpx.org)  
-  Por quê: usado nos adapters para chamar as APIs externas
+      Recurso: [python-httpx.org](https://www.python-httpx.org)  
+      Por quê: usado nos adapters para chamar as APIs externas
 
 - [ ] **Paginação da API da Câmara**  
-  Recurso: [dadosabertos.camara.leg.br/swagger-ui](https://dadosabertos.camara.leg.br/swagger-ui)  
-  Por quê: coleta completa exige iterar todas as páginas
+      Recurso: [dadosabertos.camara.leg.br/swagger-ui](https://dadosabertos.camara.leg.br/swagger-ui)  
+      Por quê: coleta completa exige iterar todas as páginas
 
 - [ ] **Celery + Celery Beat** — tarefas agendadas  
-  Recurso: [docs.celeryq.dev — periodic tasks](https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html)  
-  Por quê: executa o worker de coleta diária
+      Recurso: [docs.celeryq.dev — periodic tasks](https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html)  
+      Por quê: executa o worker de coleta diária
 
 - [ ] **SQLAlchemy async** — ORM assíncrono  
-  Recurso: [docs.sqlalchemy.org — asyncio](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html)  
-  Por quê: acesso ao PostgreSQL na camada de Infraestrutura
+      Recurso: [docs.sqlalchemy.org — asyncio](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html)  
+      Por quê: acesso ao PostgreSQL na camada de Infraestrutura
 
 - [ ] **Tenacity** — retry com backoff exponencial  
-  Recurso: [tenacity.readthedocs.io](https://tenacity.readthedocs.io)  
-  Por quê: resiliência nas chamadas às APIs externas
+      Recurso: [tenacity.readthedocs.io](https://tenacity.readthedocs.io)  
+      Por quê: resiliência nas chamadas às APIs externas
 
 ### Arquiteto / DevOps
 
 - [ ] **Padrão Adapter** — como isolar sistemas externos  
-  Recurso: [refactoring.guru/design-patterns/adapter](https://refactoring.guru/design-patterns/adapter)  
-  Por quê: `CamaraAdapter` e `SenadoAdapter` seguem este padrão
+      Recurso: [refactoring.guru/design-patterns/adapter](https://refactoring.guru/design-patterns/adapter)  
+      Por quê: `CamaraAdapter` e `SenadoAdapter` seguem este padrão
 
 - [ ] **Redis** — estruturas de dados, TTL, invalidação de cache  
-  Recurso: [redis.io/docs/data-types](https://redis.io/docs/data-types)  
-  Por quê: camada de cache entre APIs externas e banco
+      Recurso: [redis.io/docs/data-types](https://redis.io/docs/data-types)  
+      Por quê: camada de cache entre APIs externas e banco
 
 - [ ] **Docker Compose** — orquestração local de serviços  
-  Recurso: [docs.docker.com/compose](https://docs.docker.com/compose)  
-  Por quê: sobe PostgreSQL + Redis + Backend juntos
+      Recurso: [docs.docker.com/compose](https://docs.docker.com/compose)  
+      Por quê: sobe PostgreSQL + Redis + Backend juntos
 
 - [ ] **GitHub Actions** — pipelines de CI/CD  
-  Recurso: [docs.github.com/en/actions](https://docs.github.com/en/actions)  
-  Por quê: pipeline de testes automáticos e deploy
+      Recurso: [docs.github.com/en/actions](https://docs.github.com/en/actions)  
+      Por quê: pipeline de testes automáticos e deploy
 
 - [ ] **12-Factor App — config**  
-  Recurso: [12factor.net/config](https://12factor.net/config)  
-  Por quê: URLs das APIs e credenciais do banco sem hardcode no código
+      Recurso: [12factor.net/config](https://12factor.net/config)  
+      Por quê: URLs das APIs e credenciais do banco sem hardcode no código
 
 ### Designer (integração com backend)
 
 - [ ] **OpenAPI / Swagger** — como ler a documentação da API gerada pelo FastAPI  
-  Recurso: [swagger.io/docs/specification/about](https://swagger.io/docs/specification/about/)  
-  Por quê: o backend expõe Swagger automaticamente; designer lê para integrar o frontend sem esperar o dev
+      Recurso: [swagger.io/docs/specification/about](https://swagger.io/docs/specification/about/)  
+      Por quê: o backend expõe Swagger automaticamente; designer lê para integrar o frontend sem esperar o dev
 
 ---
 
-*Última atualização: consulte o histórico de commits do repositório.*
+_Última atualização: consulte o histórico de commits do repositório._
