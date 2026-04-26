@@ -47,5 +47,8 @@ pnpm-debug.log*
 .idea/
 .vscode/
 
+# IA
+GEMINI.md
+
 # Local docs/build artifacts
 docs/_build/

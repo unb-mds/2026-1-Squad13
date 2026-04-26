@@ -33,6 +33,11 @@ Fluxo:
     → Invalida cache Redis
 ```
 
+**Estratégia de Persistência Histórica:**
+A coleta de dados ocorrerá em dois modos distintos:
+1.  **Backfill (Carga Inicial):** A primeira execução do worker fará a ingestão do histórico de proposições de um período inicial pré-definido (ex: os últimos 5 anos). Isso garante que o sistema tenha massa de dados útil desde o início.
+2.  **Ingestão Incremental Diária:** As execuções subsequentes focarão apenas nas atualizações incrementais (novas proposições e mudanças de status das existentes). O processo deve ser idempotente, garantindo que execuções repetidas para o mesmo período não gerem dados duplicados.
+
 ---
 
 ## Alternativas consideradas
