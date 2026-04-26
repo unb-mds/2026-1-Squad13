@@ -34,6 +34,18 @@ CamaraAdapter  ──┐
 SenadoAdapter  ──┘
 ```
 
+Além da conversão de formatos, os Adapters e a camada de integração aplicarão duas regras de negócio cruciais:
+
+**1. Deduplicação e Identificador Canônico:**
+Proposições que tramitam em mais de uma casa (Câmara e Senado) representam a mesma proposição lógica no domínio do sistema. Para tratar isso, será criado um **identificador canônico** composto por `tipo + numero + ano` (ex: `PL_123_2023`). O sistema armazenará a origem do dado (Câmara ou Senado) e os IDs externos correspondentes (cross-reference) vinculados a este identificador único.
+
+**2. Normalização de Status:**
+O "caos" de diferentes status governamentais será mapeado para uma taxonomia interna padronizada e reduzida (Máquina de Estados). Os status normalizados iniciais serão: `EM_TRAMITACAO`, `APROVADA`, `REJEITADA`, `ARQUIVADA`, `PROMULGADA` e `DESCONHECIDA`. 
+Para fins de auditoria e rastreabilidade (Data Lineage), o sistema persistirá:
+*   O status original bruto (da API).
+*   O status normalizado.
+*   A origem da regra de mapeamento aplicada.
+
 Implementação:
 
 ```python

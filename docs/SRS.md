@@ -57,6 +57,11 @@ O sistema dependerá de APIs públicas fornecidas por órgãos legislativos, esp
 
 A disponibilidade, completude e consistência das informações exibidas dependerão da qualidade dos dados retornados por essas fontes externas.
 
+### 6.1 Regras de Higienização e Resolução de Conflitos
+Devido à natureza dos dados legislativos, o sistema aplicará regras de higienização durante a ingestão:
+*   **Deduplicação Lógica:** Registros provenientes de fontes diferentes (Câmara e Senado) que representem a mesma proposição (mesmo tipo, número e ano) serão unificados sob um identificador canônico no sistema.
+*   **Normalização de Status:** Os diversos status de tramitação retornados pelas APIs serão mapeados para uma taxonomia interna padronizada, preservando o status original para auditoria.
+
 ## 7. Observações Finais
 
 Este documento representa uma versão inicial e leve da especificação de requisitos do sistema. Ele poderá ser revisado ao longo do desenvolvimento, conforme evolução do entendimento do domínio, validação do grupo e refinamento do escopo do produto.
