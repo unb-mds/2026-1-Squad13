@@ -1,0 +1,14 @@
+[project]
+name = "monitor-legislativo-backend"
+version = "0.1.0"
+description = "Backend do MVP de monitoramento legislativo"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi[standard]",
+  "requests>=2.33.1",
+  "uvicorn[standard]",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
