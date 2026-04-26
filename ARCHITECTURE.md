@@ -82,6 +82,14 @@ MVC foi pensado para aplicações web monolíticas com interface acoplada. O Con
 
 Clean Architecture é a evolução natural da Layered e seria a escolha ideal para um sistema de longa vida. Para um projeto semestral com time em formação, o overhead de abstrações (ports, adapters, interfaces) atrasa entregas. O código será estruturado de forma a facilitar a migração futura.
 
+### Estratégia de Implementação Iterativa
+
+O projeto adota a Layered Architecture como objetivo estrutural, mas a implementação seguirá uma abordagem iterativa e progressiva. 
+
+Na fase inicial de prototipação, é aceitável que a lógica esteja concentrada (ex: em um único arquivo `main.py` com dados em memória) para validar conceitos rapidamente. À medida que o desenvolvimento avança e a complexidade aumenta (integração real com banco de dados e APIs externas), o código será refatorado e movido para os diretórios definitivos (`domain/`, `application/`, `infrastructure/`, `presentation/`).
+
+Essa abordagem evita o overhead de abstrações prematuras e permite que a equipe aprenda e aplique os conceitos arquiteturais passo a passo.
+
 ---
 
 ## Estrutura de pastas
