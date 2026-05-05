@@ -8,12 +8,12 @@
 
 ## Contexto
 
-O sistema precisa armazenar leis, históricos de tramitação e calcular métricas temporais como:
+O sistema precisa armazenar projetos de lei, históricos de tramitação e calcular métricas temporais como:
 
 - Tempo médio de tramitação por tema
-- Tempo médio por relator
-- Leis paradas por período
-- Evolução histórica do status de uma lei
+- Tempo médio por autor
+- Projetos de lei parados por período
+- Evolução histórica do status de um projeto de lei
 
 Essas consultas envolvem agregações sobre datas e janelas temporais. A escolha do banco impacta diretamente a complexidade do código de análise.
 
@@ -31,8 +31,8 @@ Exemplo de consulta que o PostgreSQL resolve nativamente:
 SELECT
   tema,
   AVG(dias_tramitacao) OVER (PARTITION BY tema) as media_por_tema,
-  AVG(dias_tramitacao) OVER (PARTITION BY relator) as media_por_relator
-FROM leis;
+  AVG(dias_tramitacao) OVER (PARTITION BY autor) as media_por_autor
+FROM projetos_de_lei;
 ```
 
 ---
