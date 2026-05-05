@@ -1,4 +1,4 @@
-# Tech Stack: Monitoramento de Tempo de Tramitação de Leis
+# Tech Stack: Monitoramento de Tempo de Tramitação de Projetos de Lei
 
 Resumo das tecnologias principais usadas no projeto, explicando **o que é** e **por que escolhemos essa tecnologia**, ligando tudo aos [ADRs](docs/adr/) e à [arquitetura definida em `ARCHITECTURE.md`](ARCHITECTURE.md).
 
@@ -69,7 +69,7 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 
 - **O que é:** padrão de design para isolar APIs externas.
 - **Por que usamos:** [ADR-005: Adapter Pattern](docs/adr/ADR-005-adapter-pattern.md)
-  - `CamaraAdapter` e `SenadoAdapter` convertem formatos diferentes para entidade `Lei`.
+  - `CamaraAdapter` e `SenadoAdapter` convertem formatos diferentes para entidade `ProjetoDeLei`.
 - **Camada na arquitetura:** Infraestrutura (`src/infrastructure/adapters/`).
 
 ---
