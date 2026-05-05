@@ -1,4 +1,4 @@
-# Cheat Sheet do Projeto: Monitoramento de Tempo de Tramitação de Leis
+# Cheat Sheet do Projeto: Monitoramento de Tempo de Tramitação de Projetos de Lei
 
 Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 
@@ -53,7 +53,7 @@ Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 ## 6. Redis
 
 - `redis-cli` → acessar Redis.
-- `keys LEI*` → ver chaves de cache [ADR-006].
+- `keys PROJETO_DE_LEI*` → ver chaves de cache [ADR-006].
 - `FLUSHALL` → limpar cache (apenas em dev).
 
 ---
