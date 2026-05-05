@@ -1,6 +1,6 @@
 # Arquitetura de Software
 
-## Monitoramento de Tempo de Tramitação de Leis
+## Monitoramento de Tempo de Tramitação de Projetos de Lei
 
 ---
 
@@ -24,7 +24,7 @@ O frontend chama o backend via REST? GraphQL? O worker de coleta escreve direto 
 
 ### Onde ficam as regras de negócio
 
-A lógica de "essa lei está parada há mais de 180 dias" fica no banco (stored procedure), no backend (serviço Python) ou no frontend (JavaScript)?
+A lógica de "esse projeto de lei está parado há mais de 180 dias" fica no banco (stored procedure), no backend (serviço Python) ou no frontend (JavaScript)?
 
 ### Como o sistema lida com falhas externas
 
@@ -56,13 +56,13 @@ O sistema é dividido em 4 camadas horizontais. Cada camada só conversa com a c
 │                Aplicação                        │
 │   Services · casos de uso · orquestração        │
 │   Sabe O QUE fazer. Delega o COMO para baixo.   │
-│   Ex: BuscarLeisParadasService                  │
+│   Ex: BuscarProjetosDeLeiParadosService         │
 ├─────────────────────────────────────────────────┤
 │                 Domínio                         │
 │   Entidades · regras de negócio · cálculos      │
 │   Zero dependências externas. Funciona sem      │
 │   banco, sem HTTP, sem framework.               │
-│   Ex: Lei · Tramitacao · dias_parada()          │
+│   Ex: ProjetoDeLei · Tramitacao · dias_parada() │
 ├─────────────────────────────────────────────────┤
 │              Infraestrutura                     │
 │   Banco · APIs externas · Cache · Workers       │
@@ -118,14 +118,14 @@ Essa abordagem evita o overhead de abstrações prematuras e permite que a equip
 │       ├── main.py
 │       ├── presentation/
 │       │   └── controllers/
-│       │       └── lei_controller.py
+│       │       └── projeto_de_lei_controller.py
 │       ├── application/
 │       │   └── services/
-│       │       ├── buscar_leis_paradas_service.py
+│       │       ├── buscar_projetos_de_lei_parados_service.py
 │       │       └── gerar_relatorio_service.py
 │       ├── domain/
 │       │   ├── entities/
-│       │   │   ├── lei.py
+│       │   │   ├── projeto_de_lei.py
 │       │   │   └── tramitacao.py
 │       │   └── exceptions.py
 │       └── infrastructure/
@@ -133,7 +133,7 @@ Essa abordagem evita o overhead de abstrações prematuras e permite que a equip
 │           │   ├── camara_adapter.py
 │           │   └── senado_adapter.py
 │           ├── repositories/
-│           │   └── lei_repository.py
+│           │   └── projeto_de_lei_repository.py
 │           └── cache/
 │               └── redis_cache.py
 │
@@ -150,13 +150,13 @@ Essa abordagem evita o overhead de abstrações prematuras e permite que a equip
     │   │   └── constants/
     │   ├── features/
     │   │   ├── dashboard/
-    │   │   ├── leis/
+    │   │   ├── projetos_de_lei/
     │   │   ├── tramitacoes/
     │   │   ├── relatorios/
     │   │   └── filtros/
     │   ├── pages/
     │   │   ├── dashboard-page.tsx
-    │   │   ├── leis-paradas-page.tsx
+    │   │   ├── projetos-de-lei-parados-page.tsx
     │   │   └── relatorios-page.tsx
     │   └── main.tsx
     ```
@@ -288,7 +288,7 @@ GET /materia/{codigo}/relatorias        → relatorias
 
 ### Diferença crítica
 
-A Câmara usa o termo "proposição"; o Senado usa "matéria". São a mesma entidade com nomes e campos diferentes. O sistema normaliza os dois formatos para a entidade de domínio `Lei`.
+A Câmara usa o termo "proposição"; o Senado usa "matéria". São a mesma entidade com nomes e campos diferentes. O sistema normaliza os dois formatos para a entidade de domínio `ProjetoDeLei`.
 
 ### Decisões de integração
 
@@ -297,11 +297,11 @@ Worker executa todo dia às 02h (horário de Brasília). O usuário sempre lê d
 → `docs/adr/ADR-004-batch-coleta.md`
 
 **2. Normalização: adaptador por fonte**  
-`CamaraAdapter` e `SenadoAdapter` convertem cada formato para a entidade `Lei` do domínio. O restante do sistema não sabe que existem duas fontes.  
+`CamaraAdapter` e `SenadoAdapter` convertem cada formato para a entidade `ProjetoDeLei` do domínio. O restante do sistema não sabe que existem duas fontes.  
 → `docs/adr/ADR-005-adapter-pattern.md`
 
 **3. Deduplicação: por número canônico**  
-Formato: `{sigla} {numero}/{ano}` — ex: `PL 1234/2023`. Uma lei que tramita nas duas casas tem um único registro no banco. Estratégia: upsert por número canônico.
+Formato: `{sigla} {numero}/{ano}` — ex: `PL 1234/2023`. Um projeto de lei que tramita nas duas casas tem um único registro no banco. Estratégia: upsert por número canônico.
 
 **4. Falhas: retry com backoff exponencial**  
 3 tentativas: 1s → 2s → 4s. Se todas falharem: log de erro + alerta. Coleta parcial (uma fonte falha, a outra não) é aceitável — o sistema registra quais fontes foram coletadas em cada execução.

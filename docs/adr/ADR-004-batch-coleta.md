@@ -13,7 +13,7 @@ O sistema precisa coletar dados de tramitação das APIs da Câmara e do Senado.
 A escolha impacta diretamente a experiência do usuário, a resiliência do sistema e a complexidade de implementação.
 
 Fatores relevantes:
-- Leis não tramitam de hora em hora — mudanças são diárias ou semanais
+- Projetos de lei não tramitam de hora em hora — mudanças são diárias ou semanais
 - As APIs públicas não têm SLA garantido e podem ficar instáveis
 - O sistema precisa acumular histórico para calcular métricas temporais
 - O usuário não deve esperar 3–5 segundos por uma pesquisa
@@ -35,8 +35,8 @@ Fluxo:
 
 **Estratégia de Persistência Histórica:**
 A coleta de dados ocorrerá em dois modos distintos:
-1.  **Backfill (Carga Inicial):** A primeira execução do worker fará a ingestão do histórico de proposições de um período inicial pré-definido (ex: os últimos 5 anos). Isso garante que o sistema tenha massa de dados útil desde o início.
-2.  **Ingestão Incremental Diária:** As execuções subsequentes focarão apenas nas atualizações incrementais (novas proposições e mudanças de status das existentes). O processo deve ser idempotente, garantindo que execuções repetidas para o mesmo período não gerem dados duplicados.
+1.  **Backfill (Carga Inicial):** A primeira execução do worker fará a ingestão do histórico de projetos de lei de um período inicial pré-definido (ex: os últimos 5 anos). Isso garante que o sistema tenha massa de dados útil desde o início.
+2.  **Ingestão Incremental Diária:** As execuções subsequentes focarão apenas nas atualizações incrementais (novos projetos de lei e mudanças de status das existentes). O processo deve ser idempotente, garantindo que execuções repetidas para o mesmo período não gerem dados duplicados.
 
 ---
 
