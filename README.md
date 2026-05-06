@@ -2,7 +2,7 @@
 
 ## Visão geral
 
-Sistema para busca e acompanhamento de projetos de lei (PL), permitindo consulta por filtros como número, ano, autor, UF do autor e status de tramitação.
+Sistema para busca e acompanhamento de proposições legislativas, com foco inicial em PL e PEC, permitindo consulta por filtros como tipo, número, ano, autor, UF do autor e status de tramitação.
 
 ## Estrutura do repositório
 
