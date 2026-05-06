@@ -24,20 +24,20 @@ Vamos usar o **padrão Adapter** para isolar cada fonte de dados em um módulo d
 Cada adapter é responsável por:
 1. Fazer as chamadas HTTP à API correspondente
 2. Tratar paginação
-3. Normalizar o formato da resposta para a entidade canônica `ProjetoDeLei` do domínio
+3. Normalizar o formato da resposta para a entidade `Lei` do domínio
 
-A camada de Aplicação trabalha apenas com a entidade `ProjetoDeLei` — nunca com o formato bruto das APIs. Ambas as fontes (Câmara e Senado) são mapeadas para esta mesma entidade unificada.
+A camada de Aplicação trabalha apenas com a entidade `Lei` — nunca com o formato bruto das APIs.
 
 ```
 CamaraAdapter  ──┐
-                 ├──→ ProjetoDeLei (entidade do domínio)
+                 ├──→ Lei (entidade do domínio)
 SenadoAdapter  ──┘
 ```
 
 Além da conversão de formatos, os Adapters e a camada de integração aplicarão duas regras de negócio cruciais:
 
 **1. Deduplicação e Identificador Canônico:**
-Projetos de lei que tramitam em mais de uma casa (Câmara e Senado) representam a mesma proposição lógica no domínio do sistema. Para tratar isso, será criado um **identificador canônico** composto por `numero + ano` (ex: `123_2023`). O sistema armazenará a origem do dado (Câmara ou Senado) e os IDs externos correspondentes (cross-reference) vinculados a este identificador único. No contexto deste MVP, como tratamos apenas PLs, o tipo é implícito na entidade `ProjetoDeLei`.
+Proposições que tramitam em mais de uma casa (Câmara e Senado) representam a mesma proposição lógica no domínio do sistema. Para tratar isso, será criado um **identificador canônico** composto por `tipo + numero + ano` (ex: `PL_123_2023`). O sistema armazenará a origem do dado (Câmara ou Senado) e os IDs externos correspondentes (cross-reference) vinculados a este identificador único.
 
 **2. Normalização de Status:**
 O "caos" de diferentes status governamentais será mapeado para uma taxonomia interna padronizada e reduzida (Máquina de Estados). Os status normalizados iniciais serão: `EM_TRAMITACAO`, `APROVADA`, `REJEITADA`, `ARQUIVADA`, `PROMULGADA` e `DESCONHECIDA`. 
@@ -51,14 +51,14 @@ Implementação:
 ```python
 # infrastructure/adapters/camara_adapter.py
 class CamaraAdapter:
-    def buscar_projetos_de_lei(self, filtros: dict) -> list[ProjetoDeLei]:
-        # chama API, pagina, normaliza → ProjetoDeLei
+    def buscar_proposicoes(self, tema: str) -> list[Lei]:
+        # chama API, pagina, normaliza → Lei
         ...
 
 # infrastructure/adapters/senado_adapter.py
 class SenadoAdapter:
-    def buscar_projetos_de_lei(self, filtros: dict) -> list[ProjetoDeLei]:
-        # chama API, pagina, normaliza → ProjetoDeLei
+    def buscar_materias(self, tema: str) -> list[Lei]:
+        # chama API, pagina, normaliza → Lei
         ...
 ```
 
@@ -88,4 +88,4 @@ class SenadoAdapter:
 
 **Riscos:**
 - Normalização incompleta pode introduzir campos `None` que quebram o domínio
-- Mitigação: validação com Pydantic na saída de cada adapter antes de retornar `ProjetoDeLei`
+- Mitigação: validação com Pydantic na saída de cada adapter antes de retornar `Lei`

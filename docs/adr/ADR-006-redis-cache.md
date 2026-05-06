@@ -10,8 +10,8 @@
 
 Mesmo com a coleta em batch (ADR-004), algumas consultas do backend são computacionalmente pesadas ou repetidas com frequência, como:
 
-- Listagem de projetos de lei parados por tema (consulta agregada)
-- Ranking de autores com mais projetos de lei parados
+- Listagem de leis paradas por tema (consulta agregada)
+- Ranking de relatores com mais leis paradas
 - Dados do dashboard principal (acessado por todos os usuários)
 
 Sem cache, cada requisição do usuário executa uma query no banco. Com o volume de dados legislativos históricos, algumas queries podem demorar mais do que o aceitável.
@@ -27,7 +27,7 @@ Vamos usar **Redis** como camada de cache para respostas de consultas frequentes
 Estratégia:
 - TTL padrão: 1 hora para consultas gerais
 - Invalidação ativa: após cada coleta bem-sucedida (ADR-004), o worker invalida as chaves de cache afetadas
-- Cache key pattern: `{recurso}:{parametros}` — ex: `projetos_de_lei_parados:educacao`
+- Cache key pattern: `{recurso}:{parametros}` — ex: `leis_paradas:educacao`
 
 ```python
 # infrastructure/cache/redis_cache.py
