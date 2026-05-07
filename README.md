@@ -34,6 +34,22 @@ A aplicação ficará disponível localmente em uma URL como:
 - http://127.0.0.1:8000
 - http://127.0.0.1:8000/docs
 
+### Rodando os testes
+
+Os testes estão divididos em unitários e de integração (marcados com `integration`).
+
+```bash
+cd backend
+# Rodar apenas testes unitários (rápidos)
+uv run pytest -m "not integration"
+
+# Rodar testes de integração (podem chamar APIs externas)
+uv run pytest -m "integration"
+
+# Rodar todos os testes
+uv run pytest
+```
+
 ## Arquitetura
 
 Para entender como o sistema é estruturado, as decisões técnicas tomadas e o que cada membro do time precisa estudar, leia o [ARCHITECTURE.md](./ARCHITECTURE.md).
@@ -51,4 +67,5 @@ Para entender como o sistema é estruturado, as decisões técnicas tomadas e o 
 
 ## Estado atual
 
-Atualmente o projeto possui a estrutura inicial do backend e a primeira configuração local com FastAPI. O frontend e as integrações externas ainda estão em construção.
+Atualmente o projeto possui a estrutura inicial do backend, configuração de testes automatizados (unitários e de integração) e a primeira configuração local com FastAPI. O frontend e as integrações externas ainda estão em construção.
+egrações externas ainda estão em construção.

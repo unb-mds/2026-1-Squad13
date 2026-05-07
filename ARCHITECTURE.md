@@ -92,6 +92,35 @@ Essa abordagem evita o overhead de abstrações prematuras e permite que a equip
 
 ---
 
+## Estratégia de Testes
+
+**Decisão registrada em:** `docs/adr/ADR-007-testing-strategy.md`
+
+O projeto adota uma pirâmide de testes focada em garantir a confiabilidade das regras de negócio e das integrações com APIs externas.
+
+### Pirâmide de Testes
+
+1.  **Testes de Unidade (`tests/unit/`):** Testam a lógica de negócio no Domínio e nos Serviços de Aplicação de forma isolada, sem dependências externas.
+2.  **Testes de Integração (`tests/integration/`):** Testam a comunicação entre as camadas (Apresentação -> Aplicação -> Infraestrutura) e a integração com componentes como o banco de dados e APIs externas (usando mocks quando necessário).
+
+### Ferramentas
+
+- **pytest:** Framework principal de testes.
+- **httpx:** Cliente para testes de integração de API (via `TestClient`).
+- **pytest-asyncio:** Suporte para testes de funções assíncronas.
+
+### Organização de Arquivos
+
+O projeto utiliza uma hierarquia de arquivos `conftest.py` para gerenciar fixtures de forma eficiente:
+
+- `tests/conftest.py`: Fixtures globais (entidades de exemplo).
+- `tests/unit/conftest.py`: Mocks e serviços para testes de unidade.
+- `tests/integration/conftest.py`: Clientes HTTP e de API para integração.
+
+O arquivo `pytest.ini` define marcadores e o `pythonpath` para simplificar as importações nos testes.
+
+---
+
 ## Estrutura de pastas
 
 ````
