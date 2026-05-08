@@ -1,7 +1,7 @@
 # ADR-003: FastAPI como framework do backend
 
 **Data:** 2026-04-09  
-**Status:** Proposta  
+**Status:** Aceita  
 **Decisores:** Arquiteto, Dev, PO  
 
 ---

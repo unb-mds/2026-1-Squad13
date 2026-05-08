@@ -1,14 +1,14 @@
 # ADR-001: Layered Architecture como padrão arquitetural
 
 **Data:** 2026-04-09  
-**Status:** Proposta  
+**Status:** Aceita  
 **Decisores:** Arquiteto, Dev, PO, Scrum Master  
 
 ---
 
 ## Contexto
 
-O sistema de Monitoramento de Tempo de Tramitação de Leis precisa de um padrão arquitetural que permita:
+O sistema de Monitoramento de Tempo de Tramitação de Proposições precisa de um padrão arquitetural que permita:
 
 - Trabalho paralelo entre 6 pessoas com papéis distintos
 - Isolamento das APIs externas da Câmara e do Senado, que não controlamos

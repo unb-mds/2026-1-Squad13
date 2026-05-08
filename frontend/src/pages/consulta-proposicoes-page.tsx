@@ -3,7 +3,7 @@ import { FileText } from 'lucide-react'
 import { listarProposicoes } from '@/shared/lib/api'
 import type { Proposicao, FiltrosProposicao } from '@/shared/types'
 import { ITENS_POR_PAGINA } from '@/shared/constants'
-import { ProposicaoCard, ProposicaoListaSkeleton } from '@/features/leis/ProposicaoCard'
+import { ProposicaoCard, ProposicaoListaSkeleton } from '@/features/proposicoes/ProposicaoCard'
 import { PainelFiltros, FILTROS_VAZIOS } from '@/features/filtros/PainelFiltros'
 import { Pagination, EmptyState } from '@/shared/ui'
 
