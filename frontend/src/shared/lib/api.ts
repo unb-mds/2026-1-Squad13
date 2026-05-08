@@ -47,13 +47,63 @@ export async function recuperarSenhaApi(_email: string): Promise<void> {
 // --- Proposições ---
 export async function listarProposicoes(
   filtros: FiltrosProposicao,
-  pagina: number,
-  itensPorPagina: number
+  _pagina: number,
+  _itensPorPagina: number
 ): Promise<{ items: Proposicao[]; total: number }> {
-  await delay(500)
-  const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
-  const items = paginar(filtradas, pagina, itensPorPagina)
-  return { items, total: filtradas.length }
+  const params = new URLSearchParams()
+
+  if (filtros.tipo) params.append('tipo', filtros.tipo)
+  if (filtros.status) params.append('status_tramitacao', filtros.status)
+  
+  // Tentando extrair ano da busca ou das datas para o backend atual
+  if (filtros.dataInicio) {
+    const ano = new Date(filtros.dataInicio).getFullYear()
+    if (!isNaN(ano)) params.append('ano', ano.toString())
+  }
+
+  // Se a busca for um número, enviamos como número para o backend
+  if (/^\d+$/.test(filtros.busca)) {
+    params.append('numero', filtros.busca)
+  } else if (filtros.busca) {
+    params.append('autor', filtros.busca)
+  }
+
+  try {
+    const response = await fetch(`http://localhost:8000/proposicoes?${params.toString()}`)
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Erro ao buscar proposições')
+    }
+
+    const data = await response.json()
+    
+    // Mapeamento para adaptar o que o backend retorna ao que o frontend espera
+    const items = data.items.map((item: any) => ({
+      id: String(item.id),
+      tipo: item.tipo,
+      numero: String(item.numero),
+      ano: item.ano,
+      ementa: item.ementa,
+      ementaResumida: item.ementa.substring(0, 100) + '...',
+      autor: item.autor,
+      orgaoOrigem: item.tipo === 'PEC' ? 'Senado Federal' : 'Câmara dos Deputados', // Lógica simples baseada no tipo
+      status: item.statusTramitacao,
+      orgaoAtual: item.orgaoAtual,
+      dataApresentacao: item.dataApresentacao,
+      dataUltimaMovimentacao: item.dataUltimaMovimentacao,
+      linkOficial: item.linkOficial,
+      tempoTotalDias: 0, // Poderia ser calculado aqui se quisermos
+      temAtraso: false,
+      temPrevisaoIA: false,
+      tags: item.tags,
+    }))
+
+    return { items, total: data.total }
+  } catch (error) {
+    console.error('Erro na API:', error)
+    throw error
+  }
 }
 
 export async function obterProposicao(id: string): Promise<Proposicao | null> {
