@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, List
 
 @dataclass(frozen=True)
 class Proposicao:
@@ -15,6 +15,11 @@ class Proposicao:
     uf_autor: str
     status_tramitacao: str
     ementa: str
+    data_apresentacao: str
+    data_ultima_movimentacao: str
+    orgao_atual: str
+    link_oficial: Optional[str] = None
+    tags: List[str] = field(default_factory=list)
 
     @property
     def nome_canonico(self) -> str:

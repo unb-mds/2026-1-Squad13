@@ -16,7 +16,12 @@ class ProposicaoRepository:
                 autor="João Silva",
                 uf_autor="DF",
                 status_tramitacao="Em tramitação",
-                ementa="Dispõe sobre transparência em processos públicos."
+                ementa="Dispõe sobre transparência em processos públicos.",
+                data_apresentacao="2024-01-15",
+                data_ultima_movimentacao="2024-03-20",
+                orgao_atual="CCJ",
+                link_oficial="https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=1",
+                tags=["Transparência", "Administração Pública"]
             ),
             Proposicao(
                 id=2,
@@ -26,7 +31,12 @@ class ProposicaoRepository:
                 autor="Maria Souza",
                 uf_autor="SP",
                 status_tramitacao="Aprovada",
-                ementa="Altera dispositivo constitucional sobre orçamento."
+                ementa="Altera dispositivo constitucional sobre orçamento.",
+                data_apresentacao="2023-05-10",
+                data_ultima_movimentacao="2023-12-15",
+                orgao_atual="Plenário",
+                link_oficial="https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2",
+                tags=["Economia", "Constitucional"]
             ),
         ]
 

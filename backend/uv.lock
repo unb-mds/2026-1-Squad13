@@ -656,6 +656,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
+    { name = "pydantic" },
     { name = "requests" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -678,6 +679,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", extras = ["standard"] },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.2" },
+    { name = "pydantic", specifier = ">=2.0" },
     { name = "requests", specifier = ">=2.33.1" },
     { name = "uvicorn", extras = ["standard"] },
 ]
