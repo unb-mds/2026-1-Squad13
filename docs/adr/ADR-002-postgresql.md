@@ -1,19 +1,19 @@
 # ADR-002: PostgreSQL como banco de dados
 
 **Data:** 2026-04-09  
-**Status:** Proposta  
+**Status:** Aceita  
 **Decisores:** Arquiteto, Dev  
 
 ---
 
 ## Contexto
 
-O sistema precisa armazenar leis, históricos de tramitação e calcular métricas temporais como:
+O sistema precisa armazenar proposicoes, históricos de tramitação e calcular métricas temporais como:
 
 - Tempo médio de tramitação por tema
 - Tempo médio por relator
-- Leis paradas por período
-- Evolução histórica do status de uma lei
+- Proposições paradas por período
+- Evolução histórica do status de uma proposicao
 
 Essas consultas envolvem agregações sobre datas e janelas temporais. A escolha do banco impacta diretamente a complexidade do código de análise.
 
@@ -32,7 +32,7 @@ SELECT
   tema,
   AVG(dias_tramitacao) OVER (PARTITION BY tema) as media_por_tema,
   AVG(dias_tramitacao) OVER (PARTITION BY relator) as media_por_relator
-FROM leis;
+FROM proposicoes;
 ```
 
 ---
@@ -62,3 +62,4 @@ FROM leis;
 **Riscos:**
 - Migrations mal feitas podem corromper dados históricos coletados
 - Mitigação: usar Alembic para controle de migrations com versionamento
+ento

@@ -1,4 +1,4 @@
-# Tech Stack: Monitoramento de Tempo de Tramitação de Leis
+# Tech Stack: Monitoramento de Tempo de Tramitação de Proposições
 
 Resumo das tecnologias principais usadas no projeto, explicando **o que é** e **por que escolhemos essa tecnologia**, ligando tudo aos [ADRs](docs/adr/) e à [arquitetura definida em `ARCHITECTURE.md`](ARCHITECTURE.md).
 
@@ -8,9 +8,9 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 
 - **Backend:** Python + FastAPI + SQLAlchemy + Pydantic
 - **Frontend:** React + Vite
-- **Banco de dados:** [PostgreSQL](docs/adr/ADR-002-postgresql.md)
-- **Cache + Celery broker:** [Redis](docs/adr/ADR-006-redis-cache.md)
-- **Worker & agendamento:** Celery + Celery Beat
+- **Banco de dados:** [PostgreSQL](docs/adr/ADR-002-postgresql.md) (Planejado/Mock em memória no momento)
+- **Cache + Celery broker:** [Redis](docs/adr/ADR-006-redis-cache.md) (Planejado)
+- **Worker & agendamento:** Celery + Celery Beat (Planejado)
 - **Contêineres:** Docker Compose
 - **CI/CD:** GitHub Actions
 
@@ -42,6 +42,7 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 - **Por que usamos:** [ADR-002: PostgreSQL](docs/adr/ADR-002-postgresql.md)
   - Permite calcular métricas temporais diretamente em SQL.
   - Suporta SQLAlchemy com interface assíncrona.
+- **Estado atual:** O sistema utiliza um **Mock em memória** (`ProposicaoRepository`) para facilitar o desenvolvimento inicial. O PostgreSQL será integrado na próxima fase.
 - **Camada na arquitetura:** Infraestrutura (`src/infrastructure/repositories/`).
 
 ---
@@ -69,7 +70,7 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 
 - **O que é:** padrão de design para isolar APIs externas.
 - **Por que usamos:** [ADR-005: Adapter Pattern](docs/adr/ADR-005-adapter-pattern.md)
-  - `CamaraAdapter` e `SenadoAdapter` convertem formatos diferentes para entidade `Lei`.
+  - `CamaraAdapter` e `SenadoAdapter` convertem formatos diferentes para entidade `Proposicao`.
 - **Camada na arquitetura:** Infraestrutura (`src/infrastructure/adapters/`).
 
 ---

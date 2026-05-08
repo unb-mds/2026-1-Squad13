@@ -1,6 +1,6 @@
 # Arquitetura de Software
 
-## Monitoramento de Tempo de Tramitação de Leis
+## Monitoramento de Tempo de Tramitação de Proposições
 
 ---
 
@@ -24,7 +24,7 @@ O frontend chama o backend via REST? GraphQL? O worker de coleta escreve direto 
 
 ### Onde ficam as regras de negócio
 
-A lógica de "essa lei está parada há mais de 180 dias" fica no banco (stored procedure), no backend (serviço Python) ou no frontend (JavaScript)?
+A lógica de "essa proposição está parada há mais de 180 dias" fica no banco (stored procedure), no backend (serviço Python) ou no frontend (JavaScript)?
 
 ### Como o sistema lida com falhas externas
 
@@ -56,13 +56,13 @@ O sistema é dividido em 4 camadas horizontais. Cada camada só conversa com a c
 │                Aplicação                        │
 │   Services · casos de uso · orquestração        │
 │   Sabe O QUE fazer. Delega o COMO para baixo.   │
-│   Ex: BuscarLeisParadasService                  │
+│   Ex: BuscarProposicoesService                  │
 ├─────────────────────────────────────────────────┤
 │                 Domínio                         │
 │   Entidades · regras de negócio · cálculos      │
 │   Zero dependências externas. Funciona sem      │
 │   banco, sem HTTP, sem framework.               │
-│   Ex: Lei · Tramitacao · dias_parada()          │
+│   Ex: Proposicao · Tramitacao · dias_parada()   │
 ├─────────────────────────────────────────────────┤
 │              Infraestrutura                     │
 │   Banco · APIs externas · Cache · Workers       │
@@ -86,7 +86,14 @@ Clean Architecture é a evolução natural da Layered e seria a escolha ideal pa
 
 O projeto adota a Layered Architecture como objetivo estrutural, mas a implementação seguirá uma abordagem iterativa e progressiva. 
 
-Na fase inicial de prototipação, é aceitável que a lógica esteja concentrada (ex: em um único arquivo `main.py` com dados em memória) para validar conceitos rapidamente. À medida que o desenvolvimento avança e a complexidade aumenta (integração real com banco de dados e APIs externas), o código será refatorado e movido para os diretórios definitivos (`domain/`, `application/`, `infrastructure/`, `presentation/`).
+**Estado Atual:**
+Na fase inicial, a lógica está simplificada para validar conceitos rapidamente. O sistema utiliza um **Mock em memória** para o repositório (`proposicao_repository.py`), permitindo o desenvolvimento do frontend e da API sem a complexidade imediata do banco de dados.
+
+**Próximos Passos:**
+À medida que o desenvolvimento avança, o código será refatorado para incluir:
+1.  Integração real com banco de dados PostgreSQL.
+2.  Implementação de `Adapters` para coleta real das APIs da Câmara e Senado.
+3.  Uso de `Redis` para cache e `Celery` para tarefas agendadas.
 
 Essa abordagem evita o overhead de abstrações prematuras e permite que a equipe aprenda e aplique os conceitos arquiteturais passo a passo.
 
@@ -103,314 +110,82 @@ O projeto adota uma pirâmide de testes focada em garantir a confiabilidade das 
 1.  **Testes de Unidade (`tests/unit/`):** Testam a lógica de negócio no Domínio e nos Serviços de Aplicação de forma isolada, sem dependências externas.
 2.  **Testes de Integração (`tests/integration/`):** Testam a comunicação entre as camadas (Apresentação -> Aplicação -> Infraestrutura) e a integração com componentes como o banco de dados e APIs externas (usando mocks quando necessário).
 
-### Ferramentas
-
-- **pytest:** Framework principal de testes.
-- **httpx:** Cliente para testes de integração de API (via `TestClient`).
-- **pytest-asyncio:** Suporte para testes de funções assíncronas.
-
-### Organização de Arquivos
-
-O projeto utiliza uma hierarquia de arquivos `conftest.py` para gerenciar fixtures de forma eficiente:
-
-- `tests/conftest.py`: Fixtures globais (entidades de exemplo).
-- `tests/unit/conftest.py`: Mocks e serviços para testes de unidade.
-- `tests/integration/conftest.py`: Clientes HTTP e de API para integração.
-
-O arquivo `pytest.ini` define marcadores e o `pythonpath` para simplificar as importações nos testes.
-
 ---
 
 ## Estrutura de pastas
 
-````
+```text
 /
 ├── ARCHITECTURE.md              ← este arquivo
 ├── README.md                    ← setup e como rodar
 │
 ├── docs/
-│   ├── adr/
-│   │   ├── ADR-001-layered-architecture.md
-│   │   ├── ADR-002-postgresql.md
-│   │   ├── ADR-003-fastapi.md
-│   │   ├── ADR-004-batch-coleta.md
-│   │   ├── ADR-005-adapter-pattern.md
-│   │   └── ADR-006-redis-cache.md
-│   │
-│   └── diagrams/
-│       ├── c4-context.md
-│       ├── c4-container.md
-│       └── c4-component-backend.md
+│   ├── adr/                     ← Architecture Decision Records
+│   └── diagrams/                ← Diagramas C4 (PlantUML/Mermaid)
 │
 ├── backend/
 │   └── src/
 │       ├── main.py
-│       ├── presentation/
+│       ├── presentation/        ← Camada de Apresentação (Controllers, Schemas)
 │       │   └── controllers/
-│       │       └── lei_controller.py
-│       ├── application/
+│       │       └── proposicao_controller.py
+│       ├── application/         ← Camada de Aplicação (Services, Use Cases)
 │       │   └── services/
-│       │       ├── buscar_leis_paradas_service.py
+│       │       ├── buscar_proposicoes_service.py
 │       │       └── gerar_relatorio_service.py
-│       ├── domain/
+│       ├── domain/              ← Camada de Domínio (Entidades, Regras de Negócio)
 │       │   ├── entities/
-│       │   │   ├── lei.py
+│       │   │   ├── proposicao.py
 │       │   │   └── tramitacao.py
 │       │   └── exceptions.py
-│       └── infrastructure/
-│           ├── adapters/
-│           │   ├── camara_adapter.py
-│           │   └── senado_adapter.py
-│           ├── repositories/
-│           │   └── lei_repository.py
-│           └── cache/
-│               └── redis_cache.py
+│       └── infrastructure/      ← Camada de Infraestrutura (DB, APIs, Cache)
+│           ├── adapters/        ← Adaptores para APIs externas
+│           ├── repositories/    ← Repositórios (SQLAlchemy, Mocks)
+│           │   └── proposicao_repository.py
+│           ├── cache/           ← Configuração de Cache (Redis)
+│           └── workers/         ← Tarefas agendadas (Celery)
 │
 └── frontend/
     ├── src/
-    │   ├── app/
-    │   │   ├── router/
-    │   │   ├── providers/
-    │   │   └── layouts/
-    │   ├── shared/
-    │   │   ├── ui/
-    │   │   ├── lib/
-    │   │   ├── types/
-    │   │   └── constants/
-    │   ├── features/
-    │   │   ├── dashboard/
-    │   │   ├── leis/
-    │   │   ├── tramitacoes/
-    │   │   ├── relatorios/
-    │   │   └── filtros/
-    │   ├── pages/
-    │   │   ├── dashboard-page.tsx
-    │   │   ├── leis-paradas-page.tsx
-    │   │   └── relatorios-page.tsx
+    │   ├── app/                 ← Configurações globais, rotas e providers
+    │   ├── features/            ← Funcionalidades isoladas (ex: filtros, lista)
+    │   ├── pages/               ← Páginas da aplicação
+    │   ├── shared/              ← Componentes e libs compartilhados
     │   └── main.tsx
-    ```
+```
 
 ---
 
 ## Documentação de arquitetura
 
-Arquitetura de software é invisível — ela existe nas decisões, não no código. Documentar arquitetura é tornar essas decisões visíveis para pessoas diferentes, com níveis de detalhe diferentes.
-
-### Modelo adotado: C4
-
-**Decisão:** C4 Model (Simon Brown, 2018)
-
-O C4 funciona como um mapa com escalas diferentes: do geral para o detalhe, cada nível serve um público diferente.
-
-| Nível | Nome | Público | O que mostra |
-|-------|------|---------|--------------|
-| 1 | Context | Todos (prof., PO, time) | O sistema no mundo: usuários e sistemas externos |
-| 2 | Container | Devs, PO | Processos internos: frontend, backend, worker, banco |
-| 3 | Component | Devs | Módulos internos de cada container |
-| 4 | Code | Opcional | Classes e interfaces (UML de classes) |
-
-**Por que não UML puro:** genérico demais, ferramentas pesadas, difícil de versionar no Git.
-**Por que não arc42:** 12 seções, metade seria "não aplicável" no escopo acadêmico.
-**Por que não 4+1 Views:** pensado para times grandes com perspectivas radicalmente distintas.
-
-Os diagramas C4 do projeto estão em `docs/diagrams/`.
+Utilizamos o **Modelo C4** para documentar a arquitetura em diferentes níveis de detalhe. Os diagramas estão em `docs/diagrams/`.
 
 ---
 
 ## ADRs — Architecture Decision Records
 
-Um ADR é um documento curto que responde: "por que tomamos essa decisão, e o que consideramos antes". Cada decisão relevante gera um arquivo na pasta `docs/adr/`.
-
-### Template de ADR
-
-```markdown
-# ADR-00X: [Título curto da decisão]
-
-**Data:** YYYY-MM-DD
-**Status:** Proposta | Aceita | Depreciada | Substituída por ADR-XXX
-**Decisores:** [nomes ou papéis]
-
-## Contexto
-[O problema ou força que exige uma decisão.]
-
-## Decisão
-[A escolha feita, em voz ativa. "Vamos usar X porque Y."]
-
-## Alternativas consideradas
-
-| Opção | Prós | Contras |
-|-------|------|---------|
-| ...   | ...  | ...     |
-
-## Consequências
-
-**Positivas:** ...
-**Negativas / trade-offs:** ...
-**Riscos:** ...
-````
-
-### ADRs registradas
-
 | ID      | Decisão                                           | Status   |
 | ------- | ------------------------------------------------- | -------- |
-| ADR-001 | Layered Architecture como padrão arquitetural     | Proposta |
-| ADR-002 | PostgreSQL como banco de dados                    | Proposta |
-| ADR-003 | FastAPI como framework do backend                 | Proposta |
-| ADR-004 | Batch diário como estratégia de coleta            | Proposta |
-| ADR-005 | Adapter pattern para isolamento das APIs externas | Proposta |
-| ADR-006 | Redis para cache de respostas                     | Proposta |
-
-> **Regra:** toda mudança de decisão gera uma ADR nova que supersede a anterior.
-> Não se edita uma ADR aceita — cria-se ADR-00X com status "Substituída por ADR-00Y".
-
----
-
-## Stack tecnológica
-
-**Exemplo(Ainda não decidido)**:
-
-| Camada         | Tecnologia           | Justificativa                                                                       |
-| -------------- | -------------------- | ----------------------------------------------------------------------------------- |
-| Backend        | FastAPI (Python)     | I/O assíncrono reduz tempo de espera nas chamadas às APIs externas                  |
-| Frontend       | React + Vite         | Vite resolve build lento; ecossistema conhecido pelo time                           |
-| Banco de dados | PostgreSQL           | Funções de janela para agregações temporais (tempo médio por tema, ano, relator)    |
-| Cache          | Redis                | APIs legislativas têm rate limiting implícito; dados mudam no máximo uma vez ao dia |
-| Worker         | Celery + Celery Beat | Coleta periódica agendada sem bloquear a API principal                              |
-| Container      | Docker Compose       | Sobe PostgreSQL + Redis + Backend juntos em desenvolvimento                         |
-| CI/CD          | GitHub Actions       | Pipeline de testes e deploy integrado ao repositório                                |
+| ADR-001 | Layered Architecture como padrão arquitetural     | Aceita   |
+| ADR-002 | PostgreSQL como banco de dados                    | Aceita   |
+| ADR-003 | FastAPI como framework do backend                 | Aceita   |
+| ADR-004 | Batch diário como estratégia de coleta            | Aceita   |
+| ADR-005 | Adapter pattern para isolamento das APIs externas | Aceita   |
+| ADR-006 | Redis para cache de respostas                     | Aceita   |
+| ADR-007 | Estratégia de Testes                              | Aceita   |
 
 ---
 
 ## Integração com as APIs Legislativas
 
-> ⚠ Esta é a parte de maior risco técnico do sistema.
-> Leia esta seção antes de qualquer implementação de coleta.
-
-A API da Câmara (`dadosabertos.camara.leg.br`) e a do Senado (`legis.senado.leg.br`) têm formatos diferentes — o que reforça a necessidade da camada de Infraestrutura isolar essas diferenças do resto do sistema.
-
-### Fontes de dados
-
-| Fonte  | Base URL                          | Formato | Autenticação |
-| ------ | --------------------------------- | ------- | ------------ |
-| Câmara | dadosabertos.camara.leg.br/api/v2 | JSON    | Nenhuma      |
-| Senado | legis.senado.leg.br/sicon/rest    | JSON    | Nenhuma      |
-
-### Endpoints utilizados
-
-**Câmara:**
-
-```
-GET /proposicoes                        → lista proposições (paginado)
-GET /proposicoes/{id}                   → detalhe da proposição
-GET /proposicoes/{id}/tramitacoes       → histórico de tramitação
-GET /proposicoes/{id}/autores           → autores
-```
-
-**Senado:**
-
-```
-GET /materia/pesquisa                   → busca matérias
-GET /materia/{codigo}                   → detalhe da matéria
-GET /materia/{codigo}/movimentacoes     → histórico de tramitação
-GET /materia/{codigo}/relatorias        → relatorias
-```
-
-### Diferença crítica
-
-A Câmara usa o termo "proposição"; o Senado usa "matéria". São a mesma entidade com nomes e campos diferentes. O sistema normaliza os dois formatos para a entidade de domínio `Lei`.
+O sistema normaliza os dados da Câmara e do Senado para a entidade de domínio `Proposicao`.
 
 ### Decisões de integração
 
-**1. Estratégia de coleta: batch diário**  
-Worker executa todo dia às 02h (horário de Brasília). O usuário sempre lê do banco local, nunca da API diretamente. Isso garante funcionamento mesmo quando as APIs estão instáveis.  
-→ `docs/adr/ADR-004-batch-coleta.md`
-
-**2. Normalização: adaptador por fonte**  
-`CamaraAdapter` e `SenadoAdapter` convertem cada formato para a entidade `Lei` do domínio. O restante do sistema não sabe que existem duas fontes.  
-→ `docs/adr/ADR-005-adapter-pattern.md`
-
-**3. Deduplicação: por número canônico**  
-Formato: `{sigla} {numero}/{ano}` — ex: `PL 1234/2023`. Uma lei que tramita nas duas casas tem um único registro no banco. Estratégia: upsert por número canônico.
-
-**4. Falhas: retry com backoff exponencial**  
-3 tentativas: 1s → 2s → 4s. Se todas falharem: log de erro + alerta. Coleta parcial (uma fonte falha, a outra não) é aceitável — o sistema registra quais fontes foram coletadas em cada execução.
-
-**5. Cache: TTL de 1 hora para leituras**  
-Respostas das APIs armazenadas no Redis. Worker invalida o cache após cada coleta bem-sucedida.
-
-**6. Paginação — atenção**  
-A Câmara retorna no máximo 100 itens por página. É necessário iterar todas as páginas na coleta. Parâmetros: `?itens=100&pagina=1` (incrementar `pagina` até `dados` retornar vazio).
-
----
-
-## O que o time precisa estudar
-
-Esta seção mapeia cada decisão técnica ao conhecimento necessário. Serve como checklist de onboarding e referência durante o desenvolvimento.
-
-### Toda a equipe
-
-- [ ] **Layered Architecture** — como as camadas se comunicam e o que não pode cruzar fronteiras  
-      Recurso: `ARCHITECTURE.md` (este arquivo) + `ADR-001`
-
-- [ ] **Modelo C4** — como ler os diagramas do projeto  
-      Recurso: [c4model.com](https://c4model.com) (introdução em 10 min)
-
-- [ ] **ADRs** — como ler e propor novas decisões  
-      Recurso: `docs/adr/README.md`
-
-### Devs (implementação backend)
-
-- [ ] **FastAPI** — roteamento, Pydantic, async/await  
-      Recurso: [fastapi.tiangolo.com/tutorial](https://fastapi.tiangolo.com/tutorial)  
-      Por quê: framework da camada de Apresentação
-
-- [ ] **HTTPX** — cliente HTTP assíncrono  
-      Recurso: [python-httpx.org](https://www.python-httpx.org)  
-      Por quê: usado nos adapters para chamar as APIs externas
-
-- [ ] **Paginação da API da Câmara**  
-      Recurso: [dadosabertos.camara.leg.br/swagger-ui](https://dadosabertos.camara.leg.br/swagger-ui)  
-      Por quê: coleta completa exige iterar todas as páginas
-
-- [ ] **Celery + Celery Beat** — tarefas agendadas  
-      Recurso: [docs.celeryq.dev — periodic tasks](https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html)  
-      Por quê: executa o worker de coleta diária
-
-- [ ] **SQLAlchemy async** — ORM assíncrono  
-      Recurso: [docs.sqlalchemy.org — asyncio](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html)  
-      Por quê: acesso ao PostgreSQL na camada de Infraestrutura
-
-- [ ] **Tenacity** — retry com backoff exponencial  
-      Recurso: [tenacity.readthedocs.io](https://tenacity.readthedocs.io)  
-      Por quê: resiliência nas chamadas às APIs externas
-
-### Arquiteto / DevOps
-
-- [ ] **Padrão Adapter** — como isolar sistemas externos  
-      Recurso: [refactoring.guru/design-patterns/adapter](https://refactoring.guru/design-patterns/adapter)  
-      Por quê: `CamaraAdapter` e `SenadoAdapter` seguem este padrão
-
-- [ ] **Redis** — estruturas de dados, TTL, invalidação de cache  
-      Recurso: [redis.io/docs/data-types](https://redis.io/docs/data-types)  
-      Por quê: camada de cache entre APIs externas e banco
-
-- [ ] **Docker Compose** — orquestração local de serviços  
-      Recurso: [docs.docker.com/compose](https://docs.docker.com/compose)  
-      Por quê: sobe PostgreSQL + Redis + Backend juntos
-
-- [ ] **GitHub Actions** — pipelines de CI/CD  
-      Recurso: [docs.github.com/en/actions](https://docs.github.com/en/actions)  
-      Por quê: pipeline de testes automáticos e deploy
-
-- [ ] **12-Factor App — config**  
-      Recurso: [12factor.net/config](https://12factor.net/config)  
-      Por quê: URLs das APIs e credenciais do banco sem hardcode no código
-
-### Designer (integração com backend)
-
-- [ ] **OpenAPI / Swagger** — como ler a documentação da API gerada pelo FastAPI  
-      Recurso: [swagger.io/docs/specification/about](https://swagger.io/docs/specification/about/)  
-      Por quê: o backend expõe Swagger automaticamente; designer lê para integrar o frontend sem esperar o dev
+1.  **Estratégia de coleta: batch diário** (ADR-004)
+2.  **Normalização: adaptador por fonte** (ADR-005)
+3.  **Deduplicação: por número canônico** (ex: `PL 1234/2023`)
+4.  **Falhas: retry com backoff exponencial**
 
 ---
 

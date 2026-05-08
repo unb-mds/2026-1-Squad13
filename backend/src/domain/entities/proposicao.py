@@ -4,7 +4,7 @@ from typing import Optional, List
 @dataclass(frozen=True)
 class Proposicao:
     """
-    Entidade de Domínio que representa um Projeto de Lei (PL) ou similar.
+    Entidade de Domínio que representa uma Proposição Legislativa (PL, PEC, etc).
     Esta classe é independente de frameworks ou APIs externas.
     """
     id: Optional[int]
