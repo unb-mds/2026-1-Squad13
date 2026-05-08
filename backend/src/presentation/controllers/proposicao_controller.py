@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
-from typing import List
+from typing import List, Optional
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from infrastructure.repositories.proposicao_repository import ProposicaoRepository
 
