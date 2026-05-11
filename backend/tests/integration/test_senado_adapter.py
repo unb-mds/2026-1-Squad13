@@ -13,7 +13,7 @@ def test_senado_adapter_buscar_por_id_valido():
     
     assert proposicao is not None
     assert isinstance(proposicao, Proposicao)
-    assert proposicao.id == id_valido
+    assert proposicao.id == str(id_valido)
     assert proposicao.ementa is not None
     assert "Senado Federal" in proposicao.orgao_atual
     assert "senado.leg.br" in proposicao.link_oficial

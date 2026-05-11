@@ -55,13 +55,13 @@ class SenadoAdapter:
                     status_atual = situacoes[-1].get('descricao', 'Sem status')
             
             return Proposicao(
-                id=id_materia,
+                id=str(id_materia),
                 tipo=tipo,
-                numero=numero,
+                numero=str(numero),
                 ano=ano,
                 autor=autor_nome,
                 uf_autor="N/A", # API de processo não detalha UF do autor diretamente
-                status_tramitacao=status_atual,
+                status=status_atual,
                 ementa=ementa,
                 data_apresentacao=data_apresentacao,
                 data_ultima_movimentacao="", # Requereria análise de tramitações detalhadas
