@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     As variáveis são lidas do ambiente ou de um arquivo .env.
     """
     model_config = SettingsConfigDict(
-        env_file="backend/.env",
+        env_file=".env", # Procura na pasta atual
         env_file_encoding="utf-8",
         extra="ignore"
     )
