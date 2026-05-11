@@ -49,6 +49,7 @@ pnpm-debug.log*
 
 # IA
 GEMINI.md
-
+CLAUDE.md
+.claude/
 # Local docs/build artifacts
 docs/_build/
