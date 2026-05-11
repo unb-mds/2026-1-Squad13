@@ -1,7 +1,7 @@
 # ADR-005: Padrão Adapter para isolamento das APIs externas
 
 **Data:** 2026-04-09  
-**Status:** Proposta  
+**Status:** Aceita  
 **Decisores:** Arquiteto, Dev  
 
 ---
@@ -24,13 +24,13 @@ Vamos usar o **padrão Adapter** para isolar cada fonte de dados em um módulo d
 Cada adapter é responsável por:
 1. Fazer as chamadas HTTP à API correspondente
 2. Tratar paginação
-3. Normalizar o formato da resposta para a entidade `Lei` do domínio
+3. Normalizar o formato da resposta para a entidade `Proposicao` do domínio
 
-A camada de Aplicação trabalha apenas com a entidade `Lei` — nunca com o formato bruto das APIs.
+A camada de Aplicação trabalha apenas com a entidade `Proposicao` — nunca com o formato bruto das APIs.
 
 ```
 CamaraAdapter  ──┐
-                 ├──→ Lei (entidade do domínio)
+                 ├──→ Proposicao (entidade do domínio)
 SenadoAdapter  ──┘
 ```
 
@@ -51,14 +51,14 @@ Implementação:
 ```python
 # infrastructure/adapters/camara_adapter.py
 class CamaraAdapter:
-    def buscar_proposicoes(self, tema: str) -> list[Lei]:
-        # chama API, pagina, normaliza → Lei
+    def buscar_proposicoes(self, tema: str) -> list[Proposicao]:
+        # chama API, pagina, normaliza → Proposicao
         ...
 
 # infrastructure/adapters/senado_adapter.py
 class SenadoAdapter:
-    def buscar_materias(self, tema: str) -> list[Lei]:
-        # chama API, pagina, normaliza → Lei
+    def buscar_materias(self, tema: str) -> list[Proposicao]:
+        # chama API, pagina, normaliza → Proposicao
         ...
 ```
 
@@ -88,4 +88,4 @@ class SenadoAdapter:
 
 **Riscos:**
 - Normalização incompleta pode introduzir campos `None` que quebram o domínio
-- Mitigação: validação com Pydantic na saída de cada adapter antes de retornar `Lei`
+- Mitigação: validação com Pydantic na saída de cada adapter antes de retornar `Proposicao`

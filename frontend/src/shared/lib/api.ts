@@ -12,6 +12,7 @@ import type {
   FiltrosProposicao,
 } from '../types'
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms))
 
 // --- Auth ---
@@ -50,10 +51,35 @@ export async function listarProposicoes(
   pagina: number,
   itensPorPagina: number
 ): Promise<{ items: Proposicao[]; total: number }> {
-  await delay(500)
-  const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
-  const items = paginar(filtradas, pagina, itensPorPagina)
-  return { items, total: filtradas.length }
+  const params = new URLSearchParams()
+
+  if (filtros.busca) params.append('busca', filtros.busca)
+  if (filtros.tipo) params.append('tipo', filtros.tipo)
+  if (filtros.status) params.append('status', filtros.status)
+  params.append('pagina', String(pagina))
+  params.append('itens_por_pagina', String(itensPorPagina))
+
+  try {
+    const response = await fetch(`${API_BASE}/proposicoes?${params.toString()}`)
+    
+    if (!response.ok) {
+      // Se a API falhar, podemos cair para o mock (útil para desenvolvimento)
+      console.warn('API falhou, usando dados mockados.')
+      const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
+      const items = paginar(filtradas, pagina, itensPorPagina)
+      return { items, total: filtradas.length }
+    }
+
+    const data = await response.json()
+    
+    // O backend já retorna no formato camelCase adequado pelo ProposicaoResponse
+    return { items: data.items, total: data.total }
+  } catch (error) {
+    console.warn('Erro ao conectar na API, usando dados mockados:', error)
+    const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
+    const items = paginar(filtradas, pagina, itensPorPagina)
+    return { items, total: filtradas.length }
+  }
 }
 
 export async function obterProposicao(id: string): Promise<Proposicao | null> {

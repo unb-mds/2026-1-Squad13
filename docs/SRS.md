@@ -2,7 +2,7 @@
 
 ## 1. Introdução
 
-Este documento apresenta a Especificação de Requisitos de Software (SRS) do sistema web de Monitoramento de Tempo de Tramitação de Leis. Seu objetivo é registrar, de forma clara e enxuta, o escopo inicial do produto, os principais requisitos funcionais e não funcionais, as dependências externas e os critérios de aceitação que orientam o desenvolvimento no contexto acadêmico.
+Este documento apresenta a Especificação de Requisitos de Software (SRS) do sistema web de Monitoramento de Tempo de Tramitação de Proposições. Seu objetivo é registrar, de forma clara e enxuta, o escopo inicial do produto, os principais requisitos funcionais e não funcionais, as dependências externas e os critérios de aceitação que orientam o desenvolvimento no contexto acadêmico.
 
 O sistema busca ampliar a transparência e facilitar o acesso às informações sobre o processo legislativo brasileiro, permitindo consulta, acompanhamento e análise de proposições em uma interface centralizada.
 

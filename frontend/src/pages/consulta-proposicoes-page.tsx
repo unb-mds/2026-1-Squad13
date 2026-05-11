@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { FileText, AlertCircle } from 'lucide-react'
-import { buscarProposicoes } from '@/features/leis/proposicoes-service'
+import { listarProposicoes } from '@/shared/lib/api'
 import type { Proposicao, FiltrosProposicao } from '@/shared/types'
 import { ITENS_POR_PAGINA } from '@/shared/constants'
-import { ProposicaoCard, ProposicaoListaSkeleton } from '@/features/leis/ProposicaoCard'
+import { ProposicaoCard, ProposicaoListaSkeleton } from '@/features/proposicoes/ProposicaoCard'
 import { PainelFiltros, FILTROS_VAZIOS } from '@/features/filtros/PainelFiltros'
 import { Pagination, EmptyState } from '@/shared/ui'
 
@@ -19,7 +19,7 @@ export function ConsultaProposicoesPage() {
     setLoading(true)
     setErro(null)
     try {
-      const { items, total } = await buscarProposicoes(f, p, ITENS_POR_PAGINA)
+      const { items, total } = await listarProposicoes(f, p, ITENS_POR_PAGINA)
       setProposicoes(items)
       setTotal(total)
     } catch (e) {
