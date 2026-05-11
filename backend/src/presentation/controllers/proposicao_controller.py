@@ -1,23 +1,18 @@
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi import APIRouter, HTTPException, Query, Depends
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
-from infrastructure.repositories.proposicao_repository import ProposicaoRepository
+from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+from infrastructure.database import get_session
+from sqlmodel import Session
 
 router = APIRouter()
 
-# --- Schemas (Poderiam estar em um arquivo separado) ---
-
-def to_camel(string: str) -> str:
-    """Converte snake_case para camelCase"""
-    parts = string.split("_")
-    return parts[0] + "".join(word.capitalize() for word in parts[1:])
+# --- Schemas ---
 
 class ProposicaoRead(BaseModel):
     """Schema para retorno na API com normalização camelCase"""
     model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
         from_attributes=True
     )
 
@@ -41,10 +36,6 @@ class PaginatedProposicoes(BaseModel):
 
 # --- Controller ---
 
-# Injeção de dependência manual (simplificada para o MVP)
-repository = ProposicaoRepository()
-service = BuscarProposicoesService(repository)
-
 @router.get("/proposicoes", response_model=PaginatedProposicoes)
 def buscar_proposicoes(
     tipo: str | None = Query(default=None),
@@ -53,7 +44,12 @@ def buscar_proposicoes(
     autor: str | None = Query(default=None),
     uf_autor: str | None = Query(default=None),
     status_tramitacao: str | None = Query(default=None),
+    session: Session = Depends(get_session)
 ):
+    # Injeção de dependência via parâmetro do endpoint
+    repository = SQLProposicaoRepository(session)
+    service = BuscarProposicoesService(repository)
+    
     try:
         resultados = service.executar(
             tipo=tipo,

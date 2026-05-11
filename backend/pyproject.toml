@@ -5,8 +5,11 @@ description = "Backend do MVP de monitoramento legislativo"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi[standard]",
+  "psycopg[binary]>=3.1.18",
   "pydantic>=2.0",
+  "pydantic-settings>=2.2.1",
   "requests>=2.33.1",
+  "sqlmodel>=0.0.16",
   "uvicorn[standard]",
 ]
 
