@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FileText } from 'lucide-react'
-import { listarProposicoes } from '@/shared/lib/api'
+import { FileText, AlertCircle } from 'lucide-react'
+import { buscarProposicoes } from '@/features/leis/proposicoes-service'
 import type { Proposicao, FiltrosProposicao } from '@/shared/types'
 import { ITENS_POR_PAGINA } from '@/shared/constants'
 import { ProposicaoCard, ProposicaoListaSkeleton } from '@/features/leis/ProposicaoCard'
@@ -12,14 +12,21 @@ export function ConsultaProposicoesPage() {
   const [total, setTotal] = useState(0)
   const [pagina, setPagina] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
   const [filtros, setFiltros] = useState<FiltrosProposicao>(FILTROS_VAZIOS)
 
   const buscar = useCallback(async (f: FiltrosProposicao, p: number) => {
     setLoading(true)
-    const { items, total } = await listarProposicoes(f, p, ITENS_POR_PAGINA)
-    setProposicoes(items)
-    setTotal(total)
-    setLoading(false)
+    setErro(null)
+    try {
+      const { items, total } = await buscarProposicoes(f, p, ITENS_POR_PAGINA)
+      setProposicoes(items)
+      setTotal(total)
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao carregar proposições.')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -46,6 +53,12 @@ export function ConsultaProposicoesPage() {
       {/* Resultados */}
       {loading ? (
         <ProposicaoListaSkeleton />
+      ) : erro ? (
+        <EmptyState
+          title="Não foi possível carregar as proposições"
+          description={erro}
+          icon={<AlertCircle className="w-10 h-10 text-rose-400" />}
+        />
       ) : proposicoes.length === 0 ? (
         <EmptyState
           title="Nenhuma proposição encontrada"
