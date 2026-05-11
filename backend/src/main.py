@@ -1,6 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from presentation.controllers import proposicao_controller
+from infrastructure.database import get_session
+from sqlmodel import Session, text
 
 app = FastAPI(title="Monitor Legislativo API")
 
@@ -24,8 +26,13 @@ def root():
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+def health(session: Session = Depends(get_session)):
+    try:
+        # Tenta executar uma consulta simples no banco
+        session.exec(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        return {"status": "error", "database": str(e)}, 503
 
 # Incluindo as rotas da camada de apresentação
 app.include_router(proposicao_controller.router)

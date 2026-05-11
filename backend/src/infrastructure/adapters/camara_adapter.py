@@ -32,13 +32,13 @@ class CamaraAdapter:
             
             # Normalização para a entidade Proposicao
             return Proposicao(
-                id=id_proposicao,
+                id=str(id_proposicao),
                 tipo=dados.get("siglaTipo", ""),
-                numero=dados.get("numero", 0),
+                numero=str(dados.get("numero", 0)),
                 ano=dados.get("ano", 0),
                 autor=autor_principal,
                 uf_autor=uf_autor,
-                status_tramitacao=status_info.get("despacho") or status_info.get("descricaoSituacao") or "Sem status",
+                status=status_info.get("despacho") or status_info.get("descricaoSituacao") or "Sem status",
                 ementa=dados.get("ementa", "") or "Sem ementa",
                 data_apresentacao=dados.get("dataApresentacao", ""),
                 data_ultima_movimentacao=status_info.get("dataHora", ""),
