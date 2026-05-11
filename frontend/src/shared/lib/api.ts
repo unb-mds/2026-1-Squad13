@@ -12,6 +12,7 @@ import type {
   FiltrosProposicao,
 } from '../types'
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms))
 
 // --- Auth ---
@@ -47,62 +48,37 @@ export async function recuperarSenhaApi(_email: string): Promise<void> {
 // --- Proposições ---
 export async function listarProposicoes(
   filtros: FiltrosProposicao,
-  _pagina: number,
-  _itensPorPagina: number
+  pagina: number,
+  itensPorPagina: number
 ): Promise<{ items: Proposicao[]; total: number }> {
   const params = new URLSearchParams()
 
+  if (filtros.busca) params.append('busca', filtros.busca)
   if (filtros.tipo) params.append('tipo', filtros.tipo)
-  if (filtros.status) params.append('status_tramitacao', filtros.status)
-  
-  // Tentando extrair ano da busca ou das datas para o backend atual
-  if (filtros.dataInicio) {
-    const ano = new Date(filtros.dataInicio).getFullYear()
-    if (!isNaN(ano)) params.append('ano', ano.toString())
-  }
-
-  // Se a busca for um número, enviamos como número para o backend
-  if (/^\d+$/.test(filtros.busca)) {
-    params.append('numero', filtros.busca)
-  } else if (filtros.busca) {
-    params.append('autor', filtros.busca)
-  }
+  if (filtros.status) params.append('status', filtros.status)
+  params.append('pagina', String(pagina))
+  params.append('itens_por_pagina', String(itensPorPagina))
 
   try {
-    const response = await fetch(`http://localhost:8000/proposicoes?${params.toString()}`)
+    const response = await fetch(`${API_BASE}/proposicoes?${params.toString()}`)
     
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.detail || 'Erro ao buscar proposições')
+      // Se a API falhar, podemos cair para o mock (útil para desenvolvimento)
+      console.warn('API falhou, usando dados mockados.')
+      const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
+      const items = paginar(filtradas, pagina, itensPorPagina)
+      return { items, total: filtradas.length }
     }
 
     const data = await response.json()
     
-    // Mapeamento para adaptar o que o backend retorna ao que o frontend espera
-    const items = data.items.map((item: any) => ({
-      id: String(item.id),
-      tipo: item.tipo,
-      numero: String(item.numero),
-      ano: item.ano,
-      ementa: item.ementa,
-      ementaResumida: item.ementa.substring(0, 100) + '...',
-      autor: item.autor,
-      orgaoOrigem: item.tipo === 'PEC' ? 'Senado Federal' : 'Câmara dos Deputados', // Lógica simples baseada no tipo
-      status: item.statusTramitacao,
-      orgaoAtual: item.orgaoAtual,
-      dataApresentacao: item.dataApresentacao,
-      dataUltimaMovimentacao: item.dataUltimaMovimentacao,
-      linkOficial: item.linkOficial,
-      tempoTotalDias: 0, // Poderia ser calculado aqui se quisermos
-      temAtraso: false,
-      temPrevisaoIA: false,
-      tags: item.tags,
-    }))
-
-    return { items, total: data.total }
+    // O backend já retorna no formato camelCase adequado pelo ProposicaoResponse
+    return { items: data.items, total: data.total }
   } catch (error) {
-    console.error('Erro na API:', error)
-    throw error
+    console.warn('Erro ao conectar na API, usando dados mockados:', error)
+    const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
+    const items = paginar(filtradas, pagina, itensPorPagina)
+    return { items, total: filtradas.length }
   }
 }
 
