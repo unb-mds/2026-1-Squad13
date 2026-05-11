@@ -15,17 +15,17 @@ def test_salvar_proposicao(session: Session):
     # Arrange (Organizar)
     repo = SQLProposicaoRepository(session)
     nova_prop = Proposicao(
-        id=10,
+        id="10",
         tipo="PL",
-        numero=999,
+        numero="999",
         ano=2026,
         autor="Dev Test",
         uf_autor="BR",
-        status_tramitacao="Novo",
+        status="Novo",
+        orgao_atual="Mesa",
         ementa="Teste de persistência",
         data_apresentacao="2026-01-01",
         data_ultima_movimentacao="2026-01-01",
-        orgao_atual="Mesa",
         tags=["teste"]
     )
 
@@ -33,7 +33,7 @@ def test_salvar_proposicao(session: Session):
     repo.salvar(nova_prop)
 
     # Assert (Verificar)
-    buscada = repo.buscar_por_id(10)
+    buscada = repo.buscar_por_id("10")
     assert buscada is not None
-    assert buscada.numero == 999
+    assert buscada.numero == "999"
     assert buscada.autor == "Dev Test"
