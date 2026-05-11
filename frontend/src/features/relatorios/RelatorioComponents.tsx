@@ -66,12 +66,6 @@ export function TabelaGargalos() {
   )
 }
 
-function VelocidadeIcon({ v }: { v: 'rapido' | 'medio' | 'lento' }) {
-  if (v === 'rapido') return <TrendingUp className="w-4 h-4 text-emerald-400" />
-  if (v === 'lento') return <TrendingDown className="w-4 h-4 text-rose-400" />
-  return <Minus className="w-4 h-4 text-amber-400" />
-}
-
 export function ComparacaoTemas() {
   const [temas, setTemas] = useState<ComparacaoTema[]>([])
   const [loading, setLoading] = useState(true)

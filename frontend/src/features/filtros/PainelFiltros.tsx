@@ -1,5 +1,5 @@
 import { Search, X, SlidersHorizontal } from 'lucide-react'
-import { Input, Select, Button } from '@/shared/ui'
+import { Input, Select } from '@/shared/ui'
 import { TIPOS_PROPOSICAO, STATUS_PROPOSICAO, ORGAOS } from '@/shared/constants'
 import type { FiltrosProposicao } from '@/shared/types'
 

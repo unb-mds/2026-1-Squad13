@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { Clock, AlertTriangle, ChevronRight, ExternalLink } from 'lucide-react'
+import { Clock, AlertTriangle, ChevronRight } from 'lucide-react'
 import type { Proposicao } from '@/shared/types'
 import { corStatus, corTipo, formatarTempo, formatarDataCurta } from '@/shared/lib/utils'
-import { Badge } from '@/shared/ui'
+
+
 
 interface ProposicaoCardProps {
   proposicao: Proposicao
