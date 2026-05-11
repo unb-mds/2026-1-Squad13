@@ -6,9 +6,9 @@ Sistema para busca e acompanhamento de proposições legislativas, com foco inic
 
 ## Como rodar o projeto completo
 
-Para testar a integração entre o frontend e o backend, você precisará de dois terminais abertos simultaneamente.
+Para testar a integração entre o frontend e o backend, você precisará de terminais abertos simultaneamente para cada serviço.
 
-### 1. Rodando o Backend
+### 1. Rodando o Backend (API)
 
 ```bash
 cd backend
@@ -17,9 +17,7 @@ uv run fastapi dev src/main.py
 ```
 O backend rodará em: http://localhost:8000
 
-### 2. Rodando o Frontend
-
-Em um novo terminal:
+### 2. Rodando o Frontend (Aplicação Principal)
 
 ```bash
 cd frontend
@@ -28,23 +26,34 @@ npm run dev
 ```
 O frontend rodará em: http://localhost:5173
 
+### 3. Rodando o Squad Dashboard (Gestão)
+
+```bash
+cd squad-dashboard
+npm install
+npm run dev
+```
+O dashboard de métricas do time rodará em: http://localhost:5174
+
 ---
 
 ## Integração Backend-Frontend
 
-O sistema está configurado para que o frontend consuma dados reais do backend. 
+O sistema está configurado para que o frontend consuma dados reais do backend via PostgreSQL. 
 
 - **CORS:** O backend está configurado para aceitar requisições do `localhost:5173`.
-- **Normalização:** Usamos Schemas Pydantic no backend com `alias_generator` para converter campos `snake_case` (Python) em `camelCase` (JSON/TypeScript) automaticamente.
-- **Mapeamento:** O arquivo `frontend/src/shared/lib/api.ts` contém as chamadas de API que conectam os filtros da interface aos endpoints do FastAPI.
+- **Persistência:** O backend utiliza `SQLModel` para persistência em banco de dados real.
+- **Normalização:** Usamos Schemas Pydantic no backend para converter campos `snake_case` (Python) em `camelCase` (JSON/TypeScript) automaticamente.
+- **Mapeamento:** O arquivo `frontend/src/shared/lib/api.ts` contém as chamadas de API que conectam a interface aos endpoints do FastAPI.
 
 ## Estrutura do repositório
 
 ```text
 /
-├── backend/
-├── frontend/
-├── docs/
+├── backend/            ← API FastAPI com SQLModel
+├── frontend/           ← Aplicação React + Vite (Principal)
+├── squad-dashboard/    ← Painel de métricas e gestão do time
+├── docs/               ← Documentação técnica e ADRs
 └── README.md
 ```
 
