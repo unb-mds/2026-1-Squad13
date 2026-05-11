@@ -2,6 +2,7 @@ import pytest
 import requests
 from unittest.mock import MagicMock, patch
 from infrastructure.adapters.camara_adapter import CamaraAdapter
+from domain.entities.proposicao import Proposicao
 
 @pytest.fixture
 def adapter():
