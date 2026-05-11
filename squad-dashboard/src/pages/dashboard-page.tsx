@@ -7,8 +7,12 @@ import { ProductivityChart } from '@/widgets/productivity-chart'
 import { mockKpis } from '@/mocks/metrics'
 import { ProgressBar } from '@/shared/ui/progress-bar'
 import { mockFeatures } from '@/mocks/features'
+import { useGithubData } from '@/shared/api/github-data-service'
 
 export function DashboardPage() {
+  const { data: gh } = useGithubData()
+  const prsMerged = gh?.pullRequests.merged ?? mockKpis.prsMerged
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -26,8 +30,8 @@ export function DashboardPage() {
           trendLabel="requer atenção" trend="down" />
         <KpiCard title="Velocity" value={`${mockKpis.weeklyVelocity}%`} icon={Zap} glowColor="yellow"
           trendLabel="+3% vs semana ant." trend="up" />
-        <KpiCard title="PRs Mergeados" value={mockKpis.prsMerged} icon={GitPullRequest} glowColor="purple"
-          trendLabel="desde o início" trend="neutral" />
+        <KpiCard title="PRs Mergeados" value={prsMerged} icon={GitPullRequest} glowColor="purple"
+          trendLabel={gh ? 'GitHub ao vivo' : 'desde o início'} trend="neutral" />
         <KpiCard title="Cobertura" value={`${mockKpis.coveragePercent}%`} icon={Shield} glowColor="green"
           trendLabel="meta: 70%" trend="up" />
         <KpiCard title="Progresso Geral" value={`${mockKpis.overallProgress}%`} icon={TrendingUp} glowColor="blue"
@@ -64,9 +68,15 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <WeeklyChart />
         <BurndownChart />
-        <CommitsChart />
+        <CommitsChart data={gh?.commitsByDay} />
         <ProductivityChart />
       </div>
+
+      {gh && (
+        <p className="text-xs text-slate-600 text-right">
+          Dados do GitHub atualizados em {new Date(gh.generatedAt).toLocaleString('pt-BR')}
+        </p>
+      )}
     </div>
   )
 }
