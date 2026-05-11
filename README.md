@@ -13,7 +13,7 @@ Sistema para busca e acompanhamento de proposições legislativas, com foco inic
 ├── docs/
 └── README.md
 ```
-
+ 
 ## Como rodar o backend localmente
 
 ### Pré-requisitos
