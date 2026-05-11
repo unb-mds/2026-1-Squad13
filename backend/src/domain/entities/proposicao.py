@@ -1,13 +1,13 @@
-from dataclasses import dataclass, field
-from typing import Optional, List
+from sqlmodel import SQLModel, Field
+from typing import Optional, List, Any
+from sqlalchemy import Column, JSON
 
-@dataclass(frozen=True)
-class Proposicao:
+class Proposicao(SQLModel, table=True):
     """
-    Entidade de Domínio que representa uma Proposição Legislativa (PL, PEC, etc).
-    Esta classe é independente de frameworks ou APIs externas.
+    Entidade de Domínio e Modelo de Banco de Dados.
+    Representa uma Proposição Legislativa (PL, PEC, etc).
     """
-    id: Optional[int]
+    id: Optional[int] = Field(default=None, primary_key=True)
     tipo: str
     numero: int
     ano: int
@@ -19,7 +19,9 @@ class Proposicao:
     data_ultima_movimentacao: str
     orgao_atual: str
     link_oficial: Optional[str] = None
-    tags: List[str] = field(default_factory=list)
+    
+    # Armazenar lista como JSON no Postgres
+    tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
 
     @property
     def nome_canonico(self) -> str:

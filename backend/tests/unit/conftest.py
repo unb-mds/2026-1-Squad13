@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from src.application.services.buscar_proposicoes_service import BuscarProposicoesService
+from application.services.buscar_proposicoes_service import BuscarProposicoesService
 
 @pytest.fixture
 def mock_repositorio(lista_proposicoes):
