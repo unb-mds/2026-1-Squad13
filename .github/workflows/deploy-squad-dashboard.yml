@@ -36,6 +36,13 @@ jobs:
       - run: npm ci
         working-directory: squad-dashboard
 
+      - name: Generate GitHub data
+        run: node scripts/generate-github-data.mjs
+        working-directory: squad-dashboard
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - run: npm run build
         working-directory: squad-dashboard
 
