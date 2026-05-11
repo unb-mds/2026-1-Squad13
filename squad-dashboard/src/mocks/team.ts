@@ -1,20 +1,22 @@
 import type { Member } from '@/entities/member'
 
 /**
- * Para atualizar os integrantes: edite o array abaixo.
- * Cada campo editável está comentado com instruções.
+ * Substituir estes placeholders pelos nomes reais dos integrantes quando definidos.
+ *
+ * Para atualizar: edite o campo `name` e `avatarInitials` de cada entrada.
+ * Os IDs (m1…m5) são referenciados em tasks.ts e features.ts — não altere os IDs.
  *
  * avatarColor: qualquer cor hex — define o avatar e accent do card.
- * avatarInitials: 2 letras para o avatar (ex: "KA", "MS").
- * currentFocus: texto livre, descreve no que o membro está trabalhando agora.
+ * avatarInitials: 2 letras para o avatar (ex: "KA", "FL").
+ * currentFocus: texto livre — o que o membro está trabalhando agora.
  */
 export const mockTeam: Member[] = [
   {
     id: 'm1',
-    name: 'Kaiky',                          // <- edite o nome aqui
+    name: 'Kaiky',                          // <- nome real
     role: 'Cloud/Infra/Arquitetura',
-    avatarInitials: 'KA',                   // <- iniciais do avatar
-    avatarColor: '#8b5cf6',                 // <- cor accent (hex)
+    avatarInitials: 'KA',
+    avatarColor: '#8b5cf6',
     tasksCompleted: 9,
     tasksPending: 3,
     prsOpened: 4,
@@ -25,9 +27,9 @@ export const mockTeam: Member[] = [
   },
   {
     id: 'm2',
-    name: 'Integrante 2',                   // <- edite o nome aqui
+    name: 'Frontend Lead',                  // <- substituir pelo nome real
     role: 'Frontend Dev',
-    avatarInitials: 'I2',
+    avatarInitials: 'FL',
     avatarColor: '#3b82f6',
     tasksCompleted: 4,
     tasksPending: 4,
@@ -39,9 +41,9 @@ export const mockTeam: Member[] = [
   },
   {
     id: 'm3',
-    name: 'Integrante 3',                   // <- edite o nome aqui
+    name: 'Backend Lead',                   // <- substituir pelo nome real
     role: 'Backend Dev',
-    avatarInitials: 'I3',
+    avatarInitials: 'BL',
     avatarColor: '#10b981',
     tasksCompleted: 6,
     tasksPending: 4,
@@ -53,9 +55,9 @@ export const mockTeam: Member[] = [
   },
   {
     id: 'm4',
-    name: 'Integrante 4',                   // <- edite o nome aqui
+    name: 'QA/Docs',                        // <- substituir pelo nome real
     role: 'QA/Documentação',
-    avatarInitials: 'I4',
+    avatarInitials: 'QD',
     avatarColor: '#f59e0b',
     tasksCompleted: 2,
     tasksPending: 4,
@@ -67,9 +69,9 @@ export const mockTeam: Member[] = [
   },
   {
     id: 'm5',
-    name: 'Integrante 5',                   // <- edite o nome aqui
+    name: 'Product/Scrum',                  // <- substituir pelo nome real
     role: 'Produto/Scrum',
-    avatarInitials: 'I5',
+    avatarInitials: 'PS',
     avatarColor: '#06b6d4',
     tasksCompleted: 1,
     tasksPending: 2,
