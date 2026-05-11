@@ -2,6 +2,7 @@ import pytest
 import requests
 from unittest.mock import MagicMock, patch
 from infrastructure.adapters.senado_adapter import SenadoAdapter
+from domain.entities.proposicao import Proposicao
 
 @pytest.fixture
 def adapter():
