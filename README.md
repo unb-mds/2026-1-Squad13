@@ -101,6 +101,8 @@ Para entender como o sistema é estruturado, as decisões técnicas tomadas e o 
 
 ## Estado atual
 
-Atualmente o projeto possui a estrutura inicial do backend, configuração de testes automatizados (unitários e de integração) e a primeira configuração local com FastAPI. O frontend e as integrações externas ainda estão em construção.
-egrações externas ainda estão em construção.
-s externas ainda estão em construção.
+- **Backend:** FastAPI com Layered Architecture, adaptadores reais para as APIs da Câmara e do Senado, integração com PostgreSQL via SQLAlchemy, e testes automatizados (unitários e de integração) configurados com pytest.
+- **Frontend:** React + TypeScript + Vite integrado ao backend, com ESLint configurado e build validado automaticamente no CI.
+- **CI/CD:** GitHub Actions com workflows separados para frontend e backend, disparados automaticamente em PRs para `main`.
+
+Para contribuir, consulte o [CONTRIBUTING.md](./CONTRIBUTING.md).
