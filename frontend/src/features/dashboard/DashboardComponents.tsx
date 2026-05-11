@@ -9,7 +9,7 @@ import {
 } from '@/shared/lib/api'
 import type { MetricasDashboard, DadosGraficoTipo, DadosGraficoComissao, DadosGraficoStatus } from '@/shared/types'
 import { formatarTempo } from '@/shared/lib/utils'
-import { KpiCard, Card, CardHeader, CardBody, Spinner } from '@/shared/ui'
+import { KpiCard, Card, CardHeader, CardBody } from '@/shared/ui'
 
 const COLORS = ['#c2ff3d', '#6366f1', '#f59e0b', '#fb7185', '#22d3ee', '#a78bfa', '#34d399']
 
