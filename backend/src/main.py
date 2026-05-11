@@ -71,4 +71,4 @@ def buscar_proposicoes(
     return {
         "items": resultados,
         "total": len(resultados)
-    }
+    }# ci trigger
