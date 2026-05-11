@@ -9,7 +9,7 @@ import type { Proposicao, MovimentacaoTramitacao } from '@/shared/types'
 import { formatarData, formatarDataCurta, formatarTempo, corStatus, corTipo, calcularDiasEntreatas } from '@/shared/lib/utils'
 import { TimelineTramitacao } from '@/features/tramitacoes/TimelineTramitacao'
 import { CardPrevisaoIA } from '@/features/tramitacoes/CardPrevisaoIA'
-import { Card, CardHeader, CardBody, Spinner, Badge } from '@/shared/ui'
+import { Card, CardHeader, CardBody, Spinner } from '@/shared/ui'
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (

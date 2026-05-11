@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token && userStr && expiresAt && Date.now() < expiresAt) {
         return { token, user: JSON.parse(userStr), isAuthenticated: true, expiresAt }
       }
-    } catch {}
+    } catch { /* ignore localStorage read errors */ }
     return { token: null, user: null, isAuthenticated: false, expiresAt: null }
   })
 
