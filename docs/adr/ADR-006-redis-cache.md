@@ -1,7 +1,7 @@
 # ADR-006: Redis para cache de respostas
 
 **Data:** 2026-04-09  
-**Status:** Proposta  
+**Status:** Aceita  
 **Decisores:** Arquiteto, Dev  
 
 ---
@@ -10,8 +10,8 @@
 
 Mesmo com a coleta em batch (ADR-004), algumas consultas do backend são computacionalmente pesadas ou repetidas com frequência, como:
 
-- Listagem de leis paradas por tema (consulta agregada)
-- Ranking de relatores com mais leis paradas
+- Listagem de proposicoes paradas por tema (consulta agregada)
+- Ranking de relatores com mais proposicoes paradas
 - Dados do dashboard principal (acessado por todos os usuários)
 
 Sem cache, cada requisição do usuário executa uma query no banco. Com o volume de dados legislativos históricos, algumas queries podem demorar mais do que o aceitável.
@@ -27,7 +27,7 @@ Vamos usar **Redis** como camada de cache para respostas de consultas frequentes
 Estratégia:
 - TTL padrão: 1 hora para consultas gerais
 - Invalidação ativa: após cada coleta bem-sucedida (ADR-004), o worker invalida as chaves de cache afetadas
-- Cache key pattern: `{recurso}:{parametros}` — ex: `leis_paradas:educacao`
+- Cache key pattern: `{recurso}:{parametros}` — ex: `proposicoes_paradas:educacao`
 
 ```python
 # infrastructure/cache/redis_cache.py
@@ -65,3 +65,4 @@ class RedisCache:
 - Cache não invalidado após coleta pode servir dados do dia anterior como se fossem atuais
 - Mitigação: invalidação explícita no final de cada job de coleta bem-sucedido, com log confirmando
 - Se o Redis cair, o sistema deve degradar graciosamente (buscar no banco sem cache), não travar
+, não travar

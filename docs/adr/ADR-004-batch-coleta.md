@@ -1,7 +1,7 @@
 # ADR-004: Batch diário como estratégia de coleta de dados
 
 **Data:** 2026-04-09  
-**Status:** Proposta  
+**Status:** Aceita  
 **Decisores:** Arquiteto, Dev  
 
 ---
@@ -13,7 +13,7 @@ O sistema precisa coletar dados de tramitação das APIs da Câmara e do Senado.
 A escolha impacta diretamente a experiência do usuário, a resiliência do sistema e a complexidade de implementação.
 
 Fatores relevantes:
-- Leis não tramitam de hora em hora — mudanças são diárias ou semanais
+- Proposições não tramitam de hora em hora — mudanças são diárias ou semanais
 - As APIs públicas não têm SLA garantido e podem ficar instáveis
 - O sistema precisa acumular histórico para calcular métricas temporais
 - O usuário não deve esperar 3–5 segundos por uma pesquisa
