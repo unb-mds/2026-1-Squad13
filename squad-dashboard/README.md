@@ -112,17 +112,35 @@ npm run dev
 
 ---
 
+## Origem dos dados — editorial vs. automático
+
+| Dado | Origem | Como atualizar |
+|------|--------|----------------|
+| Nomes dos integrantes | **Editorial** — `src/mocks/team.ts` | Editar manualmente |
+| Tasks do Board | **Editorial** — `src/mocks/tasks.ts` | Editar manualmente |
+| Progresso das Features | **Editorial** — `src/mocks/features.ts` | Editar manualmente |
+| KPIs globais (cobertura, velocity) | **Editorial** — `src/mocks/metrics.ts` | Editar manualmente |
+| Sprints e milestones | **Editorial** — `src/mocks/sprints.ts` | Editar manualmente |
+| Commits, PRs, Issues | **Automático** — GitHub API via Actions | Rodar workflow ou aguardar cron |
+| Contributors e workflows recentes | **Automático** — GitHub API via Actions | Rodar workflow ou aguardar cron |
+
+> **Board e Features são dados editoriais** baseados no contexto real do projeto, mas mantidos manualmente.
+> Não refletem automaticamente o estado do repositório — precisam ser atualizados pela equipe.
+
+---
+
 ## Como atualizar os dados
 
 ### Trocar nomes dos integrantes
 
-Edite `src/mocks/team.ts` — cada integrante tem um comentário `// <- edite o nome aqui`:
+Edite `src/mocks/team.ts`. Os placeholders atuais usam papéis como `Frontend Lead` e `Backend Lead`.
+Substitua pelo nome real quando definido:
 
 ```ts
 {
-  id: 'm1',
-  name: 'Kaiky',       // <- troque pelo nome real
-  avatarInitials: 'KA', // <- iniciais para o avatar
+  id: 'm2',
+  name: 'Frontend Lead',   // <- substituir pelo nome real
+  avatarInitials: 'FL',    // <- iniciais para o avatar
   ...
 }
 ```
@@ -231,5 +249,4 @@ src/
 
 ## Git
 
-Branch: `feature/squad-productivity-dashboard`
-Não fazer commit automático — revisar antes de abrir PR para `main`.
+Usar branches `fix/<nome>` ou `feat/<nome>`. Nunca commitar diretamente em `main`.
