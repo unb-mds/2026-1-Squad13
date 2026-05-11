@@ -6,6 +6,74 @@ Projeto **completamente separado** do sistema principal — sem backend, sem int
 
 ---
 
+## Dados em tempo real — GitHub
+
+O dashboard consome dados reais do repositório `unb-mds/2026-1-Squad13` quando disponíveis.
+Caso contrário, usa os mocks de `src/mocks/` como fallback automático — sem quebrar nada.
+
+### Como funciona o pipeline
+
+```
+GitHub Actions (cron a cada 6h ou manual)
+  └→ scripts/generate-github-data.mjs
+       └→ GitHub REST API (commits, PRs, issues, workflows, contributors)
+            └→ public/data/github-stats.json  ← commitado no repositório
+                 └→ deploy-squad-dashboard.yml reconstrói e publica
+                      └→ GitHub Pages serve o JSON como arquivo estático
+                           └→ useGithubData() faz fetch no runtime
+                                └→ fallback para mocks se ausente ou inválido
+```
+
+### Onde ficam os JSON
+
+```
+squad-dashboard/public/data/
+└── github-stats.json   ← gerado automaticamente; não edite manualmente
+```
+
+Em produção (GitHub Pages), o arquivo é servido em:
+`https://unb-mds.github.io/2026-1-Squad13/data/github-stats.json`
+
+### Como atualizar os dados manualmente
+
+**Via GitHub Actions (recomendado):**
+1. Acesse **Actions → Update Squad Dashboard Data** no repositório.
+2. Clique em **Run workflow**.
+3. O JSON é gerado, commitado em `main` e o deploy atualiza automaticamente.
+
+**Localmente (para desenvolvimento):**
+```bash
+GITHUB_TOKEN=ghp_seu_token_aqui node squad-dashboard/scripts/generate-github-data.mjs
+```
+O arquivo gerado em `public/data/github-stats.json` será servido por `npm run dev`.
+
+### Como funciona o fallback
+
+O hook `useGithubData()` (`src/shared/api/github-data-service.ts`) tenta fazer fetch do JSON.
+Se o fetch falhar (404 em dev sem arquivo gerado, rede indisponível, JSON inválido), retorna `null`
+e cada widget/página usa os dados de `src/mocks/` transparentemente.
+
+### Campos disponíveis no JSON
+
+| Campo | Descrição |
+|-------|-----------|
+| `generatedAt` | ISO 8601 da geração — `null` no placeholder |
+| `commitsByDay` | Commits dos últimos 7 dias (para o gráfico de barras) |
+| `commitsByAuthor` | Commits agrupados por autor |
+| `weeklyCommits` | Commits das últimas 8 semanas |
+| `pullRequests` | `open`, `merged`, `closed` |
+| `issues` | `open`, `closed` (excluindo PRs) |
+| `recentWorkflows` | Últimas 10 execuções de CI/CD |
+| `contributors` | Lista de contribuidores com avatar |
+
+### Como testar no GitHub Pages
+
+Após o deploy, acesse:
+- Dashboard: `https://unb-mds.github.io/2026-1-Squad13/`
+- JSON gerado: `https://unb-mds.github.io/2026-1-Squad13/data/github-stats.json`
+
+---
+
 ## Deploy — GitHub Pages
 
 URL pública: **https://unb-mds.github.io/2026-1-Squad13/**
