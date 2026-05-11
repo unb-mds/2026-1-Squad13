@@ -63,6 +63,7 @@ Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 - `npm run dev` → dev server.
 - `npm run build` → build produção.
 - `npm run preview` → preview do build.
+- `npm run lint` → verificar qualidade do código (ESLint).
 
 ---
 
