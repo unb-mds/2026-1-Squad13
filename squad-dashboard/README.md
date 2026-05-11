@@ -6,7 +6,22 @@ Projeto **completamente separado** do sistema principal — sem backend, sem int
 
 ---
 
-## Como rodar
+## Deploy — GitHub Pages
+
+URL pública: **https://unb-mds.github.io/2026-1-Squad13/**
+
+O deploy é automático via GitHub Actions (`.github/workflows/deploy-squad-dashboard.yml`).
+Dispara em push para `main` ou `feature/squad-productivity-dashboard` quando arquivos de `squad-dashboard/` são alterados.
+
+### Ativar GitHub Pages (primeira vez)
+
+1. Acesse **Settings → Pages** no repositório.
+2. Em **Source**, selecione **GitHub Actions**.
+3. Salve. O próximo push ativa o deploy automaticamente.
+
+---
+
+## Como rodar localmente
 
 ```bash
 cd squad-dashboard
