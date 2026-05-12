@@ -1,5 +1,4 @@
 import pytest
-from domain.entities.proposicao import Proposicao
 
 def test_deve_lancar_erro_ao_buscar_sem_filtros(service):
     # Act & Assert
