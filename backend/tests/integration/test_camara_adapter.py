@@ -13,9 +13,9 @@ def test_camara_adapter_buscar_por_id_valido():
     
     assert proposicao is not None
     assert isinstance(proposicao, Proposicao)
-    assert proposicao.id == id_valido
+    assert proposicao.id == str(id_valido)
     assert proposicao.tipo == "PL"
-    assert proposicao.numero == 2981
+    assert proposicao.numero == "2981"
     assert proposicao.ano == 2023
     assert proposicao.ementa is not None
     assert "Câmara dos Deputados" in proposicao.link_oficial or "camara.leg.br" in proposicao.link_oficial

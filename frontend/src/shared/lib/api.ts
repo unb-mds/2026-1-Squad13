@@ -56,6 +56,9 @@ export async function listarProposicoes(
   if (filtros.busca) params.append('busca', filtros.busca)
   if (filtros.tipo) params.append('tipo', filtros.tipo)
   if (filtros.status) params.append('status', filtros.status)
+  if (filtros.orgaoOrigem) params.append('orgaoOrigem', filtros.orgaoOrigem)
+  if (filtros.dataInicio) params.append('dataInicio', filtros.dataInicio)
+  if (filtros.dataFim) params.append('dataFim', filtros.dataFim)
   params.append('pagina', String(pagina))
   params.append('itens_por_pagina', String(itensPorPagina))
 
@@ -96,16 +99,23 @@ export async function obterMovimentacoes(proposicaoId: string): Promise<Moviment
 
 // --- Dashboard ---
 export async function obterMetricas(): Promise<MetricasDashboard> {
-  await delay(600)
-  return {
-    tempoMedioTramitacao: 412,
-    totalProposicoes: PROPOSICOES_MOCK.length,
-    proposicoesComAtraso: PROPOSICOES_MOCK.filter((p) => p.temAtraso).length,
-    comissaoMaiorTempo: 'CCJ',
-    comissaoMaiorTempoMedia: 680,
-    totalAprovadas: PROPOSICOES_MOCK.filter((p) => p.status === 'Aprovada' || p.status === 'Sancionada').length,
-    totalEmTramitacao: PROPOSICOES_MOCK.filter((p) => p.status === 'Em tramitação' || p.status === 'Em análise' || p.status === 'Aguardando votação').length,
-    totalRejeitadas: PROPOSICOES_MOCK.filter((p) => p.status === 'Rejeitada' || p.status === 'Arquivada').length,
+  try {
+    const response = await fetch(`${API_BASE}/dashboard/metricas`)
+    if (!response.ok) throw new Error('Falha ao buscar métricas da API')
+    return await response.json()
+  } catch (error) {
+    console.warn('Usando métricas mockadas devido a erro na API:', error)
+    await delay(600)
+    return {
+      tempoMedioTramitacao: 412,
+      totalProposicoes: PROPOSICOES_MOCK.length,
+      proposicoesComAtraso: PROPOSICOES_MOCK.filter((p) => p.temAtraso).length,
+      comissaoMaiorTempo: 'CCJ',
+      comissaoMaiorTempoMedia: 680,
+      totalAprovadas: PROPOSICOES_MOCK.filter((p) => p.status === 'Aprovada' || p.status === 'Sancionada').length,
+      totalEmTramitacao: PROPOSICOES_MOCK.filter((p) => p.status === 'Em tramitação' || p.status === 'Em análise' || p.status === 'Aguardando votação').length,
+      totalRejeitadas: PROPOSICOES_MOCK.filter((p) => p.status === 'Rejeitada' || p.status === 'Arquivada').length,
+    }
   }
 }
 

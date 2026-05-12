@@ -84,16 +84,16 @@ Clean Architecture é a evolução natural da Layered e seria a escolha ideal pa
 
 ### Estratégia de Implementação Iterativa
 
-O projeto adota a Layered Architecture como objetivo estrutural, mas a implementação seguirá uma abordagem iterativa e progressiva. 
+O projeto adota a Layered Architecture como objetivo estrutural, evoluindo de mocks iniciais para integrações reais de forma progressiva.
 
 **Estado Atual:**
-Na fase inicial, a lógica está simplificada para validar conceitos rapidamente. O sistema utiliza um **Mock em memória** para o repositório (`proposicao_repository.py`), permitindo o desenvolvimento do frontend e da API sem a complexidade imediata do banco de dados.
+O sistema já conta com a **integração real com banco de dados PostgreSQL** (ou SQLite para desenvolvimento local/testes) utilizando `SQLModel`. Esta escolha permitiu unificar as Entidades de Domínio com os Modelos de Persistência, reduzindo a complexidade de mapeamento nesta fase de MVP acadêmico.
 
 **Próximos Passos:**
-À medida que o desenvolvimento avança, o código será refatorado para incluir:
-1.  Integração real com banco de dados PostgreSQL.
-2.  Implementação de `Adapters` para coleta real das APIs da Câmara e Senado.
-3.  Uso de `Redis` para cache e `Celery` para tarefas agendadas.
+À medida que o desenvolvimento avança, o código será refinado para incluir:
+1.  Implementação completa de `Adapters` reais para coleta automática das APIs da Câmara e Senado (atualmente em transição de mocks).
+2.  Uso de `Redis` para cache de consultas frequentes.
+3.  Configuração de `Celery` para orquestrar o processamento em lote (batch) de coleta de dados.
 
 Essa abordagem evita o overhead de abstrações prematuras e permite que a equipe aprenda e aplique os conceitos arquiteturais passo a passo.
 
