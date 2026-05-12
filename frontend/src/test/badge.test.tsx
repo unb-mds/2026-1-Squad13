@@ -1,8 +1,6 @@
-import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import { Badge } from '../shared/ui/index'
-
-afterEach(cleanup)
 
 describe('Badge', () => {
   it('renderiza o texto passado como children', () => {
