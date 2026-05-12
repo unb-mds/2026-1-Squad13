@@ -16,12 +16,13 @@ export function ProposicaoCard({ proposicao }: ProposicaoCardProps) {
     <div
       onClick={() => navigate(`/proposicoes/${proposicao.id}`)}
       className={`group relative bg-ink-800 border rounded-xl p-4 cursor-pointer transition-all duration-200 hover:border-volt-400/30 hover:bg-ink-700/50 hover:shadow-lg hover:shadow-volt-400/5 ${
-        proposicao.temAtraso ? 'border-rose-500/25' : 'border-ink-700/50'
+        proposicao.atrasoCritico ? 'border-rose-500/40 shadow-rose-500/5' : 'border-ink-700/50'
       }`}
     >
-      {proposicao.temAtraso && (
-        <div className="absolute top-3 right-3">
-          <AlertTriangle className="w-4 h-4 text-rose-400" />
+      {proposicao.atrasoCritico && (
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 rounded-full">
+          <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+          <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Atraso Crítico</span>
         </div>
       )}
 
