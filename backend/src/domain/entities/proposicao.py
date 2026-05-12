@@ -35,3 +35,8 @@ class Proposicao(SQLModel, table=True):
     def nome_canonico(self) -> str:
         """Exemplo: PL 123/2024"""
         return f"{self.tipo} {self.numero}/{self.ano}"
+
+    @property
+    def atraso_critico(self) -> bool:
+        """Retorna True se o tempo total de tramitação for superior a 180 dias."""
+        return (self.tempo_total_dias or 0) > 180

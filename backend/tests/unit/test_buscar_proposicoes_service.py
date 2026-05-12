@@ -20,7 +20,8 @@ def test_deve_filtrar_por_tipo_com_sucesso(service, mock_repositorio, lista_prop
     assert resultado["total"] == 2
     assert all(p.tipo == "PL" for p in resultado["items"])
     mock_repositorio.filtrar.assert_called_once_with(
-        tipo="PL", numero=None, ano=None, autor=None, status_tramitacao=None
+        tipo="PL", numero=None, ano=None, autor=None, status=None,
+        busca=None, orgao_origem=None, data_inicio=None, data_fim=None
     )
 
 def test_deve_filtrar_por_ano_com_sucesso(service, mock_repositorio, lista_proposicoes):
@@ -35,7 +36,8 @@ def test_deve_filtrar_por_ano_com_sucesso(service, mock_repositorio, lista_propo
     assert resultado["total"] == 1
     assert resultado["items"][0].ano == 2023
     mock_repositorio.filtrar.assert_called_once_with(
-        tipo=None, numero=None, ano=2023, autor=None, status_tramitacao=None
+        tipo=None, numero=None, ano=2023, autor=None, status=None,
+        busca=None, orgao_origem=None, data_inicio=None, data_fim=None
     )
 
 def test_deve_retornar_lista_vazia_quando_nao_houver_resultados(service, mock_repositorio):

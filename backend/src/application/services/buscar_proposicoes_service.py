@@ -29,7 +29,11 @@ class BuscarProposicoesService:
             numero=filtros.get("numero"),
             ano=filtros.get("ano"),
             autor=filtros.get("autor"),
-            status_tramitacao=filtros.get("status")
+            status=filtros.get("status"),
+            busca=filtros.get("busca"),
+            orgao_origem=filtros.get("orgao_origem"),
+            data_inicio=filtros.get("data_inicio"),
+            data_fim=filtros.get("data_fim")
         )
 
         total = len(resultados)
