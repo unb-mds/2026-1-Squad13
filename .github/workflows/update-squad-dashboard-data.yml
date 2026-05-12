@@ -13,6 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger dashboard deploy
-        run: gh workflow run deploy-squad-dashboard.yml --ref main
+        run: gh workflow run deploy-squad-dashboard.yml --ref main --repo ${{ github.repository }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
