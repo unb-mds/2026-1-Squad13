@@ -78,7 +78,7 @@ O sistema é focado em estudantes, pesquisadores, jornalistas, cidadãos e usuá
 
 - **Testes:**
   - Pytest no backend — unitários e de integração (ver ADR-007)
-  - Testes de frontend: não configurados ainda
+  - Testes de frontend: Vitest com jsdom — smoke test e testes de utils compartilhadas
   - Testes unitários obrigatórios para domínio e services do backend
 
 - **Containerização:**
@@ -193,8 +193,7 @@ frontend/src/
 GitHub Actions já está em uso com dois workflows separados por path filter:
 
 - **`frontend.yml`** — dispara em PRs para `main` com mudanças em `frontend/**`
-  - Passos: `npm ci` → `npm run lint` → `npm run build`
-  - Vitest já configurado no frontend, mas ainda **não integrado ao CI**
+  - Passos: `npm ci` → `npm run lint` → `npm run test -- --run` → `npm run build`
 
 - **`backend.yml`** — dispara em PRs para `main` com mudanças em `backend/**`
   - Passos: `uv sync` → `py_compile src/main.py`
