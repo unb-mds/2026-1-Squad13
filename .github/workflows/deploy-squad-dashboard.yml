@@ -8,6 +8,7 @@ on:
     paths:
       - 'squad-dashboard/**'
       - '.github/workflows/deploy-squad-dashboard.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
