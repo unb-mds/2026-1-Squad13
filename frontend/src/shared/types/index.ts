@@ -27,6 +27,7 @@ export interface Proposicao {
   linkOficial?: string
   tempoTotalDias: number
   temAtraso: boolean
+  atrasoCritico: boolean
   temPrevisaoIA: boolean
   previsaoAprovacaoDias?: number
   tags: string[]

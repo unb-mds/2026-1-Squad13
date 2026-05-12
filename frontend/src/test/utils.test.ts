@@ -1,25 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
-  temAtrasoSignificativo,
   formatarTempo,
   paginar,
   corStatus,
   calcularDiasEntreatas,
 } from '../shared/lib/utils'
-
-describe('temAtrasoSignificativo', () => {
-  it('retorna false para atraso abaixo do limite', () => {
-    expect(temAtrasoSignificativo(179)).toBe(false)
-  })
-
-  it('retorna false para atraso exatamente no limite', () => {
-    expect(temAtrasoSignificativo(180)).toBe(false)
-  })
-
-  it('retorna true para atraso acima do limite', () => {
-    expect(temAtrasoSignificativo(181)).toBe(true)
-  })
-})
 
 describe('formatarTempo', () => {
   it('retorna dias quando menor que 30', () => {
@@ -39,22 +24,22 @@ describe('formatarTempo', () => {
   })
 
   it('retorna anos e meses quando há resto', () => {
-    expect(formatarTempo(400)).toBe('1 ano e 1 mês')
+    expect(formatarTempo(400)).toBe('1 ano e 1 m\u00eas')
   })
 })
 
 describe('paginar', () => {
   const lista = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 
-  it('retorna os primeiros itens na página 1', () => {
+  it('retorna os primeiros itens na p\u00e1gina 1', () => {
     expect(paginar(lista, 1, 5)).toEqual([1, 2, 3, 4, 5])
   })
 
-  it('retorna os itens corretos na página 2', () => {
+  it('retorna os itens corretos na p\u00e1gina 2', () => {
     expect(paginar(lista, 2, 5)).toEqual([6, 7, 8, 9, 10])
   })
 
-  it('retorna apenas os itens restantes na última página parcial', () => {
+  it('retorna apenas os itens restantes na \u00faltima p\u00e1gina parcial', () => {
     expect(paginar(lista, 3, 5)).toEqual([11])
   })
 })
@@ -68,11 +53,11 @@ describe('corStatus', () => {
 })
 
 describe('calcularDiasEntreatas', () => {
-  it('calcula a diferença em dias entre duas datas ISO', () => {
+  it('calcula a diferen\u00e7a em dias entre duas datas ISO', () => {
     expect(calcularDiasEntreatas('2025-01-01', '2025-04-11')).toBe(100)
   })
 
-  it('retorna 0 quando as duas datas são iguais', () => {
+  it('retorna 0 quando as duas datas s\u00e3o iguais', () => {
     expect(calcularDiasEntreatas('2025-06-15', '2025-06-15')).toBe(0)
   })
 })
