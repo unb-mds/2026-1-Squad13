@@ -60,4 +60,8 @@ describe('calcularDiasEntreatas', () => {
   it('retorna 0 quando as duas datas s\u00e3o iguais', () => {
     expect(calcularDiasEntreatas('2025-06-15', '2025-06-15')).toBe(0)
   })
+
+  it('lida corretamente com anos bissextos', () => {
+    expect(calcularDiasEntreatas('2024-02-28', '2024-03-01')).toBe(2)
+  })
 })
