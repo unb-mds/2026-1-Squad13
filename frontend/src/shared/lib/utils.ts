@@ -1,6 +1,5 @@
 import { differenceInDays, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { DIAS_ATRASO_SIGNIFICATIVO } from '../constants'
 import type { StatusProposicao } from '../types'
 
 export function formatarData(data: string): string {

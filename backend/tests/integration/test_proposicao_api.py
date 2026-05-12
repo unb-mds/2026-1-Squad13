@@ -1,4 +1,3 @@
-import pytest
 
 def test_health_check(http_client):
     # Act

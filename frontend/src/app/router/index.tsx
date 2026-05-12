@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from '../providers/AuthProvider'
+import { useAuth } from '../providers/AuthContext'
 import { AppLayout } from '../layouts/AppLayout'
 import { LoginPage } from '@/pages/login-page'
 import { CadastroPage } from '@/pages/cadastro-page'

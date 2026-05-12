@@ -1,5 +1,5 @@
 import { PROPOSICOES_MOCK, getMovimentacoes } from '../lib/mock-data'
-import { filtrarProposicoes, paginar } from '../lib/utils'
+import { paginar } from '../lib/utils'
 import type {
   Proposicao,
   MovimentacaoTramitacao,
@@ -62,15 +62,21 @@ export async function listarProposicoes(
   params.append('pagina', String(pagina))
   params.append('itens_por_pagina', String(itensPorPagina))
 
+  // Se nenhum filtro foi preenchido, nem tenta chamar a API (evita erro 400 do Backend)
+  const temFiltro = Object.values(filtros).some((v) => v && String(v).trim() !== '')
+  if (!temFiltro) {
+    const items = paginar(PROPOSICOES_MOCK, pagina, itensPorPagina)
+    return { items, total: PROPOSICOES_MOCK.length }
+  }
+
   try {
     const response = await fetch(`${API_BASE}/proposicoes?${params.toString()}`)
     
     if (!response.ok) {
       // Se a API falhar, podemos cair para o mock (útil para desenvolvimento)
       console.warn('API falhou, usando dados mockados.')
-      const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
-      const items = paginar(filtradas, pagina, itensPorPagina)
-      return { items, total: filtradas.length }
+      const items = paginar(PROPOSICOES_MOCK, pagina, itensPorPagina)
+      return { items, total: PROPOSICOES_MOCK.length }
     }
 
     const data = await response.json()
@@ -79,9 +85,8 @@ export async function listarProposicoes(
     return { items: data.items, total: data.total }
   } catch (error) {
     console.warn('Erro ao conectar na API, usando dados mockados:', error)
-    const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
-    const items = paginar(filtradas, pagina, itensPorPagina)
-    return { items, total: filtradas.length }
+    const items = paginar(PROPOSICOES_MOCK, pagina, itensPorPagina)
+    return { items, total: PROPOSICOES_MOCK.length }
   }
 }
 
