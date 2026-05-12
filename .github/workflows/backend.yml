@@ -25,3 +25,6 @@ jobs:
       - run: uv sync
 
       - run: uv run python -m py_compile src/main.py
+
+      - name: Run Tests
+        run: export PYTHONPATH=src && uv run pytest
