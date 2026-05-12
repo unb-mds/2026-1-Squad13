@@ -25,10 +25,6 @@ export function formatarTempo(dias: number): string {
   return `${anos} ${anos === 1 ? 'ano' : 'anos'} e ${meses} ${meses === 1 ? 'mês' : 'meses'}`
 }
 
-export function temAtrasoSignificativo(dias: number): boolean {
-  return dias > DIAS_ATRASO_SIGNIFICATIVO
-}
-
 export function corStatus(status: StatusProposicao): string {
   const mapa: Record<StatusProposicao, string> = {
     'Em tramitação': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -59,34 +55,3 @@ export function paginar<T>(items: T[], pagina: number, itensPorPagina: number): 
   return items.slice(inicio, inicio + itensPorPagina)
 }
 
-export function filtrarProposicoes<T extends {
-  ementa: string
-  numero: string
-  autor: string
-  tags: string[]
-  orgaoOrigem: string
-  tipo: string
-  status: string
-  dataApresentacao: string
-}>(
-  items: T[],
-  filtros: { busca: string; orgaoOrigem: string; tipo: string; status: string; dataInicio: string; dataFim: string }
-): T[] {
-  return items.filter((p) => {
-    const termoBusca = filtros.busca.toLowerCase()
-    const matchBusca =
-      !filtros.busca ||
-      p.ementa.toLowerCase().includes(termoBusca) ||
-      p.numero.toLowerCase().includes(termoBusca) ||
-      p.autor.toLowerCase().includes(termoBusca) ||
-      p.tags.some((t) => t.toLowerCase().includes(termoBusca))
-
-    const matchOrgao = !filtros.orgaoOrigem || p.orgaoOrigem === filtros.orgaoOrigem
-    const matchTipo = !filtros.tipo || p.tipo === filtros.tipo
-    const matchStatus = !filtros.status || p.status === filtros.status
-    const matchDataInicio = !filtros.dataInicio || p.dataApresentacao >= filtros.dataInicio
-    const matchDataFim = !filtros.dataFim || p.dataApresentacao <= filtros.dataFim
-
-    return matchBusca && matchOrgao && matchTipo && matchStatus && matchDataInicio && matchDataFim
-  })
-}
