@@ -28,6 +28,7 @@ class ProposicaoResponse(BaseModel):
     dataUltimaMovimentacao: str
     tempoTotalDias: int
     temAtraso: bool
+    atrasoCritico: bool = Field(alias="atrasoCritico")
     temPrevisaoIA: bool
     tags: List[str]
     linkOficial: Optional[str] = Field(default=None, alias="linkOficial")
@@ -57,6 +58,7 @@ def _to_response(p) -> dict:
         "dataUltimaMovimentacao": p.data_ultima_movimentacao,
         "tempoTotalDias": p.tempo_total_dias or 0,
         "temAtraso": p.tem_atraso or False,
+        "atrasoCritico": p.atraso_critico,
         "temPrevisaoIA": p.tem_previsao_ia or False,
         "tags": p.tags or [],
         "linkOficial": p.link_oficial,
@@ -71,6 +73,9 @@ def buscar_proposicoes(
     busca: Optional[str] = Query(default=None),
     tipo: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
+    orgao_origem: Optional[str] = Query(default=None, alias="orgaoOrigem"),
+    data_inicio: Optional[str] = Query(default=None, alias="dataInicio"),
+    data_fim: Optional[str] = Query(default=None, alias="dataFim"),
     pagina: int = Query(default=1, ge=1),
     itens_por_pagina: int = Query(default=10, ge=1, le=100),
     session: Session = Depends(get_session)
@@ -81,7 +86,10 @@ def buscar_proposicoes(
     filtros = {
         "busca": busca,
         "tipo": tipo,
-        "status": status
+        "status": status,
+        "orgao_origem": orgao_origem,
+        "data_inicio": data_inicio,
+        "data_fim": data_fim
     }
     
     try:
