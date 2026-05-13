@@ -120,17 +120,44 @@ async function main() {
       assigneeId: i.assignee?.login || 'unassigned',
       featureId: labels.find(l => l.startsWith('feat:'))?.replace('feat:', '') || 'general',
       dueDate: i.milestone?.due_on?.slice(0, 10) || '',
-      progress: status === 'done' ? 100 : status === 'in_progress' ? 50 : 0,
+      progress: (status === 'done' || i.state === 'closed') ? 100 : status === 'in_progress' ? 50 : 0,
       createdAt: i.created_at.slice(0, 10),
       url: i.html_url
     }
   })
 
-  // 4. Recent workflow runs
+  // 4. Feature progress calculation
+  const featureNames = {
+    'f1': 'Consulta de Proposições',
+    'f2': 'Detalhamento da Proposição',
+    'f3': 'Dashboard Analítico',
+    'f4': 'Inteligência Preditiva',
+    'f5': 'Autenticação',
+    'f6': 'Infraestrutura & Arquitetura',
+    'f7': 'Qualidade & CI/CD'
+  }
+
+  const features = Object.entries(featureNames).map(([id, name]) => {
+    const featureTasks = tasks.filter(t => t.featureId === id)
+    const tasksTotal = featureTasks.length
+    const tasksDone = featureTasks.filter(t => t.status === 'done').length
+    const progress = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0
+    
+    return {
+      id,
+      name,
+      progress,
+      tasksTotal,
+      tasksDone,
+      status: progress === 100 ? 'done' : progress > 0 ? 'in_progress' : 'planned'
+    }
+  })
+
+  // 5. Recent workflow runs
   let recentWorkflows = []
   try {
     const runs = await gh(`/repos/${REPO}/actions/runs?per_page=10`)
-    recentWorkflows = runs.workflow_runs.map(r => ({
+    recentWorkflows = (runs.workflow_runs || []).map(r => ({
       name: r.name,
       conclusion: r.conclusion,
       status: r.status,
@@ -141,7 +168,7 @@ async function main() {
     console.warn(`  workflow runs unavailable: ${e.message}`)
   }
 
-  // 5. Contributors
+  // 6. Contributors
   let contributors = []
   try {
     const stats = await gh(`/repos/${REPO}/contributors?per_page=20`)
@@ -166,6 +193,7 @@ async function main() {
     pullRequests,
     issues,
     tasks,
+    features,
     recentWorkflows,
     contributors,
   }

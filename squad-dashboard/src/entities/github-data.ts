@@ -44,6 +44,14 @@ export interface GithubData {
     closed: number
   }
   tasks: Task[]
+  features: {
+    id: string
+    name: string
+    progress: number
+    tasksTotal: number
+    tasksDone: number
+    status: 'planned' | 'in_progress' | 'done' | 'blocked'
+  }[]
   recentWorkflows: GithubWorkflowRun[]
   contributors: GithubContributor[]
 }
