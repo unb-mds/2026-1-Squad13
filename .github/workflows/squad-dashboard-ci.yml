@@ -1,0 +1,31 @@
+name: Squad Dashboard CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'squad-dashboard/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: squad-dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: squad-dashboard
+
+      - name: Type-check (TypeScript)
+        run: npm run build
+        working-directory: squad-dashboard
+        # O build já executa tsc && vite build, garantindo integridade de tipos
