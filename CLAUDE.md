@@ -78,7 +78,7 @@ O sistema é focado em estudantes, pesquisadores, jornalistas, cidadãos e usuá
 
 - **Testes:**
   - Pytest no backend — unitários e de integração (ver ADR-007)
-  - Testes de frontend: Vitest com jsdom — smoke test e testes de utils compartilhadas
+  - Testes de frontend: Vitest com jsdom — testes de utils e componentes (Badge, EmptyState, Button, ProposicaoCard); coverage local via `npm run test:coverage` (provider v8, sem thresholds no CI)
   - Testes unitários obrigatórios para domínio e services do backend
 
 - **Containerização:**
