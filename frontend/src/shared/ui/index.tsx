@@ -109,7 +109,7 @@ export function Select({ label, children, className = '', ...props }: SelectProp
 
 // --- Spinner ---
 export function Spinner({ className = '' }: { className?: string }) {
-  return <Loader2 className={`animate-spin text-volt-400 ${className}`} />
+  return <Loader2 role="status" aria-label="Carregando" className={`animate-spin text-volt-400 ${className}`} />
 }
 
 // --- Empty State ---
