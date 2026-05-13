@@ -31,6 +31,7 @@ export interface GithubWorkflowRun {
 export interface GithubData {
   generatedAt: string
   totalCommits: number
+  coveragePercent: number
   commitsByDay: GithubCommitDay[]
   commitsByAuthor: GithubCommitAuthor[]
   weeklyCommits: GithubWeeklyCommit[]
@@ -51,6 +52,22 @@ export interface GithubData {
     tasksTotal: number
     tasksDone: number
     status: 'planned' | 'in_progress' | 'done' | 'blocked'
+  }[]
+  milestones: {
+    id: string
+    title: string
+    description: string
+    state: string
+    openIssues: number
+    closedIssues: number
+    dueOn: string | null
+    createdAt: string
+    updatedAt: string
+  }[]
+  burndownData: {
+    day: string
+    remaining: number
+    ideal: number
   }[]
   recentWorkflows: GithubWorkflowRun[]
   contributors: GithubContributor[]

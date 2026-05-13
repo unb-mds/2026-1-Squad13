@@ -1,13 +1,14 @@
 export type MemberRole =
   | 'Cloud/Infra/Arquitetura'
-  | 'Frontend Dev'
-  | 'Backend Dev'
+  | 'Dev Lead'
+  | 'Dev'
   | 'Full Stack'
   | 'QA/Documentação'
   | 'Produto/Scrum'
 
 export interface Member {
   id: string
+  login?: string
   name: string
   role: MemberRole
   avatarInitials: string
