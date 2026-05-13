@@ -4,9 +4,32 @@
 
 Sistema para busca e acompanhamento de proposições legislativas, com foco inicial em PL e PEC, permitindo consulta por filtros como tipo, número, ano, autor, UF do autor e status de tramitação.
 
-## Como rodar o projeto completo
+---
 
-Para testar a integração entre o frontend e o backend, você precisará de terminais abertos simultaneamente para cada serviço.
+## ⚡ Modo Rápido (Recomendado)
+
+Se você possui **Docker** e **uv** instalados, utilize os scripts de automação na raiz do projeto:
+
+### 1. Subir o Ambiente Completo (Docker)
+Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend e Frontend automaticamente.
+```bash
+./start_dev.sh
+```
+- **Frontend:** http://localhost:5173
+- **Backend:** http://localhost:8000
+- **Docs (Swagger):** http://localhost:8000/docs
+
+### 2. Rodar Todos os Testes e Validações
+Executa linting, checagem de tipos e todos os testes (Unitários e Integração) de ambos os apps.
+```bash
+./test_all.sh
+```
+
+---
+
+## 🛠️ Como rodar manualmente
+
+Caso prefira rodar os serviços separadamente para desenvolvimento:
 
 ### 1. Rodando o Backend (API)
 
@@ -37,7 +60,26 @@ O dashboard de métricas do time rodará em: http://localhost:5174
 
 ---
 
-## Integração Backend-Frontend
+## 🧪 Testes Automatizados
+
+Além do `./test_all.sh`, você pode rodar testes específicos:
+
+### Backend (Pytest)
+```bash
+cd backend
+# Apenas unitários
+uv run pytest -m "not integration"
+# Apenas integração
+uv run pytest -m "integration"
+```
+
+### Frontend (Vitest)
+```bash
+cd frontend
+npm run test
+```
+
+## 🏗️ Integração Backend-Frontend
 
 O sistema está configurado para que o frontend consuma dados reais do backend via PostgreSQL. 
 
@@ -55,42 +97,6 @@ O sistema está configurado para que o frontend consuma dados reais do backend v
 ├── squad-dashboard/    ← Painel de métricas e gestão do time
 ├── docs/               ← Documentação técnica e ADRs
 └── README.md
-```
-
-## Como rodar o backend localmente
-
-### Pré-requisitos
-
-- Python 3.12+
-- uv instalado
-
-### Passos
-
-```bash
-cd backend
-uv sync
-uv run fastapi dev src/main.py
-```
-
-A aplicação ficará disponível localmente em uma URL como:
-
-- http://127.0.0.1:8000
-- http://127.0.0.1:8000/docs
-
-### Rodando os testes
-
-Os testes estão divididos em unitários e de integração (marcados com `integration`).
-
-```bash
-cd backend
-# Rodar apenas testes unitários (rápidos)
-uv run pytest -m "not integration"
-
-# Rodar testes de integração (podem chamar APIs externas)
-uv run pytest -m "integration"
-
-# Rodar todos os testes
-uv run pytest
 ```
 
 ## Arquitetura
