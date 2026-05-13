@@ -60,6 +60,18 @@ O dashboard de métricas do time rodará em: http://localhost:5174
 
 ---
 
+## 📊 Gestão e Governança
+
+O projeto utiliza um **Squad Dashboard** automatizado para monitorar a saúde do desenvolvimento em tempo real.
+
+- **Métricas Reais**: Burndown, Velocity e Progresso de Features são extraídos diretamente da API do GitHub.
+- **Integração de CI**: O dashboard exibe o percentual de cobertura de código real medido nos pipelines de Pull Request.
+- **Transparência**: Dados de contribuição (commits/tasks) por membro são atualizados a cada push na `main`.
+
+Para mais detalhes sobre como a automação funciona, consulte o [AUTOMATION.md](./squad-dashboard/AUTOMATION.md).
+
+---
+
 ## 🧪 Testes Automatizados
 
 Além do `./test_all.sh`, você pode rodar testes específicos:
@@ -113,6 +125,8 @@ Para entender como o sistema é estruturado, as decisões técnicas tomadas e o 
 | [ADR-004](./docs/adr/ADR-004-batch-coleta.md)         | Batch diário como estratégia de coleta           | Aceita   |
 | [ADR-005](./docs/adr/ADR-005-adapter-pattern.md)      | Padrão Adapter para isolamento das APIs externas | Aceita   |
 | [ADR-006](./docs/adr/ADR-006-redis-cache.md)          | Redis para cache de respostas                    | Aceita   |
+| [ADR-007](./docs/adr/ADR-007-testing-strategy.md)     | Estratégia de Testes (Frontend e Backend)        | Aceita   |
+| [ADR-008](./docs/adr/ADR-008-github-actions-data-pipeline.md) | Pipeline de Dados para o Squad Dashboard | Aceita   |
 
 ## Estado atual
 
