@@ -1,4 +1,3 @@
-from typing import Optional
 from domain.entities.proposicao import Proposicao
 from infrastructure.repositories.proposicao_repository import ProposicaoRepository
 from infrastructure.adapters.camara_adapter import CamaraAdapter
