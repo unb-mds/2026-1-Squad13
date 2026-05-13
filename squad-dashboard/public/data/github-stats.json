@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-13T03:21:55.384Z",
-  "totalCommits": 91,
+  "generatedAt": "2026-05-13T04:55:12.028Z",
+  "totalCommits": 100,
   "commitsByDay": [
     {
       "date": "07/mai",
@@ -20,36 +20,28 @@
     },
     {
       "date": "11/mai",
-      "commits": 37
+      "commits": 41
     },
     {
       "date": "12/mai",
-      "commits": 23
+      "commits": 29
     },
     {
       "date": "13/mai",
-      "commits": 1
+      "commits": 11
     }
   ],
   "commitsByAuthor": [
     {
       "login": "kaiky-yun",
-      "commits": 58
+      "commits": 57
     },
     {
       "login": "caioflmjr",
-      "commits": 29
-    },
-    {
-      "login": "Bernardo",
-      "commits": 2
+      "commits": 42
     },
     {
       "login": "Heitorovski01",
-      "commits": 1
-    },
-    {
-      "login": "RochaCarla",
       "commits": 1
     }
   ],
@@ -60,7 +52,7 @@
     },
     {
       "week": "W2",
-      "commits": 1
+      "commits": 0
     },
     {
       "week": "W3",
@@ -68,15 +60,15 @@
     },
     {
       "week": "W4",
-      "commits": 5
+      "commits": 0
     },
     {
       "week": "W5",
-      "commits": 1
+      "commits": 0
     },
     {
       "week": "W6",
-      "commits": 7
+      "commits": 5
     },
     {
       "week": "W7",
@@ -84,19 +76,131 @@
     },
     {
       "week": "W8",
-      "commits": 66
+      "commits": 86
     }
   ],
   "pullRequests": {
     "open": 0,
-    "merged": 26,
+    "merged": 27,
     "closed": 1
   },
   "issues": {
-    "open": 11,
+    "open": 18,
     "closed": 12
   },
   "tasks": [
+    {
+      "id": "58",
+      "title": "feat: gerar gráfico de Burndown real via série temporal de issues",
+      "description": "## Objetivo / Contexto\nSubstituir o grafico de Burndown estatico por uma visualizacao dinamica que reflita o progresso real do squad. O grafico deve mostrar a reducao do backlog (queima de tasks) ao longo do tempo.\n\n## Plano de Execucao\n- [ ] Implementar logica no script `generate-github-data.mjs` para analisar a data de criacao e fechamento de cada issue.\n- [ ] Gerar uma serie temporal de 15 a 30 dias contendo o saldo de issues abertas por dia.\n- [ ] Adicionar o campo `burndownData` ao payload JSON.\n- [ ] Refatorar o componente `BurndownChart` para consumir esses dados reais.\n\n## Definicao de Pronto (DoD)\n- [ ] O grafico no Dashboard bate com o historico de issues fechadas no GitHub.\n- [ ] Linha ideal de progresso calculada dinamicamente baseada na data final do Milestone vigente.",
+      "status": "todo",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/58"
+    },
+    {
+      "id": "57",
+      "title": "refactor: remover fallbacks de mock e implementar Strict Mode para integridade de dados",
+      "description": "## 🎯 Objetivo\nGarantir que o Dashboard nunca exiba informações falsas (mocks) em caso de falha na API ou falta de dados reais. O sistema deve ser honesto sobre seu estado.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Remoção de todos os operadores de fallback (`|| mockTasks`, `?? mockKpis`) nos componentes.\n- [ ] Implementação de estados de erro visuais claros quando os dados não puderem ser carregados.\n- [ ] Garantia de que o ambiente de produção nunca exiba o conteúdo de `src/mocks/`.",
+      "status": "todo",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/57"
+    },
+    {
+      "id": "56",
+      "title": "feat: automatizar métricas de contribuição individual na Team Page",
+      "description": "## 🎯 Objetivo / Contexto\nRefletir a participação real de cada membro do squad baseando-se em commits mergeados e tarefas concluídas, eliminando o uso de dados fictícios na página de time.\n\n## 🏗️ Impacto Técnico\n- **Lógica**: Cruzar `commitsByAuthor` com a lista de membros.\n- **Frontend**: Atualizar `TeamPage` para exibir o ranking real de produtividade técnica.\n\n## ✅ Definição de Pronto (DoD)\n- [ ] Cards de membros exibem contagem real de Commits e Tasks (via assignee).\n- [ ] Gráfico de produtividade sincronizado com o histórico do Git.",
+      "status": "todo",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/56"
+    },
+    {
+      "id": "55",
+      "title": "feat: extrair Milestones e cronograma de Sprints diretamente da API do GitHub",
+      "description": "## 🎯 Objetivo / Contexto\nSubstituir os dados estáticos da `RoadmapPage` por Milestones reais configuradas no GitHub. Isso permite que o time gerencie datas de entrega diretamente no repositório.\n\n## 🛠️ Plano de Execução\n- [ ] Atualizar `generate-github-data.mjs` para buscar `/repos/{repo}/milestones`.\n- [ ] Mapear datas de entrega (`due_on`) para a visualização de cronograma.\n- [ ] Refatorar `RoadmapPage` para consumir o novo payload.\n\n## ✅ Definição de Pronto (DoD)\n- [ ] Milestones criadas no GitHub aparecem automaticamente no dashboard.\n- [ ] Remoção da dependência de `mockSprints` e `mockMilestones`.",
+      "status": "todo",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/55"
+    },
+    {
+      "id": "54",
+      "title": "docs: documentar logica de extracao e calculo de progresso do script de dados do Dashboard",
+      "description": "## Objetivo / Contexto\nGarantir que a logica de negocio implementada no script `generate-github-data.mjs` esteja devidamente documentada para facilitar a manutencao e o onboarding de novos membros. O script agora e o motor que alimenta as metricas reais do dashboard.\n\n## Plano de Execucao\n- [ ] Adicionar comentarios tecnicos detalhados no arquivo `generate-github-data.mjs`.\n- [ ] Criar ou atualizar um README/README_DASHBOARD.md explicando o mapeamento de labels para features (ex: feat:f1 -> Consulta).\n- [ ] Explicitar a regra de calculo de progresso (Closed / Total).\n\n## Definicao de Pronto (DoD)\n- [ ] Documentacao revisada e clara.\n- [ ] Mapeamento de features consistente com o Story Map documentado tecnicamente.",
+      "status": "todo",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/54"
+    },
+    {
+      "id": "53",
+      "title": "ci: adicionar step de Type-checking (tsc) ao workflow de Pull Request do Dashboard",
+      "description": "## 📝 Motivação Técnica\nGarantir que erros de tipagem do TypeScript não cheguem à branch `main`, automatizando a validação que hoje é feita manualmente.\n\n## ✅ Definição de Pronto (DoD)\n- [ ] Workflow de CI bloqueia o merge se o comando `tsc` falhar.\n- [ ] Verificação aplicada a todos os PRs que alteram a pasta `squad-dashboard`.",
+      "status": "todo",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/53"
+    },
+    {
+      "id": "52",
+      "title": "test: configurar Vitest e React Testing Library no Squad Dashboard",
+      "description": "## 🎯 Objetivo / Contexto\nEstabelecer uma infraestrutura de testes unitários e de integração para o Dashboard, similar ao que já existe no frontend principal, para evitar regressões visuais e lógicas.\n\n## 🛠️ Plano de Execução\n- [ ] Instalar `vitest`, `@testing-library/react` e `@testing-library/jest-dom`.\n- [ ] Configurar `vitest.config.ts` no diretório `squad-dashboard`.\n- [ ] Criar primeiro teste smoke para a `DashboardPage`.\n\n## ✅ Definição de Pronto (DoD)\n- [ ] Comando `npm run test` funcional no dashboard.\n- [ ] Pelo menos um teste unitário passando.\n- [ ] Integração com o workflow de CI configurada.",
+      "status": "todo",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/52"
+    },
     {
       "id": "50",
       "title": "refactor: remover dependência de mocks e implementar Skeletons de carregamento no Dashboard",
@@ -307,8 +411,8 @@
     },
     {
       "id": "37",
-      "title": "feat(frontend): implementar estados de loading e erro na consulta",
-      "description": "## Descrição\nMelhoria de UX com feedbacks visuais.",
+      "title": "feat: implementar feedbacks visuais de loading e estados de erro na Consulta",
+      "description": "## 🎯 Objetivo / Contexto\nMelhorar a experiência do usuário durante o consumo da API, garantindo que o sistema comunique claramente quando os dados estão sendo carregados ou quando ocorre uma falha de conexão.\n\n## ✅ Definição de Pronto (DoD)\n- [x] Componente de loading (spinner/skeleton) visível durante o fetch.\n- [x] Tratamento de erros HTTP (4xx/5xx) com mensagens amigáveis.\n- [x] UI resiliente a falhas no backend.",
       "status": "done",
       "priority": "high",
       "labels": [
@@ -323,8 +427,8 @@
     },
     {
       "id": "36",
-      "title": "feat(frontend): integrar listagem de proposições com a API",
-      "description": "## Descrição\nConexão UI -> API real.",
+      "title": "feat: integrar componente de listagem de proposições com os serviços da API real",
+      "description": "## 🎯 Objetivo / Contexto\nConectar a interface de usuário aos serviços de backend, substituindo o uso de constantes locais por chamadas assíncronas ao servidor.\n\n## ✅ Entregáveis\n- [x] Hook `useProposicoes` ou serviço equivalente conectado.\n- [x] Mapeamento de dados do backend para as props dos cards de UI.\n- [x] Validação de integração em ambiente de desenvolvimento.",
       "status": "done",
       "priority": "critical",
       "labels": [
@@ -339,8 +443,8 @@
     },
     {
       "id": "35",
-      "title": "feat(infra): implementar adapters mock para Câmara e Senado",
-      "description": "## Descrição\nAdapters de infraestrutura seguindo ADR-005.",
+      "title": "infra: implementar adapters de infraestrutura com suporte a mocks normalizados",
+      "description": "## 📝 Motivação Técnica\nEstabelecer o padrão de design Adapter (ADR-005) para isolar a aplicação das APIs externas, utilizando mocks iniciais que espelham o contrato real da Câmara e Senado.\n\n## ✅ Implementação\n- [x] `CamaraMockAdapter` e `SenadoMockAdapter` funcionais.\n- [x] Normalização de dados para a entidade de domínio `Proposicao`.\n- [x] Testabilidade garantida via injeção de dependência.",
       "status": "done",
       "priority": "high",
       "labels": [
@@ -355,8 +459,8 @@
     },
     {
       "id": "34",
-      "title": "feat(backend): criar endpoint GET /proposicoes com filtros",
-      "description": "## Descrição\nEndpoint principal de consulta.\n\n## Detalhes\n- Paginação\n- Filtros cumulativos\n- Schemas Pydantic",
+      "title": "feat: expor endpoint de busca paginada com suporte a filtros cumulativos",
+      "description": "## 🎯 Objetivo / Contexto\nDesenvolver a API principal de consulta de proposições, permitindo filtragem por tipo, status e órgão, além de suporte nativo a paginação.\n\n## ✅ Detalhes Técnicos\n- [x] Endpoint `GET /proposicoes` implementado no FastAPI.\n- [x] Suporte a parâmetros `tipo`, `status`, `orgaoOrigem` e `busca`.\n- [x] Retorno em conformidade com o schema Pydantic definido.",
       "status": "done",
       "priority": "critical",
       "labels": [
@@ -524,7 +628,145 @@
       "status": "planned"
     }
   ],
+  "milestones": [],
+  "burndownData": [
+    {
+      "day": "23 de abr.",
+      "remaining": 0,
+      "ideal": 30
+    },
+    {
+      "day": "24 de abr.",
+      "remaining": 0,
+      "ideal": 29
+    },
+    {
+      "day": "25 de abr.",
+      "remaining": 0,
+      "ideal": 27
+    },
+    {
+      "day": "26 de abr.",
+      "remaining": 0,
+      "ideal": 26
+    },
+    {
+      "day": "27 de abr.",
+      "remaining": 0,
+      "ideal": 24
+    },
+    {
+      "day": "28 de abr.",
+      "remaining": 0,
+      "ideal": 23
+    },
+    {
+      "day": "29 de abr.",
+      "remaining": 0,
+      "ideal": 21
+    },
+    {
+      "day": "30 de abr.",
+      "remaining": 0,
+      "ideal": 20
+    },
+    {
+      "day": "01 de mai.",
+      "remaining": 0,
+      "ideal": 18
+    },
+    {
+      "day": "02 de mai.",
+      "remaining": 0,
+      "ideal": 17
+    },
+    {
+      "day": "03 de mai.",
+      "remaining": 0,
+      "ideal": 15
+    },
+    {
+      "day": "04 de mai.",
+      "remaining": 0,
+      "ideal": 14
+    },
+    {
+      "day": "05 de mai.",
+      "remaining": 0,
+      "ideal": 12
+    },
+    {
+      "day": "06 de mai.",
+      "remaining": 0,
+      "ideal": 11
+    },
+    {
+      "day": "07 de mai.",
+      "remaining": 0,
+      "ideal": 9
+    },
+    {
+      "day": "08 de mai.",
+      "remaining": 0,
+      "ideal": 8
+    },
+    {
+      "day": "09 de mai.",
+      "remaining": 0,
+      "ideal": 6
+    },
+    {
+      "day": "10 de mai.",
+      "remaining": 0,
+      "ideal": 5
+    },
+    {
+      "day": "11 de mai.",
+      "remaining": 0,
+      "ideal": 3
+    },
+    {
+      "day": "12 de mai.",
+      "remaining": 0,
+      "ideal": 2
+    },
+    {
+      "day": "13 de mai.",
+      "remaining": 18,
+      "ideal": 0
+    }
+  ],
   "recentWorkflows": [
+    {
+      "name": "Squad Dashboard CI",
+      "conclusion": "failure",
+      "status": "completed",
+      "updatedAt": "2026-05-13T04:24:53Z"
+    },
+    {
+      "name": "Squad Dashboard CI",
+      "conclusion": "failure",
+      "status": "completed",
+      "updatedAt": "2026-05-13T04:20:10Z"
+    },
+    {
+      "name": "Deploy Squad Dashboard",
+      "conclusion": "failure",
+      "status": "completed",
+      "updatedAt": "2026-05-13T03:42:30Z"
+    },
+    {
+      "name": "Backend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-13T03:39:57Z"
+    },
+    {
+      "name": "Frontend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-13T03:40:09Z"
+    },
     {
       "name": "Deploy Squad Dashboard",
       "conclusion": "success",
@@ -554,47 +796,17 @@
       "conclusion": "failure",
       "status": "completed",
       "updatedAt": "2026-05-12T21:13:59Z"
-    },
-    {
-      "name": "Frontend CI",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-12T20:57:27Z"
-    },
-    {
-      "name": "Frontend CI",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-12T20:16:42Z"
-    },
-    {
-      "name": "Frontend CI",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-12T20:04:04Z"
-    },
-    {
-      "name": "Deploy Squad Dashboard",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-12T19:42:36Z"
-    },
-    {
-      "name": "Update Squad Dashboard Data",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-12T19:42:06Z"
     }
   ],
   "contributors": [
     {
       "login": "kaiky-yun",
-      "commits": 58,
+      "commits": 61,
       "avatarUrl": "https://avatars.githubusercontent.com/u/127952063?v=4"
     },
     {
       "login": "caioflmjr",
-      "commits": 29,
+      "commits": 46,
       "avatarUrl": "https://avatars.githubusercontent.com/u/67447767?v=4"
     },
     {

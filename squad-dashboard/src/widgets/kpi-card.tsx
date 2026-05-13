@@ -1,14 +1,16 @@
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
+import { Skeleton } from '@/shared/ui/skeleton'
 
 interface KpiCardProps {
   title: string
-  value: string | number
+  value?: string | number
   subtitle?: string
   icon: LucideIcon
   trend?: 'up' | 'down' | 'neutral'
   trendLabel?: string
   glowColor?: 'blue' | 'purple' | 'green' | 'yellow' | 'red'
+  isLoading?: boolean
 }
 
 const glowMap = {
@@ -27,7 +29,7 @@ const iconBgMap = {
   red: 'bg-red-500/15 text-red-400',
 }
 
-export function KpiCard({ title, value, subtitle, icon: Icon, trend, trendLabel, glowColor = 'blue' }: KpiCardProps) {
+export function KpiCard({ title, value, subtitle, icon: Icon, trend, trendLabel, glowColor = 'blue', isLoading }: KpiCardProps) {
   return (
     <div className={cn(
       'bg-surface-2 border rounded-xl p-5 animate-fade-in transition-all hover:border-opacity-50',
@@ -39,14 +41,24 @@ export function KpiCard({ title, value, subtitle, icon: Icon, trend, trendLabel,
           <Icon className="w-4 h-4" />
         </div>
       </div>
-      <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
-      {(subtitle || trendLabel) && (
-        <p className={cn(
-          'text-xs mt-1.5',
-          trend === 'up' ? 'text-green-400' : trend === 'down' ? 'text-red-400' : 'text-slate-500'
-        )}>
-          {trendLabel ?? subtitle}
-        </p>
+      
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-16" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      ) : (
+        <>
+          <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
+          {(subtitle || trendLabel) && (
+            <p className={cn(
+              'text-xs mt-1.5',
+              trend === 'up' ? 'text-green-400' : trend === 'down' ? 'text-red-400' : 'text-slate-500'
+            )}>
+              {trendLabel ?? subtitle}
+            </p>
+          )}
+        </>
       )}
     </div>
   )

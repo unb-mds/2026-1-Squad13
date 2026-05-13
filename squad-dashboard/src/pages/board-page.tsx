@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, RotateCcw, Save, Settings, X, Loader2, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
+import { Search, RotateCcw, Save, Settings, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -15,15 +15,12 @@ import {
 } from '@dnd-kit/core'
 import {
   arrayMove,
-  SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 
 import type { Task, TaskStatus, TaskPriority } from '@/entities/task'
 import { KanbanColumn } from '@/features/board/kanban-column'
 import { TaskCard } from '@/features/board/task-card'
-import { mockTasks } from '@/mocks/tasks'
 import { useGithubData } from '@/shared/api/github-data-service'
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
@@ -54,7 +51,7 @@ export function BoardPage() {
 
   useEffect(() => {
     if (!dataLoading) {
-      const initialTasks = gh?.tasks || mockTasks
+      const initialTasks = gh?.tasks || []
       setTasks(initialTasks)
       setOriginalTasks(initialTasks)
     }
@@ -235,7 +232,7 @@ export function BoardPage() {
             <option value="medium">Média</option>
             <option value="low">Baixa</option>
           </select>
-          <button onClick={() => setTasks(gh?.tasks || mockTasks)} className="p-1.5 bg-surface-3 border border-border-subtle rounded-lg text-slate-400 hover:text-white" title="Resetar"><RotateCcw className="w-4 h-4" /></button>
+          <button onClick={() => setTasks(gh?.tasks || [])} className="p-1.5 bg-surface-3 border border-border-subtle rounded-lg text-slate-400 hover:text-white" title="Resetar"><RotateCcw className="w-4 h-4" /></button>
         </div>
       </div>
 

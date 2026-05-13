@@ -1,48 +1,57 @@
-import { writeFileSync, mkdirSync } from 'fs'
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+
+/**
+ * Script de Automação de Dados do Dashboard
+ * ----------------------------------------
+ * Este script é o motor de dados do Squad Dashboard. Ele consome a API REST do GitHub
+ * para gerar um payload JSON (github-stats.json) contendo métricas reais de engenharia.
+ * 
+ * Principais funcionalidades:
+ * 1. Extração de série temporal de Commits (últimos 8 dias e 8 semanas).
+ * 2. Mapeamento de Issues para Entidades de Tarefa (Task).
+ * 3. Cálculo de Burndown Real baseado no saldo histórico de issues abertas.
+ * 4. Cálculo de progresso de Features baseado em labels (ex: feat:f1).
+ * 5. Monitoramento de Workflows de CI e Contribuições por autor.
+ */
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO = 'unb-mds/2026-1-Squad13'
 const TOKEN = process.env.GITHUB_TOKEN
 
-const HEADERS = {
-  'Accept': 'application/vnd.github+json',
-  'X-GitHub-Api-Version': '2022-11-28',
-  ...(TOKEN ? { 'Authorization': `Bearer ${TOKEN}` } : {}),
-}
-
 async function gh(path) {
-  const res = await fetch(`https://api.github.com${path}`, { headers: HEADERS })
-  if (!res.ok) throw new Error(`GitHub API ${path} → ${res.status} ${res.statusText}`)
+  const headers = { 'Accept': 'application/vnd.github+json' }
+  if (TOKEN) headers['Authorization'] = `token ${TOKEN}`
+  
+  const res = await fetch(`https://api.github.com${path}`, { headers })
+  if (!res.ok) throw new Error(`GitHub API error: ${res.status} ${res.statusText}`)
   return res.json()
 }
 
-function formatDatePtBR(isoDate) {
-  const d = new Date(isoDate + 'T12:00:00Z')
-  const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-  return `${d.getUTCDate().toString().padStart(2, '0')}/${months[d.getUTCMonth()]}`
+const formatDatePtBR = (iso) => {
+  const d = new Date(iso)
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')
 }
 
 async function main() {
   console.log(`Fetching GitHub data for ${REPO}`)
   if (!TOKEN) console.warn('No GITHUB_TOKEN — using unauthenticated (60 req/h limit)')
 
-  // 1. Recent commits (last 100)
-  const commits = await gh(`/repos/${REPO}/commits?per_page=100`)
+  const today = new Date()
+  
+  // 1. Commits — last 30 days
+  const commits = await gh(`/repos/${REPO}/commits?since=${new Date(Date.now() - 30*24*60*60*1000).toISOString()}&per_page=100`)
   console.log(`  commits: ${commits.length}`)
 
-  // Commits by day — last 7 days
-  const today = new Date()
-  const commitsByDay = Array.from({ length: 7 }, (_, i) => {
+  const commitsByDay = Array.from({ length: 8 }, (_, i) => {
     const d = new Date(today)
-    d.setUTCDate(d.getUTCDate() - (6 - i))
+    d.setDate(today.getDate() - i)
     const dateStr = d.toISOString().slice(0, 10)
     const count = commits.filter(c => c.commit.author.date.slice(0, 10) === dateStr).length
     return { date: formatDatePtBR(dateStr), commits: count }
-  })
+  }).reverse()
 
-  // Commits by author
   const authorMap = {}
   for (const c of commits) {
     const login = c.author?.login ?? c.commit.author.name
@@ -52,7 +61,6 @@ async function main() {
     .map(([login, count]) => ({ login, commits: count }))
     .sort((a, b) => b.commits - a.commits)
 
-  // Weekly commits — last 8 weeks
   const weeklyCommits = Array.from({ length: 8 }, (_, i) => {
     const weekEnd = new Date(today)
     weekEnd.setUTCDate(weekEnd.getUTCDate() - i * 7)
@@ -74,7 +82,7 @@ async function main() {
     closed: allPRs.filter(pr => pr.state === 'closed' && !pr.merged_at).length,
   }
 
-  // 3. Issues (excluding PRs) and Tasks mapping
+  // 3. Issues and Burndown calculation
   const allIssues = await gh(`/repos/${REPO}/issues?state=all&per_page=100`)
   const issuesOnly = allIssues.filter(i => !i.pull_request)
   console.log(`  issues: ${issuesOnly.length}`)
@@ -84,10 +92,28 @@ async function main() {
     closed: issuesOnly.filter(i => i.state === 'closed').length,
   }
 
+  const burndownData = []
+  const daysToShow = 20
+  for (let i = daysToShow; i >= 0; i--) {
+    const targetDate = new Date(today)
+    targetDate.setDate(today.getDate() - i)
+    const dateStr = targetDate.toISOString().slice(0, 10)
+    
+    const openOnDate = issuesOnly.filter(i => {
+      const created = i.created_at.slice(0, 10)
+      const closed = i.closed_at ? i.closed_at.slice(0, 10) : '9999-12-31'
+      return created <= dateStr && closed > dateStr
+    }).length
+
+    burndownData.push({
+      day: targetDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      remaining: openOnDate,
+      ideal: Math.max(0, Math.round(issuesOnly.length - (issuesOnly.length / daysToShow) * (daysToShow - i)))
+    })
+  }
+
   const tasks = issuesOnly.map(i => {
     const labels = i.labels.map(l => l.name)
-    
-    // Status mapping: label 'status:xxx' or state
     let status = 'todo'
     if (labels.includes('status:backlog')) status = 'backlog'
     else if (labels.includes('status:todo')) status = 'todo'
@@ -96,13 +122,11 @@ async function main() {
     else if (labels.includes('status:done') || i.state === 'closed') status = 'done'
     else if (i.state === 'open' && i.assignee) status = 'in_progress'
 
-    // Priority mapping: label 'prio:xxx'
     let priority = 'medium'
     if (labels.includes('prio:critical')) priority = 'critical'
     else if (labels.includes('prio:high')) priority = 'high'
     else if (labels.includes('prio:low')) priority = 'low'
 
-    // Labels mapping (TaskLabel type)
     const taskLabels = []
     if (labels.includes('bug')) taskLabels.push('bug')
     if (labels.includes('documentation')) taskLabels.push('docs')
@@ -126,7 +150,27 @@ async function main() {
     }
   })
 
-  // 4. Feature progress calculation
+  // 4. Milestones
+  let milestones = []
+  try {
+    const rawMilestones = await gh(`/repos/${REPO}/milestones?state=all&sort=due_on&direction=asc`)
+    milestones = (rawMilestones || []).map(m => ({
+      id: String(m.id),
+      title: m.title,
+      description: m.description || '',
+      state: m.state,
+      openIssues: m.open_issues,
+      closedIssues: m.closed_issues,
+      dueOn: m.due_on,
+      createdAt: m.created_at,
+      updatedAt: m.updated_at,
+    }))
+    console.log(`  milestones: ${milestones.length}`)
+  } catch (e) {
+    console.warn(`  milestones unavailable: ${e.message}`)
+  }
+
+  // 5. Feature progress calculation
   const featureNames = {
     'f1': 'Consulta de Proposições',
     'f2': 'Detalhamento da Proposição',
@@ -153,7 +197,7 @@ async function main() {
     }
   })
 
-  // 5. Recent workflow runs
+  // 6. Recent workflow runs
   let recentWorkflows = []
   try {
     const runs = await gh(`/repos/${REPO}/actions/runs?per_page=10`)
@@ -168,7 +212,7 @@ async function main() {
     console.warn(`  workflow runs unavailable: ${e.message}`)
   }
 
-  // 6. Contributors
+  // 7. Contributors
   let contributors = []
   try {
     const stats = await gh(`/repos/${REPO}/contributors?per_page=20`)
@@ -184,9 +228,23 @@ async function main() {
     console.warn(`  contributors unavailable: ${e.message}`)
   }
 
+  // 8. Cobertura de Código (Opcional)
+  let coveragePercent = 0
+  const coveragePath = join(__dirname, '../coverage/coverage-summary.json')
+  if (existsSync(coveragePath)) {
+    try {
+      const summary = JSON.parse(readFileSync(coveragePath, 'utf8'))
+      coveragePercent = summary.total?.statements?.pct || 0
+      console.log(`  coverage: ${coveragePercent}%`)
+    } catch (e) {
+      console.warn('  erro ao ler coverage-summary.json')
+    }
+  }
+
   const output = {
     generatedAt: new Date().toISOString(),
     totalCommits: commits.length,
+    coveragePercent,
     commitsByDay,
     commitsByAuthor,
     weeklyCommits,
@@ -194,6 +252,8 @@ async function main() {
     issues,
     tasks,
     features,
+    milestones,
+    burndownData,
     recentWorkflows,
     contributors,
   }
