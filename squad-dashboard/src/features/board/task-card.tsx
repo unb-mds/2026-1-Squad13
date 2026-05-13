@@ -3,7 +3,6 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '@/entities/task'
 import { Badge } from '@/shared/ui/badge'
-import { ProgressBar } from '@/shared/ui/progress-bar'
 import { PRIORITY_CONFIG, LABEL_CONFIG, formatDate } from '@/shared/lib/utils'
 import { mockTeam } from '@/mocks/team'
 
@@ -82,10 +81,6 @@ export function TaskCard({ task, isOverlay }: TaskCardProps) {
           </Badge>
         )}
       </div>
-
-      {task.status === 'in_progress' && task.progress > 0 && (
-        <ProgressBar value={task.progress} showLabel />
-      )}
 
       <div className="flex items-center justify-between text-xs text-slate-500">
         <div className="flex items-center gap-3">

@@ -44,6 +44,41 @@ async function main() {
   const commits = await gh(`/repos/${REPO}/commits?since=${new Date(Date.now() - 30*24*60*60*1000).toISOString()}&per_page=100`)
   console.log(`  commits: ${commits.length}`)
 
+  // --- LOGICA DE FIDELIDADE HISTORICA & AUTO-CREDIT ---
+  const FEATURE_KEYWORDS = {
+    'f1': ['proposicao', 'consulta', 'api-camara', 'api-senado', 'adapter'],
+    'f2': ['detalhamento', 'detalhe'],
+    'f3': ['dashboard', 'kpi', 'chart', 'grafico', 'squad-dashboard'],
+    'f5': ['auth', 'login', 'autenticacao'],
+    'f6': ['backend', 'infra', 'database', 'docker', 'sqlmodel', 'fastapi', 'architecture', 'arq'],
+    'f7': ['test', 'ci', 'workflow', 'ruff', 'pytest', 'vitest', 'lint', 'coverage']
+  }
+
+  const featureHistory = {} // { fid: { first: Date, last: Date, authors: { login: count } } }
+  
+  commits.forEach(c => {
+    const msg = c.commit.message.toLowerCase()
+    const date = new Date(c.commit.author.date)
+    const login = c.author?.login ?? c.commit.author.name
+    
+    Object.entries(FEATURE_KEYWORDS).forEach(([fid, keys]) => {
+      if (keys.some(k => msg.includes(k))) {
+        if (!featureHistory[fid]) featureHistory[fid] = { first: date, last: date, authors: {} }
+        if (date < featureHistory[fid].first) featureHistory[fid].first = date
+        if (date > featureHistory[fid].last) featureHistory[fid].last = date
+        featureHistory[fid].authors[login] = (featureHistory[fid].authors[login] ?? 0) + 1
+      }
+    })
+  })
+
+  // Helper para decidir o "dono" de uma feature baseado no volume de commits
+  const getFeatureOwner = (fid) => {
+    const authors = featureHistory[fid]?.authors
+    if (!authors) return 'unassigned'
+    return Object.entries(authors).sort((a, b) => b[1] - a[1])[0][0]
+  }
+  // ---------------------------------------------------------------------
+
   const commitsByDay = Array.from({ length: 8 }, (_, i) => {
     const d = new Date(today)
     d.setDate(today.getDate() - i)
@@ -100,7 +135,10 @@ async function main() {
     const dateStr = targetDate.toISOString().slice(0, 10)
     
     const openOnDate = issuesOnly.filter(i => {
-      const created = i.created_at.slice(0, 10)
+      const fid = i.labels?.find(l => l.name && l.name.startsWith('feat:'))?.name.replace('feat:', '')
+      const realStart = featureHistory[fid]?.first ? featureHistory[fid].first.toISOString().slice(0, 10) : null
+      
+      const created = (realStart && realStart < i.created_at.slice(0, 10)) ? realStart : i.created_at.slice(0, 10)
       const closed = i.closed_at ? i.closed_at.slice(0, 10) : '9999-12-31'
       return created <= dateStr && closed > dateStr
     }).length
@@ -134,6 +172,15 @@ async function main() {
     if (labels.includes('test')) taskLabels.push('test')
     if (taskLabels.length === 0) taskLabels.push('chore')
 
+    const taskFid = i.labels?.find(l => l.name && l.name.startsWith('feat:'))?.name.replace('feat:', '') || 'general'
+    const realTaskStart = featureHistory[taskFid]?.first ? featureHistory[taskFid].first.toISOString().slice(0, 10) : i.created_at.slice(0, 10)
+    
+    // Auto-Credit: Se não houver assignee, tenta encontrar o dono da feature via commits
+    let assigneeId = i.assignee?.login || 'unassigned'
+    if (assigneeId === 'unassigned' && taskFid !== 'general') {
+      assigneeId = getFeatureOwner(taskFid)
+    }
+
     return {
       id: String(i.number),
       title: i.title,
@@ -141,14 +188,14 @@ async function main() {
       status,
       priority,
       labels: taskLabels,
-      assigneeId: i.assignee?.login || 'unassigned',
-      featureId: labels.find(l => l.startsWith('feat:'))?.replace('feat:', '') || 'general',
+      assigneeId,
+      featureId: taskFid,
       dueDate: i.milestone?.due_on?.slice(0, 10) || '',
-      progress: (status === 'done' || i.state === 'closed') ? 100 : status === 'in_progress' ? 50 : 0,
-      createdAt: i.created_at.slice(0, 10),
+      progress: (status === 'done' || i.state === 'closed') ? 100 : 0,
+      createdAt: (realTaskStart < i.created_at.slice(0, 10)) ? realTaskStart : i.created_at.slice(0, 10),
       url: i.html_url
     }
-  })
+    })
 
   // 4. Milestones
   let milestones = []
@@ -162,8 +209,6 @@ async function main() {
       openIssues: m.open_issues,
       closedIssues: m.closed_issues,
       dueOn: m.due_on,
-      createdAt: m.created_at,
-      updatedAt: m.updated_at,
     }))
     console.log(`  milestones: ${milestones.length}`)
   } catch (e) {
@@ -207,10 +252,7 @@ async function main() {
       status: r.status,
       updatedAt: r.updated_at,
     }))
-    console.log(`  workflow runs: ${recentWorkflows.length}`)
-  } catch (e) {
-    console.warn(`  workflow runs unavailable: ${e.message}`)
-  }
+  } catch (e) {}
 
   // 7. Contributors
   let contributors = []
@@ -222,32 +264,13 @@ async function main() {
         commits: c.contributions,
         avatarUrl: c.avatar_url,
       }))
-      console.log(`  contributors: ${contributors.length}`)
     }
-  } catch (e) {
-    console.warn(`  contributors unavailable: ${e.message}`)
-  }
-
-  // 8. Cobertura de Código (Opcional)
-  let coveragePercent = 0
-  const coveragePath = join(__dirname, '../coverage/coverage-summary.json')
-  if (existsSync(coveragePath)) {
-    try {
-      const summary = JSON.parse(readFileSync(coveragePath, 'utf8'))
-      coveragePercent = summary.total?.statements?.pct || 0
-      console.log(`  coverage: ${coveragePercent}%`)
-    } catch (e) {
-      console.warn('  erro ao ler coverage-summary.json')
-    }
-  }
+  } catch (e) {}
 
   const output = {
     generatedAt: new Date().toISOString(),
     totalCommits: commits.length,
-    coveragePercent,
     commitsByDay,
-    commitsByAuthor,
-    weeklyCommits,
     pullRequests,
     issues,
     tasks,
@@ -255,7 +278,7 @@ async function main() {
     milestones,
     burndownData,
     recentWorkflows,
-    contributors,
+    contributors: contributors.map(c => ({ login: c.login, commits: c.commits, avatarUrl: c.avatarUrl }))
   }
 
   const outDir = join(__dirname, '..', 'public', 'data')
@@ -263,8 +286,6 @@ async function main() {
   writeFileSync(join(outDir, 'github-stats.json'), JSON.stringify(output, null, 2))
 
   console.log('\nDone → public/data/github-stats.json')
-  console.log(`  PRs merged: ${pullRequests.merged} | open: ${pullRequests.open}`)
-  console.log(`  Issues open: ${issues.open} | closed: ${issues.closed}`)
 }
 
 main().catch(e => { console.error(e.message); process.exit(1) })
