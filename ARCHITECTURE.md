@@ -173,6 +173,7 @@ Utilizamos o **Modelo C4** para documentar a arquitetura em diferentes níveis d
 | ADR-005 | Adapter pattern para isolamento das APIs externas | Aceita   |
 | ADR-006 | Redis para cache de respostas                     | Aceita   |
 | ADR-007 | Estratégia de Testes                              | Aceita   |
+| ADR-008 | Pipeline de Dados para o Squad Dashboard          | Aceita   |
 
 ---
 
