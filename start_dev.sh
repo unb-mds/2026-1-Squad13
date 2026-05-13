@@ -15,7 +15,27 @@ if ! docker --version > /dev/null 2>&1; then
     exit 1
 fi
 
-# 2. Subir a infraestrutura (Banco e Cache) primeiro
+# 2. Verificar permissão do Docker
+if ! docker ps > /dev/null 2>&1; then
+    echo -e "${RED}❌ Erro: Sem permissão para acessar o Docker.${NC}"
+    echo -e "${YELLOW}Dica: Tente rodar com 'sudo' ou adicione seu usuário ao grupo 'docker':${NC}"
+    echo -e "      sudo usermod -aG docker \$USER && newgrp docker"
+    exit 1
+fi
+
+# 3. Verificar arquivo .env
+if [ ! -f "backend/.env" ]; then
+    echo -e "${YELLOW}⚠️  Arquivo backend/.env não encontrado. Criando a partir do .env.example...${NC}"
+    if [ -f "backend/.env.example" ]; then
+        cp backend/.env.example backend/.env
+        echo -e "${GREEN}✅ backend/.env criado com sucesso!${NC}"
+    else
+        echo -e "${RED}❌ Erro: backend/.env.example não encontrado para criar o .env.${NC}"
+        exit 1
+    fi
+fi
+
+# 4. Subir a infraestrutura (Banco e Cache) primeiro
 echo -e "${YELLOW}🐘 Subindo Banco de Dados e Cache...${NC}"
 docker compose up -d db redis
 
