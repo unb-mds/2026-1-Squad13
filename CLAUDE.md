@@ -204,7 +204,7 @@ frontend/src/
 
 GitHub Actions já está em uso com dois workflows separados por path filter:
 
-- **`frontend.yml`** — dispara em PRs para `main` com mudanças em `frontend/**`
+- **`frontend.yml`** — dispara em PRs para `main` e `develop` com mudanças em `frontend/**`
   - Passos: `npm ci` → `npm run lint` → `npm run test -- --run` → `npm run build`
 
 - **`backend.yml`** — dispara em PRs para as branches configuradas no workflow com mudanças em `backend/**`
