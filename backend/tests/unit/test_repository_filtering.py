@@ -45,6 +45,12 @@ def test_filtrar_por_data_range(session: Session):
     assert len(resultados) == 1
     assert resultados[0].id == "2"
 
+def test_filtrar_por_busca_case_insensitive(session: Session):
+    repo = SQLProposicaoRepository(session)
+    resultados = repo.filtrar(busca="projeto de teste 2")
+    assert len(resultados) == 1
+    assert resultados[0].id == "2"
+
 def test_atraso_critico_property(session: Session):
     p = Proposicao(tipo="PL", numero="1", ano=2024, autor="A", status="S", orgao_atual="O", ementa="E", 
                    data_apresentacao="D", data_ultima_movimentacao="D", tempo_total_dias=200)
