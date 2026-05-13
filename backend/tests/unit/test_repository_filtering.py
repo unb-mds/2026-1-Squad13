@@ -52,9 +52,43 @@ def test_filtrar_por_busca_case_insensitive(session: Session):
     assert resultados[0].id == "2"
 
 def test_atraso_critico_property(session: Session):
-    p = Proposicao(tipo="PL", numero="1", ano=2024, autor="A", status="S", orgao_atual="O", ementa="E", 
+    p = Proposicao(tipo="PL", numero="1", ano=2024, autor="A", status="S", orgao_atual="O", ementa="E",
                    data_apresentacao="D", data_ultima_movimentacao="D", tempo_total_dias=200)
     assert p.atraso_critico is True
-    
+
     p.tempo_total_dias = 180
     assert p.atraso_critico is False
+
+def test_filtrar_com_limit_retorna_apenas_n_registros(session: Session):
+    repo = SQLProposicaoRepository(session)
+    resultados = repo.filtrar(limit=1)
+    assert len(resultados) == 1
+
+def test_filtrar_com_offset_pula_registros(session: Session):
+    repo = SQLProposicaoRepository(session)
+    todos = repo.filtrar()
+    com_offset = repo.filtrar(offset=1)
+    assert len(com_offset) == len(todos) - 1
+
+def test_filtrar_limit_e_offset_combinados(session: Session):
+    repo = SQLProposicaoRepository(session)
+    primeira_pagina = repo.filtrar(limit=1, offset=0)
+    segunda_pagina = repo.filtrar(limit=1, offset=1)
+    assert len(primeira_pagina) == 1
+    assert len(segunda_pagina) == 1
+    assert primeira_pagina[0].id != segunda_pagina[0].id
+
+def test_contar_retorna_total_sem_paginacao(session: Session):
+    repo = SQLProposicaoRepository(session)
+    total = repo.contar()
+    assert total == 2
+
+def test_contar_com_filtro_status(session: Session):
+    repo = SQLProposicaoRepository(session)
+    total = repo.contar(status="Aprovada")
+    assert total == 1
+
+def test_contar_sem_resultados(session: Session):
+    repo = SQLProposicaoRepository(session)
+    total = repo.contar(status="Inexistente")
+    assert total == 0
