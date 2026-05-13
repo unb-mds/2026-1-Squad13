@@ -30,6 +30,11 @@ dev = [
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+markers = [
+  "integration: testes que chamam APIs externas (rodar com -m integration)",
+]
 addopts = [
   "-ra",
   "--strict-config",
