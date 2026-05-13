@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { Spinner } from '../shared/ui/index'
 
 describe('Spinner', () => {
@@ -11,5 +11,10 @@ describe('Spinner', () => {
   it('renderiza um elemento SVG', () => {
     const { container } = render(<Spinner />)
     expect(container.querySelector('svg')).not.toBeNull()
+  })
+
+  it('tem label acessível "Carregando"', () => {
+    render(<Spinner />)
+    expect(screen.getByRole('status', { name: 'Carregando' })).toBeInTheDocument()
   })
 })
