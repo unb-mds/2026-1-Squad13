@@ -22,6 +22,7 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+*.db
 
 # Node / Vite
 frontend/node_modules/
