@@ -14,4 +14,5 @@ export interface Task {
   dueDate: string
   progress: number
   createdAt: string
+  url?: string
 }
