@@ -83,6 +83,13 @@ export async function listarProposicoes(
   params.append('pagina', String(pagina))
   params.append('itens_por_pagina', String(itensPorPagina))
 
+  // Se nenhum filtro foi preenchido, nem tenta chamar a API (evita erro 400 do Backend)
+  const temFiltro = Object.values(filtros).some((v) => v && String(v).trim() !== '')
+  if (!temFiltro) {
+    const items = paginar(PROPOSICOES_MOCK, pagina, itensPorPagina)
+    return { items, total: PROPOSICOES_MOCK.length }
+  }
+
   try {
     const response = await fetch(`${API_BASE}/proposicoes?${params.toString()}`)
     

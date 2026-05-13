@@ -1,5 +1,4 @@
 from typing import Dict, List
-from domain.entities.proposicao import Proposicao
 from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
 
 class DashboardService:

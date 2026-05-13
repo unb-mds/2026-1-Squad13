@@ -1,3 +1,5 @@
+import type { Task } from './task'
+
 export interface GithubCommitDay {
   date: string
   commits: number
@@ -41,6 +43,15 @@ export interface GithubData {
     open: number
     closed: number
   }
+  tasks: Task[]
+  features: {
+    id: string
+    name: string
+    progress: number
+    tasksTotal: number
+    tasksDone: number
+    status: 'planned' | 'in_progress' | 'done' | 'blocked'
+  }[]
   recentWorkflows: GithubWorkflowRun[]
   contributors: GithubContributor[]
 }
