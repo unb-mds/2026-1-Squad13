@@ -56,9 +56,9 @@ class SQLProposicaoRepository:
         if busca:
             termo = f"%{busca}%"
             statement = statement.where(
-                (Proposicao.ementa.like(termo)) |
-                (Proposicao.numero.like(termo)) |
-                (Proposicao.autor.like(termo))
+                (Proposicao.ementa.ilike(termo)) |
+                (Proposicao.numero.ilike(termo)) |
+                (Proposicao.autor.ilike(termo))
             )
         
         results = self.session.exec(statement)
