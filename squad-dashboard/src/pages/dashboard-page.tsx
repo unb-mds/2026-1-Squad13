@@ -94,10 +94,10 @@ export function DashboardPage() {
         />
         <KpiCard 
           title="Cobertura" 
-          value={gh ? 'TBD' : 'N/A'} 
+          value={gh ? `${gh.coveragePercent}%` : 'TBD'} 
           icon={Shield} 
           glowColor="green"
-          trendLabel="Aguardando integração CI" 
+          trendLabel={gh ? 'Métrica real CI' : 'Aguardando integração'} 
           trend="neutral" 
           isLoading={loading}
         />
