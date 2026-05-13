@@ -1,5 +1,5 @@
 import { PROPOSICOES_MOCK, getMovimentacoes } from '../lib/mock-data'
-import { filtrarProposicoes, paginar } from '../lib/utils'
+import { paginar } from '../lib/utils'
 import type {
   Proposicao,
   MovimentacaoTramitacao,
@@ -11,6 +11,27 @@ import type {
   ComparacaoTema,
   FiltrosProposicao,
 } from '../types'
+
+function filtrarMocks(
+  items: typeof PROPOSICOES_MOCK,
+  filtros: FiltrosProposicao
+): typeof PROPOSICOES_MOCK {
+  return items.filter((p) => {
+    const termo = filtros.busca?.toLowerCase() ?? ''
+    const matchBusca =
+      !filtros.busca ||
+      p.ementa.toLowerCase().includes(termo) ||
+      p.numero.toLowerCase().includes(termo) ||
+      p.autor.toLowerCase().includes(termo) ||
+      p.tags.some((t) => t.toLowerCase().includes(termo))
+    const matchOrgao = !filtros.orgaoOrigem || p.orgaoOrigem === filtros.orgaoOrigem
+    const matchTipo = !filtros.tipo || p.tipo === filtros.tipo
+    const matchStatus = !filtros.status || p.status === filtros.status
+    const matchDataInicio = !filtros.dataInicio || p.dataApresentacao >= filtros.dataInicio
+    const matchDataFim = !filtros.dataFim || p.dataApresentacao <= filtros.dataFim
+    return matchBusca && matchOrgao && matchTipo && matchStatus && matchDataInicio && matchDataFim
+  })
+}
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms))
@@ -68,7 +89,7 @@ export async function listarProposicoes(
     if (!response.ok) {
       // Se a API falhar, podemos cair para o mock (útil para desenvolvimento)
       console.warn('API falhou, usando dados mockados.')
-      const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
+      const filtradas = filtrarMocks(PROPOSICOES_MOCK, filtros)
       const items = paginar(filtradas, pagina, itensPorPagina)
       return { items, total: filtradas.length }
     }
@@ -79,7 +100,7 @@ export async function listarProposicoes(
     return { items: data.items, total: data.total }
   } catch (error) {
     console.warn('Erro ao conectar na API, usando dados mockados:', error)
-    const filtradas = filtrarProposicoes(PROPOSICOES_MOCK, filtros)
+    const filtradas = filtrarMocks(PROPOSICOES_MOCK, filtros)
     const items = paginar(filtradas, pagina, itensPorPagina)
     return { items, total: filtradas.length }
   }
