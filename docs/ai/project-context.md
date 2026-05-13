@@ -60,7 +60,7 @@ O frontend segue a arquitetura **Feature-Based**:
 
 ## Estado Atual
 
-O projeto encontra-se na fase de transição e estabilização:
-- Substituição de `MockAdapters` por chamadas reais com tratamento de timeouts e retentativas (Câmara e Senado).
-- Integração do banco de dados relacional (PostgreSQL) consolidada no código via SQLModel.
-- Pipeline do dashboard do time (Squad Dashboard) operacional gerando métricas automáticas.
+O projeto encontra-se em fase de estabilidade e expansão:
+- Integração com APIs reais (Câmara e Senado) concluída com tratamento de erros e resiliência.
+- Infraestrutura de banco de dados e cache (Postgres/Redis) totalmente operacional via Docker.
+- Pipeline de métricas do Squad Dashboard 100% automatizado.
