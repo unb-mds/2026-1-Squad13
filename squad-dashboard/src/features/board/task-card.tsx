@@ -3,7 +3,6 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '@/entities/task'
 import { Badge } from '@/shared/ui/badge'
-import { ProgressBar } from '@/shared/ui/progress-bar'
 import { PRIORITY_CONFIG, LABEL_CONFIG, formatDate } from '@/shared/lib/utils'
 import { mockTeam } from '@/mocks/team'
 
