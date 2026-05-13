@@ -18,6 +18,7 @@ vi.mock('@dnd-kit/sortable', () => ({
 const mockTask: Task = {
   id: '1',
   title: 'Test Task',
+  description: 'Test Description',
   status: 'in_progress',
   priority: 'high',
   labels: ['feature'],
