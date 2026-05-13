@@ -1,26 +1,42 @@
-import { CheckCircle2, Clock, Bug, Zap, GitPullRequest, Shield, TrendingUp, Activity } from 'lucide-react'
+import { CheckCircle2, Clock, Bug, Zap, GitPullRequest, Shield, TrendingUp, Activity, AlertTriangle } from 'lucide-react'
 import { KpiCard } from '@/widgets/kpi-card'
 import { WeeklyChart } from '@/widgets/weekly-chart'
 import { BurndownChart } from '@/widgets/burndown-chart'
 import { CommitsChart } from '@/widgets/commits-chart'
 import { ProductivityChart } from '@/widgets/productivity-chart'
-import { mockKpis } from '@/mocks/metrics'
 import { ProgressBar } from '@/shared/ui/progress-bar'
-import { mockFeatures } from '@/mocks/features'
+import { Skeleton } from '@/shared/ui/skeleton'
 import { useGithubData } from '@/shared/api/github-data-service'
 
 export function DashboardPage() {
-  const { data: gh } = useGithubData()
-  const features = gh?.features && gh.features.length > 0 ? gh.features : mockFeatures
+  const { data: gh, loading, error } = useGithubData()
   
-  const prsMerged = gh?.pullRequests.merged ?? mockKpis.prsMerged
-  const tasksDone = gh?.issues.closed ?? mockKpis.tasksDone
-  const totalTasks = gh ? (gh.issues.open + gh.issues.closed) : mockKpis.totalTasks
-  const tasksInProgress = gh ? gh.tasks.filter(t => t.status === 'in_progress').length : mockKpis.tasksInProgress
-  const bugsOpen = gh ? gh.tasks.filter(t => t.labels.includes('bug') && t.status !== 'done').length : mockKpis.bugsOpen
+  const features = gh?.features || []
+  const prsMerged = gh?.pullRequests.merged ?? 0
+  const tasksDone = gh?.issues.closed ?? 0
+  const totalTasks = gh ? (gh.issues.open + gh.issues.closed) : 0
+  const tasksInProgress = gh ? gh.tasks.filter(t => t.status === 'in_progress').length : 0
+  const bugsOpen = gh ? gh.tasks.filter(t => t.labels.includes('bug') && t.status !== 'done').length : 0
   
-  // Overall progress is the average of features
-  const overallProgress = gh ? Math.round(features.reduce((acc, f) => acc + f.progress, 0) / features.length) : mockKpis.overallProgress
+  const overallProgress = gh && features.length > 0 
+    ? Math.round(features.reduce((acc, f) => acc + f.progress, 0) / features.length) 
+    : 0
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 text-center">
+        <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+          <AlertTriangle className="w-6 h-6 text-red-500" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-white">Falha ao carregar dados</h2>
+          <p className="text-sm text-slate-500 max-w-xs mx-auto">
+            Não foi possível recuperar as métricas do GitHub. Verifique sua conexão ou se o token expirou.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -31,54 +47,122 @@ export function DashboardPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard title="Tasks Concluídas" value={tasksDone} icon={CheckCircle2} glowColor="green"
-          trendLabel={`de ${totalTasks} total`} trend="neutral" />
-        <KpiCard title="Em Progresso" value={tasksInProgress} icon={Activity} glowColor="blue"
-          trendLabel="tasks ativas" trend="neutral" />
-        <KpiCard title="Bugs Abertos" value={bugsOpen} icon={Bug} glowColor="red"
-          trendLabel="requer atenção" trend="down" />
-        <KpiCard title="Velocity" value={`${mockKpis.weeklyVelocity}%`} icon={Zap} glowColor="yellow"
-          trendLabel="+3% vs semana ant." trend="up" />
-        <KpiCard title="PRs Mergeados" value={prsMerged} icon={GitPullRequest} glowColor="purple"
-          trendLabel={gh ? 'GitHub ao vivo' : 'desde o início'} trend="neutral" />
-        <KpiCard title="Cobertura" value={`${mockKpis.coveragePercent}%`} icon={Shield} glowColor="green"
-          trendLabel="meta: 70%" trend="up" />
-        <KpiCard title="Progresso Geral" value={`${overallProgress}%`} icon={TrendingUp} glowColor="blue"
-          trendLabel="MVP em 23/mai" trend="up" />
-        <KpiCard title="Tarefas Pendentes" value={totalTasks - tasksDone} icon={Clock} glowColor="yellow"
-          trendLabel="backlog + ativas" trend="neutral" />
+        <KpiCard 
+          title="Tasks Concluídas" 
+          value={tasksDone} 
+          icon={CheckCircle2} 
+          glowColor="green"
+          trendLabel={gh ? `de ${totalTasks} total` : 'N/A'} 
+          trend="neutral"
+          isLoading={loading}
+        />
+        <KpiCard 
+          title="Em Progresso" 
+          value={tasksInProgress} 
+          icon={Activity} 
+          glowColor="blue"
+          trendLabel={gh ? 'tasks ativas' : 'N/A'} 
+          trend="neutral" 
+          isLoading={loading}
+        />
+        <KpiCard 
+          title="Bugs Abertos" 
+          value={bugsOpen} 
+          icon={Bug} 
+          glowColor="red"
+          trendLabel={gh ? 'requer atenção' : 'N/A'} 
+          trend="down" 
+          isLoading={loading}
+        />
+        <KpiCard 
+          title="Velocidade" 
+          value={gh ? 'TBD' : 'N/A'} 
+          icon={Zap} 
+          glowColor="yellow"
+          trendLabel="Aguardando cálculo real" 
+          trend="neutral" 
+          isLoading={loading}
+        />
+        <KpiCard 
+          title="PRs Mergeados" 
+          value={prsMerged} 
+          icon={GitPullRequest} 
+          glowColor="purple"
+          trendLabel={gh ? 'GitHub ao vivo' : 'N/A'} 
+          trend="neutral" 
+          isLoading={loading}
+        />
+        <KpiCard 
+          title="Cobertura" 
+          value={gh ? 'TBD' : 'N/A'} 
+          icon={Shield} 
+          glowColor="green"
+          trendLabel="Aguardando integração CI" 
+          trend="neutral" 
+          isLoading={loading}
+        />
+        <KpiCard 
+          title="Progresso Geral" 
+          value={`${overallProgress}%`} 
+          icon={TrendingUp} 
+          glowColor="blue"
+          trendLabel="Média de features" 
+          trend="up" 
+          isLoading={loading}
+        />
+        <KpiCard 
+          title="Tarefas Pendentes" 
+          value={gh ? (totalTasks - tasksDone) : 0} 
+          icon={Clock} 
+          glowColor="yellow"
+          trendLabel="backlog + ativas" 
+          trend="neutral" 
+          isLoading={loading}
+        />
       </div>
 
       {/* Feature progress strip */}
       <div className="bg-surface-2 border border-border-subtle rounded-xl p-5">
         <p className="text-sm font-semibold text-white mb-4">Progresso por Feature</p>
         <div className="space-y-3">
-          {features.map(f => (
-            <div key={f.id} className="grid grid-cols-[1fr_auto] gap-4 items-center">
-              <div className="space-y-1.5 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-300 truncate font-medium">{f.name}</span>
-                  <span className="text-xs text-slate-500 tabular-nums ml-2">{f.progress}%</span>
-                </div>
-                <ProgressBar
-                  value={f.progress}
-                  barClassName={f.status === 'blocked' ? 'bg-red-500' : f.progress >= 80 ? 'bg-green-500' : 'bg-blue-500'}
-                />
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-2 w-full" />
               </div>
-              <span className="text-xs text-slate-500 tabular-nums whitespace-nowrap">
-                {f.tasksDone}/{f.tasksTotal}
-              </span>
-            </div>
-          ))}
+            ))
+          ) : features.length > 0 ? (
+            features.map(f => (
+              <div key={f.id} className="grid grid-cols-[1fr_auto] gap-4 items-center">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-300 truncate font-medium">{f.name}</span>
+                    <span className="text-xs text-slate-500 tabular-nums ml-2">{f.progress}%</span>
+                  </div>
+                  <ProgressBar
+                    value={f.progress}
+                    barClassName={f.status === 'blocked' ? 'bg-red-500' : f.progress >= 80 ? 'bg-green-500' : 'bg-blue-500'}
+                  />
+                </div>
+                <span className="text-xs text-slate-500 tabular-nums whitespace-nowrap">
+                  {f.tasksDone}/{f.tasksTotal}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-xs text-slate-500 text-center py-4">Nenhuma feature mapeada via labels.</p>
+          )}
         </div>
       </div>
+...
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <WeeklyChart />
-        <BurndownChart />
+        <WeeklyChart data={gh?.weeklyCommits?.map(w => ({ week: w.week, completed: 0, added: 0 }))} />
+        <BurndownChart data={gh?.burndownData} />
         <CommitsChart data={gh?.commitsByDay} />
-        <ProductivityChart />
+        <ProductivityChart data={gh?.contributors?.map(c => ({ name: c.login, score: c.commits }))} />
       </div>
 
       {gh && (

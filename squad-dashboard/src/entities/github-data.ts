@@ -52,6 +52,22 @@ export interface GithubData {
     tasksDone: number
     status: 'planned' | 'in_progress' | 'done' | 'blocked'
   }[]
+  milestones: {
+    id: string
+    title: string
+    description: string
+    state: string
+    openIssues: number
+    closedIssues: number
+    dueOn: string | null
+    createdAt: string
+    updatedAt: string
+  }[]
+  burndownData: {
+    day: string
+    remaining: number
+    ideal: number
+  }[]
   recentWorkflows: GithubWorkflowRun[]
   contributors: GithubContributor[]
 }
