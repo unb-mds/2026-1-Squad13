@@ -83,10 +83,6 @@ export function TaskCard({ task, isOverlay }: TaskCardProps) {
         )}
       </div>
 
-      {task.status === 'in_progress' && task.progress > 0 && (
-        <ProgressBar value={task.progress} showLabel />
-      )}
-
       <div className="flex items-center justify-between text-xs text-slate-500">
         <div className="flex items-center gap-3">
           {assignee && (
