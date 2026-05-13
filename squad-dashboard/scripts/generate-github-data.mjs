@@ -44,6 +44,41 @@ async function main() {
   const commits = await gh(`/repos/${REPO}/commits?since=${new Date(Date.now() - 30*24*60*60*1000).toISOString()}&per_page=100`)
   console.log(`  commits: ${commits.length}`)
 
+  // --- LOGICA DE FIDELIDADE HISTORICA & AUTO-CREDIT ---
+  const FEATURE_KEYWORDS = {
+    'f1': ['proposicao', 'consulta', 'api-camara', 'api-senado', 'adapter'],
+    'f2': ['detalhamento', 'detalhe'],
+    'f3': ['dashboard', 'kpi', 'chart', 'grafico', 'squad-dashboard'],
+    'f5': ['auth', 'login', 'autenticacao'],
+    'f6': ['backend', 'infra', 'database', 'docker', 'sqlmodel', 'fastapi', 'architecture', 'arq'],
+    'f7': ['test', 'ci', 'workflow', 'ruff', 'pytest', 'vitest', 'lint', 'coverage']
+  }
+
+  const featureHistory = {} // { fid: { first: Date, last: Date, authors: { login: count } } }
+  
+  commits.forEach(c => {
+    const msg = c.commit.message.toLowerCase()
+    const date = new Date(c.commit.author.date)
+    const login = c.author?.login ?? c.commit.author.name
+    
+    Object.entries(FEATURE_KEYWORDS).forEach(([fid, keys]) => {
+      if (keys.some(k => msg.includes(k))) {
+        if (!featureHistory[fid]) featureHistory[fid] = { first: date, last: date, authors: {} }
+        if (date < featureHistory[fid].first) featureHistory[fid].first = date
+        if (date > featureHistory[fid].last) featureHistory[fid].last = date
+        featureHistory[fid].authors[login] = (featureHistory[fid].authors[login] ?? 0) + 1
+      }
+    })
+  })
+
+  // Helper para decidir o "dono" de uma feature baseado no volume de commits
+  const getFeatureOwner = (fid) => {
+    const authors = featureHistory[fid]?.authors
+    if (!authors) return 'unassigned'
+    return Object.entries(authors).sort((a, b) => b[1] - a[1])[0][0]
+  }
+  // ---------------------------------------------------------------------
+
   const commitsByDay = Array.from({ length: 8 }, (_, i) => {
     const d = new Date(today)
     d.setDate(today.getDate() - i)
@@ -100,7 +135,10 @@ async function main() {
     const dateStr = targetDate.toISOString().slice(0, 10)
     
     const openOnDate = issuesOnly.filter(i => {
-      const created = i.created_at.slice(0, 10)
+      const fid = i.labels?.find(l => l.name && l.name.startsWith('feat:'))?.name.replace('feat:', '')
+      const realStart = featureHistory[fid]?.first ? featureHistory[fid].first.toISOString().slice(0, 10) : null
+      
+      const created = (realStart && realStart < i.created_at.slice(0, 10)) ? realStart : i.created_at.slice(0, 10)
       const closed = i.closed_at ? i.closed_at.slice(0, 10) : '9999-12-31'
       return created <= dateStr && closed > dateStr
     }).length
@@ -134,6 +172,15 @@ async function main() {
     if (labels.includes('test')) taskLabels.push('test')
     if (taskLabels.length === 0) taskLabels.push('chore')
 
+    const taskFid = i.labels?.find(l => l.name && l.name.startsWith('feat:'))?.name.replace('feat:', '') || 'general'
+    const realTaskStart = featureHistory[taskFid]?.first ? featureHistory[taskFid].first.toISOString().slice(0, 10) : i.created_at.slice(0, 10)
+    
+    // Auto-Credit: Se não houver assignee, tenta encontrar o dono da feature via commits
+    let assigneeId = i.assignee?.login || 'unassigned'
+    if (assigneeId === 'unassigned' && taskFid !== 'general') {
+      assigneeId = getFeatureOwner(taskFid)
+    }
+
     return {
       id: String(i.number),
       title: i.title,
@@ -141,14 +188,14 @@ async function main() {
       status,
       priority,
       labels: taskLabels,
-      assigneeId: i.assignee?.login || 'unassigned',
-      featureId: labels.find(l => l.startsWith('feat:'))?.replace('feat:', '') || 'general',
+      assigneeId,
+      featureId: taskFid,
       dueDate: i.milestone?.due_on?.slice(0, 10) || '',
       progress: (status === 'done' || i.state === 'closed') ? 100 : status === 'in_progress' ? 50 : 0,
-      createdAt: i.created_at.slice(0, 10),
+      createdAt: (realTaskStart < i.created_at.slice(0, 10)) ? realTaskStart : i.created_at.slice(0, 10),
       url: i.html_url
     }
-  })
+    })
 
   // 4. Milestones
   let milestones = []
