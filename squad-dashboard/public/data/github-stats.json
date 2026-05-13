@@ -1,7 +1,6 @@
 {
-  "generatedAt": "2026-05-13T13:28:28.734Z",
+  "generatedAt": "2026-05-13T14:31:28.524Z",
   "totalCommits": 100,
-  "coveragePercent": 0,
   "commitsByDay": [
     {
       "date": "05 de mai",
@@ -36,54 +35,6 @@
       "commits": 21
     }
   ],
-  "commitsByAuthor": [
-    {
-      "login": "kaiky-yun",
-      "commits": 54
-    },
-    {
-      "login": "caioflmjr",
-      "commits": 45
-    },
-    {
-      "login": "Heitorovski01",
-      "commits": 1
-    }
-  ],
-  "weeklyCommits": [
-    {
-      "week": "W1",
-      "commits": 0
-    },
-    {
-      "week": "W2",
-      "commits": 0
-    },
-    {
-      "week": "W3",
-      "commits": 0
-    },
-    {
-      "week": "W4",
-      "commits": 0
-    },
-    {
-      "week": "W5",
-      "commits": 0
-    },
-    {
-      "week": "W6",
-      "commits": 0
-    },
-    {
-      "week": "W7",
-      "commits": 1
-    },
-    {
-      "week": "W8",
-      "commits": 94
-    }
-  ],
   "pullRequests": {
     "open": 0,
     "merged": 28,
@@ -103,11 +54,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/58"
     },
     {
@@ -119,11 +70,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/57"
     },
     {
@@ -135,11 +86,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/56"
     },
     {
@@ -151,11 +102,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/55"
     },
     {
@@ -167,11 +118,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/54"
     },
     {
@@ -183,11 +134,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/53"
     },
     {
@@ -199,11 +150,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/52"
     },
     {
@@ -215,11 +166,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/50"
     },
     {
@@ -231,11 +182,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/49"
     },
     {
@@ -247,11 +198,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/48"
     },
     {
@@ -263,72 +214,72 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/47"
     },
     {
       "id": "46",
       "title": "fix: corrigir extração de data_ultima_movimentacao no SenadoAdapter",
       "description": "## 📝 Descrição\nO `SenadoAdapter` está retornando strings vazias para o campo de data, o que gera inconsistência no banco.\n\n## ✅ Critérios de Correção\n- [ ] Data extraída corretamente do nó de `autuacoes`.\n- [ ] Fallback para data de apresentação implementado.",
-      "status": "todo",
-      "priority": "high",
+      "status": "in_progress",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f1",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/46"
     },
     {
       "id": "45",
       "title": "chore: desenvolver script de seed para população idempotente do banco com dados reais",
       "description": "## 📝 Motivação\nFacilitar o setup do ambiente e demonstrações garantindo que o banco tenha dados reais das APIs da Câmara e Senado.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Script `init_db.py` funcional.\n- [ ] Uso de UPSERT para evitar duplicidade em execuções repetidas.",
-      "status": "todo",
-      "priority": "high",
+      "status": "in_progress",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-06",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/45"
     },
     {
       "id": "44",
       "title": "feat: implementar autenticação JWT e segurança de rotas no endpoint /auth/login",
       "description": "## 🎯 Objetivo / Contexto\nEstabelecer um sistema de autenticação seguro baseado em tokens JWT para proteger endpoints sensíveis.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Geração de token JWT no login bem-sucedido.\n- [ ] Middleware de proteção de rotas implementado no backend.",
-      "status": "todo",
-      "priority": "high",
+      "status": "in_progress",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f5",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/44"
     },
     {
       "id": "43",
       "title": "feat: implementar endpoint GET /proposicoes/{id} para exibição de detalhes reais",
       "description": "## 🎯 Objetivo / Contexto\nExpor os dados de uma proposição específica para alimentar a página de detalhes, eliminando a dependência de mocks no frontend.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Endpoint retorna 200 com objeto completo ou 404 para ID inexistente.\n- [ ] Frontend conectado ao novo endpoint.",
-      "status": "todo",
-      "priority": "high",
+      "status": "in_progress",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f2",
       "dueDate": "",
       "progress": 0,
       "createdAt": "2026-05-13",
@@ -338,48 +289,48 @@
       "id": "42",
       "title": "perf: implementar paginação SQL (LIMIT/OFFSET) em /proposicoes para otimização de memória",
       "description": "## 🎯 Objetivo / Contexto\nEvitar o carregamento de todos os registros em memória. Atualmente a paginação é feita em memória após o fetch de todos os dados.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Query SQL utiliza `LIMIT` e `OFFSET`.\n- [ ] DTO de resposta inclui metadados de paginação (total de itens, páginas).",
-      "status": "todo",
-      "priority": "high",
+      "status": "in_progress",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-06",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/42"
     },
     {
       "id": "41",
       "title": "refactor: normalizar texto e usar ILIKE em SQLProposicaoRepository para busca case-insensitive",
       "description": "## 🎯 Objetivo / Contexto\nGarantir que a busca textual no banco de dados PostgreSQL seja resiliente a variações de maiúsculas/minúsculas e acentuação, melhorando a experiência de busca.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Query SQL utiliza `ILIKE` para busca textual.\n- [ ] Normalização de strings implementada no repositório.",
-      "status": "todo",
-      "priority": "high",
+      "status": "in_progress",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-06",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/41"
     },
     {
       "id": "40",
       "title": "feat: conectar busca e filtros de /proposicoes ao backend real",
       "description": "## 🎯 Objetivo / Contexto\nSubstituir o consumo de mocks pela integração real com o banco de dados para a listagem de proposições, garantindo que os filtros de UI reflitam o estado real dos dados.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Busca por palavra-chave funciona integrando frontend e backend.\n- [ ] Filtros (tipo, status, órgão) aplicados corretamente na query SQL.\n- [ ] Tela de lista vazia exibe feedback apropriado ao usuário.",
-      "status": "todo",
-      "priority": "high",
+      "status": "in_progress",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f1",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/40"
     },
     {
@@ -391,11 +342,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f1",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/39"
     },
     {
@@ -403,15 +354,15 @@
       "title": "fix: habilitar CORSMiddleware para resolver bloqueio de integração local",
       "description": "## 📝 Descrição do Problema\nO frontend local (`localhost:5173`) estava impedido de consumir a API devido à falta de políticas de CORS no FastAPI.\n\n## ✅ Critérios de Correção\n- [x] Adicionado `CORSMiddleware` ao `main.py`.\n- [x] Origens permitidas configuradas via env ou fixas para dev.\n- [x] Verificado sucesso no preflight request do navegador.",
       "status": "done",
-      "priority": "high",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-06",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/38"
     },
     {
@@ -435,11 +386,11 @@
       "title": "feat: integrar componente de listagem de proposições com os serviços da API real",
       "description": "## 🎯 Objetivo / Contexto\nConectar a interface de usuário aos serviços de backend, substituindo o uso de constantes locais por chamadas assíncronas ao servidor.\n\n## ✅ Entregáveis\n- [x] Hook `useProposicoes` ou serviço equivalente conectado.\n- [x] Mapeamento de dados do backend para as props dos cards de UI.\n- [x] Validação de integração em ambiente de desenvolvimento.",
       "status": "done",
-      "priority": "critical",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "caioflmjr",
+      "assigneeId": "kaiky-yun",
       "featureId": "f1",
       "dueDate": "",
       "progress": 100,
@@ -451,15 +402,15 @@
       "title": "infra: implementar adapters de infraestrutura com suporte a mocks normalizados",
       "description": "## 📝 Motivação Técnica\nEstabelecer o padrão de design Adapter (ADR-005) para isolar a aplicação das APIs externas, utilizando mocks iniciais que espelham o contrato real da Câmara e Senado.\n\n## ✅ Implementação\n- [x] `CamaraMockAdapter` e `SenadoMockAdapter` funcionais.\n- [x] Normalização de dados para a entidade de domínio `Proposicao`.\n- [x] Testabilidade garantida via injeção de dependência.",
       "status": "done",
-      "priority": "high",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "caioflmjr",
-      "featureId": "f1",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-06",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/35"
     },
     {
@@ -467,11 +418,11 @@
       "title": "feat: expor endpoint de busca paginada com suporte a filtros cumulativos",
       "description": "## 🎯 Objetivo / Contexto\nDesenvolver a API principal de consulta de proposições, permitindo filtragem por tipo, status e órgão, além de suporte nativo a paginação.\n\n## ✅ Detalhes Técnicos\n- [x] Endpoint `GET /proposicoes` implementado no FastAPI.\n- [x] Suporte a parâmetros `tipo`, `status`, `orgaoOrigem` e `busca`.\n- [x] Retorno em conformidade com o schema Pydantic definido.",
       "status": "done",
-      "priority": "critical",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "caioflmjr",
+      "assigneeId": "kaiky-yun",
       "featureId": "f1",
       "dueDate": "",
       "progress": 100,
@@ -483,15 +434,15 @@
       "title": "chore: estabelecer regras de proteção e revisão obrigatória na branch main",
       "description": "## 📝 Motivação Técnica\nImplementar governança de código para garantir que nenhuma alteração chegue à `main` sem passar por CI e revisão por pares.\n\n## ✅ Configurações Aplicadas\n- [x] \"Require a pull request before merging\" ativado.\n- [x] \"Require status checks to pass before merging\" (Frontend/Backend CI) vinculado.",
       "status": "done",
-      "priority": "high",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f7",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-07",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/33"
     },
     {
@@ -499,15 +450,15 @@
       "title": "ci: automatizar linting, type-checking e build do Frontend via GitHub Actions",
       "description": "## 📝 Descrição\nCriação do pipeline automatizado para garantir a qualidade do código TypeScript/React.\n\n## ✅ Verificações\n- [x] `npm ci` (instalação limpa).\n- [x] `tsc` (type-checking).\n- [x] `vite build` (validação de bundling).",
       "status": "done",
-      "priority": "high",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f7",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-07",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/32"
     },
     {
@@ -515,15 +466,15 @@
       "title": "ci: automatizar validação de sintaxe, linting (Ruff) e testes do Backend",
       "description": "## 📝 Descrição\nCriação do pipeline de integração contínua para o backend Python.\n\n## ✅ Verificações\n- [x] Instalação via `uv`.\n- [x] Linting com `Ruff`.\n- [x] Testes automatizados com `Pytest`.",
       "status": "done",
-      "priority": "high",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f7",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-07",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/31"
     },
     {
@@ -535,11 +486,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-06",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/30"
     },
     {
@@ -547,15 +498,15 @@
       "title": "refactor: decompor backend em camadas de Domain, Application e Infrastructure",
       "description": "## 🎯 Objetivo\nMigrar o código inicial monolítico para uma estrutura desacoplada seguindo a ADR-001.\n\n## 🏗️ Estrutura Implementada\n- `domain/`: Entidades e regras de negócio puras.\n- `application/`: Orquestração de serviços.\n- `infrastructure/`: Implementações de persistência e adapters.\n- `presentation/`: Endpoints e roteamento.",
       "status": "done",
-      "priority": "critical",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-06",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/29"
     },
     {
@@ -563,15 +514,15 @@
       "title": "chore: inicializar projeto FastAPI com gerenciamento de dependências via uv",
       "description": "## 📝 Motivação\nSetup técnico inicial do backend utilizando Python 3.12 e o gerenciador de pacotes `uv` para máxima performance.\n\n## ✅ Entregáveis\n- `pyproject.toml` configurado.\n- Estrutura base de pastas.\n- Healthcheck endpoint funcional.",
       "status": "done",
-      "priority": "high",
+      "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-13",
+      "createdAt": "2026-05-06",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/28"
     }
   ],
@@ -579,26 +530,26 @@
     {
       "id": "f1",
       "name": "Consulta de Proposições",
-      "progress": 100,
-      "tasksTotal": 4,
+      "progress": 67,
+      "tasksTotal": 6,
       "tasksDone": 4,
-      "status": "done"
+      "status": "in_progress"
     },
     {
       "id": "f2",
       "name": "Detalhamento da Proposição",
       "progress": 0,
-      "tasksTotal": 0,
+      "tasksTotal": 1,
       "tasksDone": 0,
       "status": "planned"
     },
     {
       "id": "f3",
       "name": "Dashboard Analítico",
-      "progress": 0,
-      "tasksTotal": 0,
-      "tasksDone": 0,
-      "status": "planned"
+      "progress": 100,
+      "tasksTotal": 11,
+      "tasksDone": 11,
+      "status": "done"
     },
     {
       "id": "f4",
@@ -612,25 +563,25 @@
       "id": "f5",
       "name": "Autenticação",
       "progress": 0,
-      "tasksTotal": 0,
+      "tasksTotal": 1,
       "tasksDone": 0,
       "status": "planned"
     },
     {
       "id": "f6",
       "name": "Infraestrutura & Arquitetura",
-      "progress": 0,
-      "tasksTotal": 0,
-      "tasksDone": 0,
-      "status": "planned"
+      "progress": 63,
+      "tasksTotal": 8,
+      "tasksDone": 5,
+      "status": "in_progress"
     },
     {
       "id": "f7",
       "name": "Qualidade & CI/CD",
-      "progress": 0,
-      "tasksTotal": 0,
-      "tasksDone": 0,
-      "status": "planned"
+      "progress": 100,
+      "tasksTotal": 3,
+      "tasksDone": 3,
+      "status": "done"
     }
   ],
   "milestones": [],
@@ -702,37 +653,37 @@
     },
     {
       "day": "06 de mai.",
-      "remaining": 0,
+      "remaining": 8,
       "ideal": 11
     },
     {
       "day": "07 de mai.",
-      "remaining": 0,
+      "remaining": 11,
       "ideal": 9
     },
     {
       "day": "08 de mai.",
-      "remaining": 0,
+      "remaining": 11,
       "ideal": 8
     },
     {
       "day": "09 de mai.",
-      "remaining": 0,
+      "remaining": 11,
       "ideal": 6
     },
     {
       "day": "10 de mai.",
-      "remaining": 0,
+      "remaining": 11,
       "ideal": 5
     },
     {
       "day": "11 de mai.",
-      "remaining": 4,
+      "remaining": 29,
       "ideal": 3
     },
     {
       "day": "12 de mai.",
-      "remaining": 4,
+      "remaining": 29,
       "ideal": 2
     },
     {
@@ -742,6 +693,18 @@
     }
   ],
   "recentWorkflows": [
+    {
+      "name": "Deploy Squad Dashboard",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-13T14:17:57Z"
+    },
+    {
+      "name": "Update Squad Dashboard Data",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-13T14:17:16Z"
+    },
     {
       "name": "Squad Dashboard CI",
       "conclusion": "success",
@@ -789,18 +752,6 @@
       "conclusion": "failure",
       "status": "completed",
       "updatedAt": "2026-05-13T05:25:23Z"
-    },
-    {
-      "name": "Squad Dashboard CI",
-      "conclusion": "failure",
-      "status": "completed",
-      "updatedAt": "2026-05-13T05:22:52Z"
-    },
-    {
-      "name": "Squad Dashboard CI",
-      "conclusion": "failure",
-      "status": "completed",
-      "updatedAt": "2026-05-13T05:03:32Z"
     }
   ],
   "contributors": [
