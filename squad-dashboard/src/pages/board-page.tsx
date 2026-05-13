@@ -21,7 +21,6 @@ import {
 import type { Task, TaskStatus, TaskPriority } from '@/entities/task'
 import { KanbanColumn } from '@/features/board/kanban-column'
 import { TaskCard } from '@/features/board/task-card'
-import { mockTasks } from '@/mocks/tasks'
 import { useGithubData } from '@/shared/api/github-data-service'
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [

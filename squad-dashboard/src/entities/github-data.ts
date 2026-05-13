@@ -31,6 +31,7 @@ export interface GithubWorkflowRun {
 export interface GithubData {
   generatedAt: string
   totalCommits: number
+  coveragePercent: number
   commitsByDay: GithubCommitDay[]
   commitsByAuthor: GithubCommitAuthor[]
   weeklyCommits: GithubWeeklyCommit[]
