@@ -8,6 +8,7 @@ export type MemberRole =
 
 export interface Member {
   id: string
+  login?: string
   name: string
   role: MemberRole
   avatarInitials: string

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, RotateCcw, Save, Settings, X, Loader2, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
+import { Search, RotateCcw, Save, Settings, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -15,9 +15,7 @@ import {
 } from '@dnd-kit/core'
 import {
   arrayMove,
-  SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 
 import type { Task, TaskStatus, TaskPriority } from '@/entities/task'
