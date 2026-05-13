@@ -1,5 +1,6 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { mockWeeklyMetrics } from '@/mocks/metrics'
+import { EmptyState } from '@/shared/ui/empty-state'
+import { Activity } from 'lucide-react'
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null
@@ -13,12 +14,31 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-export function WeeklyChart() {
+interface WeeklyChartProps {
+  data?: { week: string; completed: number; added: number }[]
+}
+
+export function WeeklyChart({ data }: WeeklyChartProps) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-surface-2 border border-border-subtle rounded-xl p-5 h-[268px] flex flex-col">
+        <p className="text-sm font-semibold text-white mb-4">Evolução Semanal</p>
+        <div className="flex-1 flex items-center justify-center">
+          <EmptyState 
+            title="Sem dados semanais" 
+            description="Métricas de velocidade não encontradas."
+            icon={Activity}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-surface-2 border border-border-subtle rounded-xl p-5">
       <p className="text-sm font-semibold text-white mb-4">Evolução Semanal</p>
       <ResponsiveContainer width="100%" height={200}>
-        <AreaChart data={mockWeeklyMetrics}>
+        <AreaChart data={data}>
           <defs>
             <linearGradient id="gradCompleted" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />

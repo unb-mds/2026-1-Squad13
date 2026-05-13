@@ -52,7 +52,7 @@ export function BoardPage() {
 
   useEffect(() => {
     if (!dataLoading) {
-      const initialTasks = gh?.tasks || mockTasks
+      const initialTasks = gh?.tasks || []
       setTasks(initialTasks)
       setOriginalTasks(initialTasks)
     }
@@ -233,7 +233,7 @@ export function BoardPage() {
             <option value="medium">Média</option>
             <option value="low">Baixa</option>
           </select>
-          <button onClick={() => setTasks(gh?.tasks || mockTasks)} className="p-1.5 bg-surface-3 border border-border-subtle rounded-lg text-slate-400 hover:text-white" title="Resetar"><RotateCcw className="w-4 h-4" /></button>
+          <button onClick={() => setTasks(gh?.tasks || [])} className="p-1.5 bg-surface-3 border border-border-subtle rounded-lg text-slate-400 hover:text-white" title="Resetar"><RotateCcw className="w-4 h-4" /></button>
         </div>
       </div>
 
