@@ -78,6 +78,9 @@ O sistema é focado em estudantes, pesquisadores, jornalistas, cidadãos e usuá
 
 - **Testes:**
   - Pytest no backend — unitários e de integração (ver ADR-007)
+  - Configuração do pytest centralizada em `backend/pyproject.toml`; nunca recriar `backend/pytest.ini`
+  - Smoke test do endpoint raiz (`GET /`) já existe e deve ser mantido
+  - Fixtures de backend devem refletir fielmente a entidade `Proposicao`
   - Testes de frontend: Vitest com jsdom + Testing Library — 31 testes em 7 arquivos (smoke, utils, Badge, EmptyState, Button, Spinner, ProposicaoCard); cleanup global em `setup.ts`; coverage local via `npm run test:coverage` (provider `@vitest/coverage-v8`, sem thresholds no CI)
   - Testes unitários obrigatórios para domínio e services do backend
 
@@ -188,16 +191,24 @@ frontend/src/
   2. confirmar que NÃO está na `main`;
   3. criar nova branch se necessário.
 - Se o usuário solicitar alteração diretamente na `main`, avisar o risco antes de prosseguir.
+- Fluxo padrão de features: `feature branch → develop → main`; mudanças de CI/base podem ir para `main` diretamente quando aplicável.
+- Cada issue ou PR deve usar worktree e branch isolados.
+
+### Fluxo operacional com Claude Code
+
+- Claude Code não executa `git commit`, `git push` nem abre Pull Requests.
+- Commits, push e abertura de PR são sempre feitos manualmente pelo usuário.
+- Ao finalizar cada tarefa, Claude Code deve informar: path da worktree ativa, branch atual, resultado de `git status`, diff final e comandos exatos para execução manual.
 
 ## CI/CD — Estado atual
 
 GitHub Actions já está em uso com dois workflows separados por path filter:
 
-- **`frontend.yml`** — dispara em PRs para `main` com mudanças em `frontend/**`
+- **`frontend.yml`** — dispara em PRs para `main` e `develop` com mudanças em `frontend/**`
   - Passos: `npm ci` → `npm run lint` → `npm run test -- --run` → `npm run build`
 
-- **`backend.yml`** — dispara em PRs para `main` com mudanças em `backend/**`
-  - Passos: `uv sync` → `py_compile src/main.py`
+- **`backend.yml`** — dispara em PRs para as branches configuradas no workflow com mudanças em `backend/**`
+  - Passos: `uv sync` → Ruff → `py_compile src/main.py` → pytest
 
 - **`deploy-squad-dashboard.yml`** e **`update-squad-dashboard-data.yml`** — deploy automático do painel interno para GitHub Pages
 
