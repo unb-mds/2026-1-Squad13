@@ -1,5 +1,3 @@
-from typing import List, Optional
-from domain.entities.proposicao import Proposicao
 from infrastructure.repositories.proposicao_repository import ProposicaoRepository
 
 class BuscarProposicoesService:

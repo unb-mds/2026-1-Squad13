@@ -74,20 +74,90 @@ async function main() {
     closed: allPRs.filter(pr => pr.state === 'closed' && !pr.merged_at).length,
   }
 
-  // 3. Issues (excluding PRs)
+  // 3. Issues (excluding PRs) and Tasks mapping
   const allIssues = await gh(`/repos/${REPO}/issues?state=all&per_page=100`)
   const issuesOnly = allIssues.filter(i => !i.pull_request)
   console.log(`  issues: ${issuesOnly.length}`)
+  
   const issues = {
     open: issuesOnly.filter(i => i.state === 'open').length,
     closed: issuesOnly.filter(i => i.state === 'closed').length,
   }
 
-  // 4. Recent workflow runs
+  const tasks = issuesOnly.map(i => {
+    const labels = i.labels.map(l => l.name)
+    
+    // Status mapping: label 'status:xxx' or state
+    let status = 'todo'
+    if (labels.includes('status:backlog')) status = 'backlog'
+    else if (labels.includes('status:todo')) status = 'todo'
+    else if (labels.includes('status:in_progress')) status = 'in_progress'
+    else if (labels.includes('status:review')) status = 'review'
+    else if (labels.includes('status:done') || i.state === 'closed') status = 'done'
+    else if (i.state === 'open' && i.assignee) status = 'in_progress'
+
+    // Priority mapping: label 'prio:xxx'
+    let priority = 'medium'
+    if (labels.includes('prio:critical')) priority = 'critical'
+    else if (labels.includes('prio:high')) priority = 'high'
+    else if (labels.includes('prio:low')) priority = 'low'
+
+    // Labels mapping (TaskLabel type)
+    const taskLabels = []
+    if (labels.includes('bug')) taskLabels.push('bug')
+    if (labels.includes('documentation')) taskLabels.push('docs')
+    if (labels.includes('enhancement')) taskLabels.push('feature')
+    if (labels.includes('test')) taskLabels.push('test')
+    if (taskLabels.length === 0) taskLabels.push('chore')
+
+    return {
+      id: String(i.number),
+      title: i.title,
+      description: i.body || '',
+      status,
+      priority,
+      labels: taskLabels,
+      assigneeId: i.assignee?.login || 'unassigned',
+      featureId: labels.find(l => l.startsWith('feat:'))?.replace('feat:', '') || 'general',
+      dueDate: i.milestone?.due_on?.slice(0, 10) || '',
+      progress: (status === 'done' || i.state === 'closed') ? 100 : status === 'in_progress' ? 50 : 0,
+      createdAt: i.created_at.slice(0, 10),
+      url: i.html_url
+    }
+  })
+
+  // 4. Feature progress calculation
+  const featureNames = {
+    'f1': 'Consulta de Proposições',
+    'f2': 'Detalhamento da Proposição',
+    'f3': 'Dashboard Analítico',
+    'f4': 'Inteligência Preditiva',
+    'f5': 'Autenticação',
+    'f6': 'Infraestrutura & Arquitetura',
+    'f7': 'Qualidade & CI/CD'
+  }
+
+  const features = Object.entries(featureNames).map(([id, name]) => {
+    const featureTasks = tasks.filter(t => t.featureId === id)
+    const tasksTotal = featureTasks.length
+    const tasksDone = featureTasks.filter(t => t.status === 'done').length
+    const progress = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0
+    
+    return {
+      id,
+      name,
+      progress,
+      tasksTotal,
+      tasksDone,
+      status: progress === 100 ? 'done' : progress > 0 ? 'in_progress' : 'planned'
+    }
+  })
+
+  // 5. Recent workflow runs
   let recentWorkflows = []
   try {
     const runs = await gh(`/repos/${REPO}/actions/runs?per_page=10`)
-    recentWorkflows = runs.workflow_runs.map(r => ({
+    recentWorkflows = (runs.workflow_runs || []).map(r => ({
       name: r.name,
       conclusion: r.conclusion,
       status: r.status,
@@ -98,7 +168,7 @@ async function main() {
     console.warn(`  workflow runs unavailable: ${e.message}`)
   }
 
-  // 5. Contributors
+  // 6. Contributors
   let contributors = []
   try {
     const stats = await gh(`/repos/${REPO}/contributors?per_page=20`)
@@ -122,6 +192,8 @@ async function main() {
     weeklyCommits,
     pullRequests,
     issues,
+    tasks,
+    features,
     recentWorkflows,
     contributors,
   }

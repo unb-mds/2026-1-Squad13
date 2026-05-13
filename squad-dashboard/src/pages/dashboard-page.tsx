@@ -11,7 +11,16 @@ import { useGithubData } from '@/shared/api/github-data-service'
 
 export function DashboardPage() {
   const { data: gh } = useGithubData()
+  const features = gh?.features && gh.features.length > 0 ? gh.features : mockFeatures
+  
   const prsMerged = gh?.pullRequests.merged ?? mockKpis.prsMerged
+  const tasksDone = gh?.issues.closed ?? mockKpis.tasksDone
+  const totalTasks = gh ? (gh.issues.open + gh.issues.closed) : mockKpis.totalTasks
+  const tasksInProgress = gh ? gh.tasks.filter(t => t.status === 'in_progress').length : mockKpis.tasksInProgress
+  const bugsOpen = gh ? gh.tasks.filter(t => t.labels.includes('bug') && t.status !== 'done').length : mockKpis.bugsOpen
+  
+  // Overall progress is the average of features
+  const overallProgress = gh ? Math.round(features.reduce((acc, f) => acc + f.progress, 0) / features.length) : mockKpis.overallProgress
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -22,11 +31,11 @@ export function DashboardPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard title="Tasks Concluídas" value={mockKpis.tasksDone} icon={CheckCircle2} glowColor="green"
-          trendLabel={`de ${mockKpis.totalTasks} total`} trend="neutral" />
-        <KpiCard title="Em Progresso" value={mockKpis.tasksInProgress} icon={Activity} glowColor="blue"
+        <KpiCard title="Tasks Concluídas" value={tasksDone} icon={CheckCircle2} glowColor="green"
+          trendLabel={`de ${totalTasks} total`} trend="neutral" />
+        <KpiCard title="Em Progresso" value={tasksInProgress} icon={Activity} glowColor="blue"
           trendLabel="tasks ativas" trend="neutral" />
-        <KpiCard title="Bugs Abertos" value={mockKpis.bugsOpen} icon={Bug} glowColor="red"
+        <KpiCard title="Bugs Abertos" value={bugsOpen} icon={Bug} glowColor="red"
           trendLabel="requer atenção" trend="down" />
         <KpiCard title="Velocity" value={`${mockKpis.weeklyVelocity}%`} icon={Zap} glowColor="yellow"
           trendLabel="+3% vs semana ant." trend="up" />
@@ -34,9 +43,9 @@ export function DashboardPage() {
           trendLabel={gh ? 'GitHub ao vivo' : 'desde o início'} trend="neutral" />
         <KpiCard title="Cobertura" value={`${mockKpis.coveragePercent}%`} icon={Shield} glowColor="green"
           trendLabel="meta: 70%" trend="up" />
-        <KpiCard title="Progresso Geral" value={`${mockKpis.overallProgress}%`} icon={TrendingUp} glowColor="blue"
+        <KpiCard title="Progresso Geral" value={`${overallProgress}%`} icon={TrendingUp} glowColor="blue"
           trendLabel="MVP em 23/mai" trend="up" />
-        <KpiCard title="Tarefas Pendentes" value={mockKpis.totalTasks - mockKpis.tasksDone} icon={Clock} glowColor="yellow"
+        <KpiCard title="Tarefas Pendentes" value={totalTasks - tasksDone} icon={Clock} glowColor="yellow"
           trendLabel="backlog + ativas" trend="neutral" />
       </div>
 
@@ -44,7 +53,7 @@ export function DashboardPage() {
       <div className="bg-surface-2 border border-border-subtle rounded-xl p-5">
         <p className="text-sm font-semibold text-white mb-4">Progresso por Feature</p>
         <div className="space-y-3">
-          {mockFeatures.map(f => (
+          {features.map(f => (
             <div key={f.id} className="grid grid-cols-[1fr_auto] gap-4 items-center">
               <div className="space-y-1.5 min-w-0">
                 <div className="flex items-center justify-between">

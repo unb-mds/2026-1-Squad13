@@ -1,5 +1,4 @@
 from infrastructure.database import init_db
-from domain.entities.proposicao import Proposicao # Importante importar as entidades para o SQLModel vê-las
 
 def run():
     print("Criando tabelas no banco de dados...")
