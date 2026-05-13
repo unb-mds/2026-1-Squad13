@@ -74,14 +74,57 @@ async function main() {
     closed: allPRs.filter(pr => pr.state === 'closed' && !pr.merged_at).length,
   }
 
-  // 3. Issues (excluding PRs)
+  // 3. Issues (excluding PRs) and Tasks mapping
   const allIssues = await gh(`/repos/${REPO}/issues?state=all&per_page=100`)
   const issuesOnly = allIssues.filter(i => !i.pull_request)
   console.log(`  issues: ${issuesOnly.length}`)
+  
   const issues = {
     open: issuesOnly.filter(i => i.state === 'open').length,
     closed: issuesOnly.filter(i => i.state === 'closed').length,
   }
+
+  const tasks = issuesOnly.map(i => {
+    const labels = i.labels.map(l => l.name)
+    
+    // Status mapping: label 'status:xxx' or state
+    let status = 'todo'
+    if (labels.includes('status:backlog')) status = 'backlog'
+    else if (labels.includes('status:todo')) status = 'todo'
+    else if (labels.includes('status:in_progress')) status = 'in_progress'
+    else if (labels.includes('status:review')) status = 'review'
+    else if (labels.includes('status:done') || i.state === 'closed') status = 'done'
+    else if (i.state === 'open' && i.assignee) status = 'in_progress'
+
+    // Priority mapping: label 'prio:xxx'
+    let priority = 'medium'
+    if (labels.includes('prio:critical')) priority = 'critical'
+    else if (labels.includes('prio:high')) priority = 'high'
+    else if (labels.includes('prio:low')) priority = 'low'
+
+    // Labels mapping (TaskLabel type)
+    const taskLabels = []
+    if (labels.includes('bug')) taskLabels.push('bug')
+    if (labels.includes('documentation')) taskLabels.push('docs')
+    if (labels.includes('enhancement')) taskLabels.push('feature')
+    if (labels.includes('test')) taskLabels.push('test')
+    if (taskLabels.length === 0) taskLabels.push('chore')
+
+    return {
+      id: String(i.number),
+      title: i.title,
+      description: i.body || '',
+      status,
+      priority,
+      labels: taskLabels,
+      assigneeId: i.assignee?.login || 'unassigned',
+      featureId: labels.find(l => l.startsWith('feat:'))?.replace('feat:', '') || 'general',
+      dueDate: i.milestone?.due_on?.slice(0, 10) || '',
+      progress: status === 'done' ? 100 : status === 'in_progress' ? 50 : 0,
+      createdAt: i.created_at.slice(0, 10),
+      url: i.html_url
+    }
+  })
 
   // 4. Recent workflow runs
   let recentWorkflows = []
@@ -122,6 +165,7 @@ async function main() {
     weeklyCommits,
     pullRequests,
     issues,
+    tasks,
     recentWorkflows,
     contributors,
   }

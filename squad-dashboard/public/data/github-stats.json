@@ -1,4 +1,377 @@
 {
-  "generatedAt": null,
-  "_note": "Placeholder — dados reais gerados pelo workflow update-squad-dashboard-data.yml"
+  "generatedAt": "2026-05-13T00:44:01.401Z",
+  "totalCommits": 91,
+  "commitsByDay": [
+    {
+      "date": "07/mai",
+      "commits": 4
+    },
+    {
+      "date": "08/mai",
+      "commits": 3
+    },
+    {
+      "date": "09/mai",
+      "commits": 0
+    },
+    {
+      "date": "10/mai",
+      "commits": 0
+    },
+    {
+      "date": "11/mai",
+      "commits": 37
+    },
+    {
+      "date": "12/mai",
+      "commits": 23
+    },
+    {
+      "date": "13/mai",
+      "commits": 1
+    }
+  ],
+  "commitsByAuthor": [
+    {
+      "login": "kaiky-yun",
+      "commits": 58
+    },
+    {
+      "login": "caioflmjr",
+      "commits": 29
+    },
+    {
+      "login": "Bernardo",
+      "commits": 2
+    },
+    {
+      "login": "Heitorovski01",
+      "commits": 1
+    },
+    {
+      "login": "RochaCarla",
+      "commits": 1
+    }
+  ],
+  "weeklyCommits": [
+    {
+      "week": "W1",
+      "commits": 0
+    },
+    {
+      "week": "W2",
+      "commits": 1
+    },
+    {
+      "week": "W3",
+      "commits": 0
+    },
+    {
+      "week": "W4",
+      "commits": 5
+    },
+    {
+      "week": "W5",
+      "commits": 0
+    },
+    {
+      "week": "W6",
+      "commits": 7
+    },
+    {
+      "week": "W7",
+      "commits": 6
+    },
+    {
+      "week": "W8",
+      "commits": 68
+    }
+  ],
+  "pullRequests": {
+    "open": 0,
+    "merged": 26,
+    "closed": 1
+  },
+  "issues": {
+    "open": 0,
+    "closed": 12
+  },
+  "tasks": [
+    {
+      "id": "39",
+      "title": "Revisar e documentar PR #4 — Proposições",
+      "description": "Code review, aprovação e documentação do PR de consulta de proposições.",
+      "status": "done",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f1",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/39"
+    },
+    {
+      "id": "38",
+      "title": "Configurar CORS para frontend local",
+      "description": "Adicionar middleware CORS no FastAPI para permitir chamadas do localhost:5173.",
+      "status": "done",
+      "priority": "high",
+      "labels": [
+        "bug"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f6",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/38"
+    },
+    {
+      "id": "37",
+      "title": "Implementar estados loading/erro/vazio na consulta",
+      "description": "Skeleton de carregamento, fallback de erro e mensagem de lista vazia.",
+      "status": "done",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f1",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/37"
+    },
+    {
+      "id": "36",
+      "title": "Integrar frontend com backend (consulta)",
+      "description": "Conectar componente PropositionList ao endpoint GET /proposicoes.",
+      "status": "done",
+      "priority": "critical",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f1",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/36"
+    },
+    {
+      "id": "35",
+      "title": "Criar adapters mock Câmara e Senado",
+      "description": "Adapters na camada de infraestrutura simulando respostas das APIs externas.",
+      "status": "done",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f1",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/35"
+    },
+    {
+      "id": "34",
+      "title": "Criar endpoint GET /proposicoes",
+      "description": "Endpoint REST com paginação, filtros por tipo, status e órgão.",
+      "status": "done",
+      "priority": "critical",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f1",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/34"
+    },
+    {
+      "id": "33",
+      "title": "Configurar proteção de branch main",
+      "description": "Exigir PR e CI passando antes de merge na main.",
+      "status": "done",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f7",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/33"
+    },
+    {
+      "id": "32",
+      "title": "Criar workflow CI frontend (GitHub Actions)",
+      "description": "Pipeline de typecheck, lint e build para o frontend React.",
+      "status": "done",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f7",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/32"
+    },
+    {
+      "id": "31",
+      "title": "Criar workflow CI backend (GitHub Actions)",
+      "description": "Pipeline de lint, testes e build para o backend Python.",
+      "status": "done",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f7",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/31"
+    },
+    {
+      "id": "30",
+      "title": "Escrever ADR-001 — Layered Architecture",
+      "description": "Documentar decisão arquitetural no diretório docs/adr/.",
+      "status": "done",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f6",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/30"
+    },
+    {
+      "id": "29",
+      "title": "Implementar Layered Architecture no backend",
+      "description": "Separar em presentation/, application/, domain/ e infrastructure/ conforme ADR-001.",
+      "status": "done",
+      "priority": "critical",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f6",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/29"
+    },
+    {
+      "id": "28",
+      "title": "Inicializar estrutura do backend",
+      "description": "Criar projeto FastAPI com estrutura inicial de pastas e pyproject.toml.",
+      "status": "done",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f6",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/28"
+    }
+  ],
+  "recentWorkflows": [
+    {
+      "name": "Frontend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-12T23:58:27Z"
+    },
+    {
+      "name": "Backend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-12T21:13:51Z"
+    },
+    {
+      "name": "Frontend CI",
+      "conclusion": "failure",
+      "status": "completed",
+      "updatedAt": "2026-05-12T21:13:59Z"
+    },
+    {
+      "name": "Frontend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-12T20:57:27Z"
+    },
+    {
+      "name": "Frontend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-12T20:16:42Z"
+    },
+    {
+      "name": "Frontend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-12T20:04:04Z"
+    },
+    {
+      "name": "Deploy Squad Dashboard",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-12T19:42:36Z"
+    },
+    {
+      "name": "Update Squad Dashboard Data",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-12T19:42:06Z"
+    },
+    {
+      "name": "Frontend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-12T19:33:23Z"
+    },
+    {
+      "name": "Frontend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-12T19:22:00Z"
+    }
+  ],
+  "contributors": [
+    {
+      "login": "kaiky-yun",
+      "commits": 58,
+      "avatarUrl": "https://avatars.githubusercontent.com/u/127952063?v=4"
+    },
+    {
+      "login": "caioflmjr",
+      "commits": 29,
+      "avatarUrl": "https://avatars.githubusercontent.com/u/67447767?v=4"
+    },
+    {
+      "login": "RochaCarla",
+      "commits": 1,
+      "avatarUrl": "https://avatars.githubusercontent.com/u/5897389?v=4"
+    },
+    {
+      "login": "Heitorovski01",
+      "commits": 1,
+      "avatarUrl": "https://avatars.githubusercontent.com/u/170051918?v=4"
+    }
+  ]
 }
