@@ -2,7 +2,10 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
+from application.services.detalhe_proposicao_service import DetalheProposicaoService
 from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+from infrastructure.adapters.camara_adapter import CamaraAdapter
+from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import get_session
 from sqlmodel import Session
 
@@ -67,6 +70,24 @@ def _to_response(p) -> dict:
     }
 
 # --- Controller ---
+
+@router.get("/proposicoes/{id}", response_model=ProposicaoResponse)
+def obter_detalhe_proposicao(
+    id: str,
+    session: Session = Depends(get_session)
+):
+    repository = SQLProposicaoRepository(session)
+    camara_adapter = CamaraAdapter()
+    senado_adapter = SenadoAdapter()
+    service = DetalheProposicaoService(repository, camara_adapter, senado_adapter)
+    
+    try:
+        proposicao = service.executar(id)
+        return _to_response(proposicao)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 @router.get("/proposicoes", response_model=ProposicoesListResponse)
 def buscar_proposicoes(

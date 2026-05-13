@@ -16,7 +16,7 @@ class SQLProposicaoRepository:
         self.session.refresh(proposicao)
         return proposicao
 
-    def buscar_por_id(self, id: int) -> Optional[Proposicao]:
+    def buscar_por_id(self, id: str) -> Optional[Proposicao]:
         return self.session.get(Proposicao, id)
 
     def filtrar(

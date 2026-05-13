@@ -38,6 +38,7 @@ class CamaraAdapter:
                 ano=dados.get("ano", 0),
                 autor=autor_principal,
                 uf_autor=uf_autor,
+                orgao_origem="Câmara dos Deputados",
                 status=status_info.get("despacho") or status_info.get("descricaoSituacao") or "Sem status",
                 ementa=dados.get("ementa", "") or "Sem ementa",
                 data_apresentacao=dados.get("dataApresentacao", ""),

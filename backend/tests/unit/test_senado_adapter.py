@@ -43,6 +43,48 @@ def test_senado_adapter_normalizacao_sucesso(adapter):
         assert proposicao.ano == 2023
         assert proposicao.autor == "Senador Exemplo"
         assert proposicao.status == "Em tramitação"
+        assert proposicao.data_apresentacao == "2023-01-01"
+        assert proposicao.data_ultima_movimentacao == "2023-01-01" # No mock, inicio is missing but fallback should work if I add it
+
+def test_senado_adapter_data_ultima_movimentacao_sucesso(adapter):
+    mock_dados = {
+        "identificacao": "PL 456/2023",
+        "documento": {"dataApresentacao": "2023-01-01"},
+        "autuacoes": [
+            {
+                "situacoes": [
+                    {"descricao": "Status Antigo", "inicio": "2023-01-01"},
+                    {"descricao": "Status Novo", "inicio": "2023-02-01"}
+                ]
+            }
+        ]
+    }
+
+    with patch('requests.get') as mock_get:
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_dados
+        mock_get.return_value = mock_response
+
+        proposicao = adapter.buscar_por_id(54321)
+
+        assert proposicao.status == "Status Novo"
+        assert proposicao.data_ultima_movimentacao == "2023-02-01"
+
+def test_senado_adapter_fallback_data_ultima_movimentacao(adapter):
+    mock_dados = {
+        "identificacao": "PL 456/2023",
+        "documento": {"dataApresentacao": "2023-01-01"},
+        "autuacoes": []
+    }
+
+    with patch('requests.get') as mock_get:
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_dados
+        mock_get.return_value = mock_response
+
+        proposicao = adapter.buscar_por_id(54321)
+
+        assert proposicao.data_ultima_movimentacao == "2023-01-01"
 
 def test_senado_adapter_erro_rede(adapter):
     with patch('requests.get') as mock_get:
