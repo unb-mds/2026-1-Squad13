@@ -84,6 +84,28 @@ async function main() {
     closed: issuesOnly.filter(i => i.state === 'closed').length,
   }
 
+  // Burndown calculation (historical series)
+  const burndownData = []
+  const daysToShow = 20
+  for (let i = daysToShow; i >= 0; i--) {
+    const targetDate = new Date(today)
+    targetDate.setDate(today.getDate() - i)
+    const dateStr = targetDate.toISOString().slice(0, 10)
+    
+    // Count issues that existed and were open on that date
+    const openOnDate = issuesOnly.filter(i => {
+      const created = i.created_at.slice(0, 10)
+      const closed = i.closed_at ? i.closed_at.slice(0, 10) : '9999-12-31'
+      return created <= dateStr && closed > dateStr
+    }).length
+
+    burndownData.push({
+      day: targetDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      remaining: openOnDate,
+      ideal: Math.max(0, Math.round(issuesOnly.length - (issuesOnly.length / daysToShow) * (daysToShow - i)))
+    })
+  }
+
   const tasks = issuesOnly.map(i => {
     const labels = i.labels.map(l => l.name)
     
@@ -126,7 +148,27 @@ async function main() {
     }
   })
 
-  // 4. Feature progress calculation
+  // 4. Milestones
+  let milestones = []
+  try {
+    const rawMilestones = await gh(`/repos/${REPO}/milestones?state=all&sort=due_on&direction=asc`)
+    milestones = (rawMilestones || []).map(m => ({
+      id: String(m.id),
+      title: m.title,
+      description: m.description || '',
+      state: m.state,
+      openIssues: m.open_issues,
+      closedIssues: m.closed_issues,
+      dueOn: m.due_on,
+      createdAt: m.created_at,
+      updatedAt: m.updated_at,
+    }))
+    console.log(`  milestones: ${milestones.length}`)
+  } catch (e) {
+    console.warn(`  milestones unavailable: ${e.message}`)
+  }
+
+  // 5. Feature progress calculation
   const featureNames = {
     'f1': 'Consulta de Proposições',
     'f2': 'Detalhamento da Proposição',
@@ -153,7 +195,7 @@ async function main() {
     }
   })
 
-  // 5. Recent workflow runs
+  // 6. Recent workflow runs
   let recentWorkflows = []
   try {
     const runs = await gh(`/repos/${REPO}/actions/runs?per_page=10`)
@@ -168,7 +210,7 @@ async function main() {
     console.warn(`  workflow runs unavailable: ${e.message}`)
   }
 
-  // 6. Contributors
+  // 7. Contributors
   let contributors = []
   try {
     const stats = await gh(`/repos/${REPO}/contributors?per_page=20`)
@@ -194,6 +236,8 @@ async function main() {
     issues,
     tasks,
     features,
+    milestones,
+    burndownData,
     recentWorkflows,
     contributors,
   }
