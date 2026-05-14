@@ -36,6 +36,8 @@ services:
     restart: always
     env_file:
       - backend/.env
+    environment:
+      - POSTGRES_HOST=db
     ports:
       - "8000:8000"
     volumes:
