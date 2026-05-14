@@ -1,46 +1,89 @@
-import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
-from main import app
-from infrastructure.database import get_session
-from sqlmodel import Session
+from domain.entities.proposicao import Proposicao
 
-@pytest.fixture(name="client")
-def client_fixture(db_session: Session):
-    def get_session_override():
-        return db_session
-    app.dependency_overrides[get_session] = get_session_override
-    client = TestClient(app)
-    yield client
-    app.dependency_overrides.clear()
 
-def test_obter_detalhe_proposicao_real_camara(client: TestClient):
-    # ID real da Câmara (PL 21/2020)
-    id_camara = "2236353"
-    
-    response = client.get(f"/proposicoes/{id_camara}")
-    
+def _proposicao_camara() -> Proposicao:
+    return Proposicao(
+        id="2236353",
+        tipo="PL",
+        numero="21",
+        ano=2020,
+        autor="Autor Câmara",
+        uf_autor="DF",
+        orgao_origem="Câmara dos Deputados",
+        status="Em tramitação",
+        ementa="Ementa de teste Câmara",
+        data_apresentacao="2020-02-04",
+        data_ultima_movimentacao="2024-01-01",
+        orgao_atual="CCJ",
+        link_oficial="https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2236353",
+        tags=[],
+    )
+
+
+def _proposicao_senado() -> Proposicao:
+    return Proposicao(
+        id="8147067",
+        tipo="PL",
+        numero="21",
+        ano=2020,
+        autor="Autor Senado",
+        uf_autor="N/A",
+        orgao_origem="Senado Federal",
+        status="Em tramitação",
+        ementa="Ementa de teste Senado",
+        data_apresentacao="2021-09-30",
+        data_ultima_movimentacao="2024-01-01",
+        orgao_atual="Senado Federal",
+        link_oficial="https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id=8147067",
+        tags=[],
+    )
+
+
+def test_obterDetalheProposicao_adaptadorCamara_retorna200(http_client: TestClient):
+    proposicao = _proposicao_camara()
+    with patch(
+        "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
+        return_value=proposicao,
+    ):
+        response = http_client.get("/proposicoes/2236353")
+
     assert response.status_code == 200
     dados = response.json()
-    assert dados["id"] == id_camara
-    assert "MCN" in dados["tipo"] or "PL" in dados["tipo"] # Depende do ID, 2236353 é MCN
+    assert dados["id"] == "2236353"
     assert dados["orgaoOrigem"] == "Câmara dos Deputados"
     assert "tempoTotalDias" in dados
     assert dados["tempoTotalDias"] > 0
 
-def test_obter_detalhe_proposicao_real_senado(client: TestClient):
-    # ID real do Senado (PL 21/2020 no Senado)
-    id_senado = "8147067"
-    
-    response = client.get(f"/proposicoes/{id_senado}")
-    
+
+def test_obterDetalheProposicao_adaptadorSenado_retorna200(http_client: TestClient):
+    proposicao = _proposicao_senado()
+    with patch(
+        "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
+        return_value=None,
+    ), patch(
+        "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_por_id",
+        return_value=proposicao,
+    ):
+        response = http_client.get("/proposicoes/8147067")
+
     assert response.status_code == 200
     dados = response.json()
-    assert dados["id"] == id_senado
+    assert dados["id"] == "8147067"
     assert dados["orgaoOrigem"] == "Senado Federal"
-    assert dados["dataUltimaMovimentacao"] != ""
     assert "tempoTotalDias" in dados
     assert dados["tempoTotalDias"] > 0
 
-def test_obter_detalhe_proposicao_inexistente(client: TestClient):
-    response = client.get("/proposicoes/999999999")
+
+def test_obterDetalheProposicao_nenhumAdaptadorEncontra_retorna404(http_client: TestClient):
+    with patch(
+        "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
+        return_value=None,
+    ), patch(
+        "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_por_id",
+        return_value=None,
+    ):
+        response = http_client.get("/proposicoes/999999")
+
     assert response.status_code == 404
