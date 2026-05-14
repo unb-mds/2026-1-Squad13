@@ -4,6 +4,7 @@ from .config import settings
 # Importando modelos para garantir que sejam registrados antes de init_db
 from domain.entities.proposicao import Proposicao  # noqa: F401
 from domain.entities.user import User  # noqa: F401
+from domain.entities.tramitacao import Tramitacao  # noqa: F401
 
 # O motor de conexão (Engine)
 # echo=True faz com que o SQLModel imprima os comandos SQL no console (útil para aprender)
