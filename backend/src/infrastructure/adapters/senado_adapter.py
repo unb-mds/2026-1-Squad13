@@ -46,13 +46,21 @@ class SenadoAdapter:
             ementa = doc.get("ementa", "Sem ementa")
             data_apresentacao = doc.get("dataApresentacao", "")
 
+            # Extração de status e data da última movimentação via autuações
             status_atual = "Sem status"
+            data_ultima_movimentacao = ""
+            
             autuacoes = dados.get('autuacoes', [])
             if autuacoes:
                 situacoes = autuacoes[0].get('situacoes', [])
                 if situacoes:
-                    # Pega a descrição da última situação registrada
-                    status_atual = situacoes[-1].get('descricao', 'Sem status')
+                    ultima_situacao = situacoes[-1]
+                    status_atual = ultima_situacao.get('descricao', 'Sem status')
+                    data_ultima_movimentacao = ultima_situacao.get('inicio', "")
+
+            # Fallback para data de apresentação se última movimentação estiver vazia
+            if not data_ultima_movimentacao:
+                data_ultima_movimentacao = data_apresentacao
             
             return Proposicao(
                 id=str(id_materia),
@@ -61,10 +69,11 @@ class SenadoAdapter:
                 ano=ano,
                 autor=autor_nome,
                 uf_autor="N/A", # API de processo não detalha UF do autor diretamente
+                orgao_origem="Senado Federal",
                 status=status_atual,
                 ementa=ementa,
                 data_apresentacao=data_apresentacao,
-                data_ultima_movimentacao="", # Requereria análise de tramitações detalhadas
+                data_ultima_movimentacao=data_ultima_movimentacao,
                 orgao_atual="Senado Federal",
                 link_oficial=f"https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id={id_materia}",
                 tags=[]

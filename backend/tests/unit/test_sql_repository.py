@@ -37,3 +37,35 @@ def test_salvar_proposicao(session: Session):
     assert buscada is not None
     assert buscada.numero == "999"
     assert buscada.autor == "Dev Test"
+
+
+def test_buscarPorIdExistente_retornaProposicao(session: Session):
+    repo = SQLProposicaoRepository(session)
+    repo.salvar(Proposicao(
+        id="42",
+        tipo="PEC",
+        numero="1",
+        ano=2025,
+        autor="Teste",
+        uf_autor="DF",
+        status="Em tramitação",
+        orgao_atual="CCJ",
+        ementa="Ementa de teste",
+        data_apresentacao="2025-01-01",
+        data_ultima_movimentacao="2025-01-01",
+        tags=[]
+    ))
+
+    resultado = repo.buscar_por_id("42")
+
+    assert resultado is not None
+    assert resultado.id == "42"
+    assert resultado.tipo == "PEC"
+
+
+def test_buscarPorIdInexistente_retornaNone(session: Session):
+    repo = SQLProposicaoRepository(session)
+
+    resultado = repo.buscar_por_id("nao-existe")
+
+    assert resultado is None

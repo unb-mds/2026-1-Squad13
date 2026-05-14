@@ -21,22 +21,28 @@ class BuscarProposicoesService:
         if not any(valor is not None and str(valor).strip() != "" for valor in valores_filtros):
             raise ValueError("Preencha pelo menos um filtro para realizar a busca.")
 
-        # Busca no repositório (que agora filtra no banco)
-        resultados = self.repository.filtrar(
-            tipo=filtros.get("tipo"),
-            numero=filtros.get("numero"),
-            ano=filtros.get("ano"),
-            autor=filtros.get("autor"),
-            status=filtros.get("status"),
-            busca=filtros.get("busca"),
-            orgao_origem=filtros.get("orgao_origem"),
-            data_inicio=filtros.get("data_inicio"),
-            data_fim=filtros.get("data_fim")
+        filtros_repositorio = {
+            "tipo": filtros.get("tipo"),
+            "numero": filtros.get("numero"),
+            "ano": filtros.get("ano"),
+            "autor": filtros.get("autor"),
+            "status": filtros.get("status"),
+            "busca": filtros.get("busca"),
+            "orgao_origem": filtros.get("orgao_origem"),
+            "data_inicio": filtros.get("data_inicio"),
+            "data_fim": filtros.get("data_fim"),
+        }
+
+        inicio = (pagina - 1) * itens_por_pagina
+
+        total = self.repository.contar(**filtros_repositorio)
+
+        items = self.repository.filtrar(
+            **filtros_repositorio,
+            limit=itens_por_pagina,
+            offset=inicio,
         )
 
-        total = len(resultados)
-        inicio = (pagina - 1) * itens_por_pagina
-        items = resultados[inicio : inicio + itens_por_pagina]
         total_paginas = (total + itens_por_pagina - 1) // itens_por_pagina if itens_por_pagina > 0 else 0
 
         return {
