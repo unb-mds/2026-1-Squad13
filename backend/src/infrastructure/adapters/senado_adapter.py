@@ -1,6 +1,7 @@
 import requests
-from typing import Optional
+from typing import Optional, List
 from domain.entities.proposicao import Proposicao
+from domain.entities.tramitacao import Tramitacao
 
 class SenadoAdapter:
     """
@@ -85,3 +86,35 @@ class SenadoAdapter:
         except Exception as e:
             print(f"Erro inesperado ao processar dados do Senado para ID {id_materia}: {e}")
             return None
+
+    def buscar_tramitacoes(self, id_materia: int) -> List[Tramitacao]:
+        """Busca as tramitações de uma proposição no Senado."""
+        url = f"{self.base_url}/processo/{id_materia}?v=1"
+        headers = {"Accept": "application/json"}
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            resp.raise_for_status()
+            dados = resp.json()
+
+            tramitacoes = []
+            autuacoes = dados.get('autuacoes', [])
+            seq = 1
+            if autuacoes:
+                situacoes = autuacoes[0].get('situacoes', [])
+                for s in situacoes:
+                    tramitacoes.append(Tramitacao(
+                        proposicao_id=str(id_materia),
+                        data_hora=s.get("inicio", ""),
+                        sequencia=seq,
+                        sigla_orgao="Senado",
+                        descricao_tramitacao=s.get("descricao", ""),
+                        status=s.get("descricao", "")
+                    ))
+                    seq += 1
+            
+            # Ordenar por data descendente para ser consistente com o padrão
+            tramitacoes.sort(key=lambda x: x.data_hora, reverse=True)
+            return tramitacoes
+        except Exception as e:
+            print(f"Erro ao buscar tramitações do Senado para ID {id_materia}: {e}")
+            return []
