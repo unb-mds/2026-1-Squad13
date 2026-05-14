@@ -34,7 +34,11 @@ describe('DashboardPage - Simplificação Pragmática', () => {
         issues: { open: 5, closed: 5 },
         milestones: [],
         features: [],
-        burndownData: [],
+        burnup: {
+          metadata: { startDate: '2026-05-11', release1Date: '2026-05-27', release2Date: '2026-07-06', baselineScope: 18, methodology: '' },
+          catalog: [],
+          series: []
+        },
         commitsByDay: []
       } as any,
       loading: false,
@@ -65,7 +69,11 @@ describe('DashboardPage - Simplificação Pragmática', () => {
         issues: { open: 0, closed: 0 },
         milestones: [],
         features: [],
-        burndownData: [],
+        burnup: {
+          metadata: { startDate: '2026-05-11', release1Date: '2026-05-27', release2Date: '2026-07-06', baselineScope: 18, methodology: '' },
+          catalog: [],
+          series: []
+        },
         commitsByDay: []
       } as any,
       loading: false,

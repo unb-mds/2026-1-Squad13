@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-14T00:54:24.141Z",
+  "generatedAt": "2026-05-14T19:29:08.990Z",
   "totalCommits": 100,
   "commitsByDay": [
     {
@@ -20,35 +20,35 @@
     },
     {
       "date": "10 de mai",
-      "commits": 16
+      "commits": 6
     },
     {
       "date": "11 de mai",
-      "commits": 29
+      "commits": 22
     },
     {
       "date": "12 de mai",
-      "commits": 55
+      "commits": 65
     },
     {
       "date": "13 de mai",
-      "commits": 0
+      "commits": 7
     }
   ],
   "pullRequests": {
-    "open": 1,
-    "merged": 47,
-    "closed": 1
+    "open": 2,
+    "merged": 50,
+    "closed": 2
   },
   "issues": {
-    "open": 9,
-    "closed": 26
+    "open": 21,
+    "closed": 27
   },
   "tasks": [
     {
-      "id": "83",
-      "title": "feat(auth): implementar middleware de proteção de rotas via Depends",
-      "description": "## Objetivo\nGarantir que apenas usuários autenticados acessem rotas sensíveis.\n\n## Critérios de Aceite\n- [ ] Middleware 'get_current_user' implementado.\n- [ ] Rota de Relatórios protegida.\n- [ ] Erro 401 Unauthorized retornado corretamente.",
+      "id": "102",
+      "title": "chore: Corrigir init_db para registrar entidades antes de criar tabelas",
+      "description": "## Contexto\n\nDurante o teste local da integração frontend-backend, o ambiente Docker subiu corretamente, mas o endpoint `GET /proposicoes` retornou erro 500 inicialmente porque a tabela `proposicao` não existia no PostgreSQL.\n\nAo executar `src/init_db.py`, o script exibiu \"Tabelas criadas com sucesso\", porém nenhuma tabela foi criada. A tabela só foi criada após importar explicitamente a entidade `Proposicao` antes de chamar `SQLModel.metadata.create_all(engine)`.\n\n## Problema\n\nO `init_db.py` chama `SQLModel.metadata.create_all(engine)` sem garantir que as entidades SQLModel estejam importadas/registradas no metadata.\n\n## Objetivo\n\nCorrigir o bootstrap do banco para que `init_db.py` crie corretamente a tabela `proposicao` ao ser executado em ambiente local/Docker.\n\n## Critérios de aceitação\n\n- `python src/init_db.py` deve criar a tabela `proposicao` em banco limpo.\n- O script deve importar/registrar as entidades necessárias antes do `create_all`.\n- A execução deve continuar idempotente.\n- Não alterar arquitetura.\n- Não misturar com frontend, CI ou documentação.\n- Adicionar ou ajustar teste se houver cobertura adequada para isso.",
       "status": "todo",
       "priority": "medium",
       "labels": [
@@ -56,6 +56,214 @@
       ],
       "assigneeId": "unassigned",
       "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-14",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/102"
+    },
+    {
+      "id": "97",
+      "title": "feat: Validar arquivos personas.md, risks.md e contributing.md",
+      "description": "## Descrição\n\nSolicitação de validação da documentação adicionada na branch develop.\n\n## Arquivos adicionados\n\n- docs/risks.md\n- docs/personas.md\n- docs/contributing.md\n\n## Objetivo\n\nAdicionar documentação inicial de apoio ao projeto seguindo a abordagem de Spec Driven Development.\n\n## Observações\n\nOs arquivos foram adicionados diretamente na branch develop para revisão inicial.",
+      "status": "todo",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "caioflmjr",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-14",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/97"
+    },
+    {
+      "id": "96",
+      "title": "feat: estimativa de tempo de aprovação baseada em histórico",
+      "description": "### 📝 Descrição\nO componente CardPrevisaoIA no frontend está completo com disclaimer obrigatório. O backend nunca calcula previsao_aprovacao_dias. Implementar apenas se o threshold de 50 proposições similares for atingido.\n\n### ✅ Critérios de Aceitação\n- [ ] Estimativa calculada apenas quando ≥ 50 proposições similares (mesmo tipo e tema) disponíveis.\n- [ ] Disclaimer obrigatório sempre exibido quando há estimativa.\n- [ ] Quando indisponível, informa dados insuficientes (sem valor zerado).\n- [ ] Testes unitários validando comportamento abaixo e acima do threshold.",
+      "status": "backlog",
+      "priority": "low",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f4",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-14",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/96"
+    },
+    {
+      "id": "95",
+      "title": "chore: documentar mapeamento de campos em ADR-005",
+      "description": "### 📝 Descrição\nADR-005 existe mas não tem a tabela de mapeamento de campos entre APIs e entidade de domínio.\n\n### 🛠️ Plano de Ação\n- [ ] Adicionar tabela Campo API Câmara → Campo Domínio na ADR-005.\n- [ ] Adicionar tabela Campo API Senado → Campo Domínio na ADR-005.\n- [ ] Garantir que ementa/txtNomeMateria esteja claramente documentado.",
+      "status": "backlog",
+      "priority": "low",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-11",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/95"
+    },
+    {
+      "id": "94",
+      "title": "chore: cache Redis para métricas do dashboard",
+      "description": "### 📝 Descrição\nDashboardService atualmente recalcula tudo a cada request. Com volume de dados crescente, isso se torna lento.\n\n### 🛠️ Plano de Ação\n- [ ] Configurar cliente Redis em infrastructure/cache/redis_client.py.\n- [ ] Implementar cache-aside no DashboardService com TTL de 24h.\n- [ ] Invalidar cache ao término bem-sucedido do batch.\n- [ ] Testes: cenário de cache hit, miss e invalidação.",
+      "status": "backlog",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-11",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/94"
+    },
+    {
+      "id": "93",
+      "title": "feat: bloqueio de conta após 5 tentativas falhas",
+      "description": "### ✅ Critérios de Aceitação\n- [ ] Conta bloqueada por 15 minutos após 5 tentativas consecutivas falhas.\n- [ ] Contador de tentativas armazenado no Redis (TTL 15min).",
+      "status": "backlog",
+      "priority": "low",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "kaiky-yun",
+      "featureId": "f5",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-11",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/93"
+    },
+    {
+      "id": "92",
+      "title": "feat: logout com invalidação de token no servidor",
+      "description": "### 📝 Descrição\nAtualmente o logout apenas limpa o localStorage — o token continua válido no servidor. Precisa de uma blacklist de tokens (Redis ou tabela no banco).\n\n### ✅ Critérios de Aceitação\n- [ ] POST /auth/logout invalida o token imediatamente no servidor.\n- [ ] Token invalidado retorna 401 em qualquer rota protegida subsequente.\n- [ ] Botão voltar do navegador não restaura sessão após logout.",
+      "status": "backlog",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "kaiky-yun",
+      "featureId": "f5",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-11",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/92"
+    },
+    {
+      "id": "91",
+      "title": "feat: filtros ativos afetando o dashboard",
+      "description": "### 📝 Descrição\nAtualmente o dashboard sempre mostra dados globais. Deve responder aos filtros ativos (ex: filtrar por ano altera todos os indicadores).\n\n### ✅ Critérios de Aceitação\n- [ ] GET /dashboard/metricas aceita os mesmos parâmetros de filtro de /proposicoes.\n- [ ] KPIs e gráficos recalculados conforme filtros.",
+      "status": "backlog",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "kaiky-yun",
+      "featureId": "f1",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/91"
+    },
+    {
+      "id": "90",
+      "title": "feat: endpoints de breakdown para gráficos do dashboard",
+      "description": "### 📝 Descrição\nOs gráficos de tempo por tipo, por comissão e distribuição por status usam dados hardcoded no frontend. Precisam de endpoints reais no backend.\n\n### ✅ Critérios de Aceitação\n- [ ] Três endpoints de breakdown implementados e testados.\n- [ ] Gráficos refletem dados reais do banco.\n- [ ] Testes unitários nos métodos de agregação.",
+      "status": "backlog",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "caioflmjr",
+      "featureId": "f3",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-12",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/90"
+    },
+    {
+      "id": "89",
+      "title": "feat: tempo por fase com dados reais",
+      "description": "### 📝 Descrição\nCom Tramitacao existindo, o breakdown de tempo por fase/comissão na página de detalhe pode ser calculado e exibido.\n\n### ✅ Critérios de Aceitação\n- [ ] Tempo por fase calculado a partir das tramitações reais.\n- [ ] Exibido abaixo do tempo total no dossiê.\n- [ ] Somente exibido quando há dados suficientes (≥ 2 tramitações).",
+      "status": "backlog",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "kaiky-yun",
+      "featureId": "f1",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/89"
+    },
+    {
+      "id": "88",
+      "title": "feat: entidade Tramitacao e endpoint de movimentações",
+      "description": "### 📝 Descrição\nCriar a entidade Tramitacao no domínio e expor um endpoint de movimentações por proposição. O componente TimelineTramitacao no frontend já está pronto e aguardando dados reais.\n\n### ✅ Critérios de Aceitação\n- [ ] Tramitações ordenadas da mais recente para a mais antiga.\n- [ ] Cada etapa exibe: descrição, órgão, data entrada, data saída, dias calculados.\n- [ ] Etapas sem data saída exibem tempo acumulado até hoje.\n- [ ] Etapas > 180 dias disparam flag tem_atraso = true.\n- [ ] Testes unitários em dias_na_etapa().\n- [ ] Testes de integração no endpoint.",
+      "status": "backlog",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "kaiky-yun",
+      "featureId": "f1",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/88"
+    },
+    {
+      "id": "87",
+      "title": "chore: worker de coleta batch diária (Câmara + Senado)",
+      "description": "### 📝 Descrição\nSubstituir o script de seed manual por um worker Celery agendado que mantém a base atualizada automaticamente.\n\n### 🛠️ Plano de Ação\n- [ ] Implementar método coletar_em_lote() em CamaraAdapter com paginação automática (máx. 100 itens/página).\n- [ ] Implementar método coletar_em_lote() em SenadoAdapter.\n- [ ] Configurar Celery Beat com schedule 0 2 * * * (America/Sao_Paulo).\n- [ ] Upsert por número canônico no repositório.\n- [ ] Retry com backoff exponencial (1s → 2s → 4s) para erros 5xx.\n- [ ] Log de execução em tabela dedicada (data, hora, status, contagem).\n- [ ] Falha de uma fonte não interrompe a outra.\n\n### ✅ Verificações de Qualidade\n- [ ] Testes de integração: falha total de API, falha parcial (uma fonte cai), upsert sem duplicatas.\n- [ ] Linting e type-checking passando.",
+      "status": "backlog",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "kaiky-yun",
+      "featureId": "f6",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-11",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/87"
+    },
+    {
+      "id": "86",
+      "title": "feat: recuperação de senha por e-mail",
+      "description": "### 📝 Descrição\nBackend completo para recuperação de senha. O frontend (RecuperarSenhaForm) já está pronto.\n\n### ✅ Critérios de Aceitação\n- [ ] Token de uso único com TTL de 1 hora gerado e enviado por e-mail.\n- [ ] Nova solicitação invalida token anterior.\n- [ ] Link enviado em até 2 minutos.\n- [ ] Token de uso único — segunda utilização retorna erro.",
+      "status": "backlog",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "kaiky-yun",
+      "featureId": "f5",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-11",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/86"
+    },
+    {
+      "id": "83",
+      "title": "feat(auth): implementar middleware de proteção de rotas via Depends",
+      "description": "## Objetivo\nGarantir que apenas usuários autenticados acessem rotas sensíveis.\n\n## Critérios de Aceite\n- [ ] Middleware 'get_current_user' implementado.\n- [ ] Rota de Relatórios protegida.\n- [ ] Erro 401 Unauthorized retornado corretamente.",
+      "status": "backlog",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "f4",
       "dueDate": "",
       "progress": 0,
       "createdAt": "2026-05-14",
@@ -65,13 +273,13 @@
       "id": "82",
       "title": "feat(auth): criar endpoints /auth/login e /auth/register",
       "description": "## Objetivo\nExpor a funcionalidade de autenticação via API.\n\n## Critérios de Aceite\n- [ ] Endpoint POST /auth/register funcional.\n- [ ] Endpoint POST /auth/login retornando JWT.\n- [ ] Integração com o frontend (remoção de mocks no api.ts).",
-      "status": "todo",
+      "status": "backlog",
       "priority": "high",
       "labels": [
         "chore"
       ],
       "assigneeId": "unassigned",
-      "featureId": "general",
+      "featureId": "f4",
       "dueDate": "",
       "progress": 0,
       "createdAt": "2026-05-14",
@@ -81,45 +289,45 @@
       "id": "81",
       "title": "feat(auth): implementar serviço de hashing (Bcrypt) e geração de tokens JWT",
       "description": "## Objetivo\nImplementar a lógica de segurança para proteção de senhas e autenticação stateless.\n\n## Critérios de Aceite\n- [ ] Senhas armazenadas apenas como hash (bcrypt).\n- [ ] Serviço de geração e validação de tokens JWT funcional.\n- [ ] Testes unitários para hashing e tokens.",
-      "status": "todo",
+      "status": "backlog",
       "priority": "high",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f5",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-14",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/81"
     },
     {
       "id": "80",
       "title": "feat(auth): implementar entidade Usuario e migrations de banco de dados",
       "description": "## Objetivo\nCriar a fundação de dados para o sistema de autenticação.\n\n## Critérios de Aceite\n- [ ] Tabela 'usuario' criada no banco via SQLModel.\n- [ ] Campos: id, email (unique), senha_hash, role.\n- [ ] Script de migração validado.",
-      "status": "todo",
+      "status": "backlog",
       "priority": "high",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f5",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-14",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/80"
     },
     {
       "id": "78",
       "title": "chore: Isolar chamadas externas nos testes do endpoint de detalhe de proposição",
       "description": "## Contexto\n\nO endpoint `GET /proposicoes/{id}` pode consultar APIs externas da Câmara e do Senado quando a proposição não está disponível no banco local.\n\nEsse comportamento faz parte da regra atual do projeto e deve ser mantido.\n\nPorém, os testes automatizados não devem depender de chamadas reais para essas APIs, pois isso torna a suíte instável, lenta e dependente de rede.\n\n## Objetivo\n\nManter a integração com APIs externas no código da aplicação, mas isolar essas chamadas nos testes usando mocks/fakes.\n\n## Critérios de aceitação\n\n- O comportamento do endpoint deve continuar permitindo consulta às APIs externas quando necessário.\n- Os testes automatizados não devem realizar chamadas reais para Câmara/Senado.\n- As dependências externas devem ser mockadas/fakeadas nos testes.\n- A suíte backend deve rodar localmente e no CI sem depender de internet.\n- Deve haver cobertura para:\n  - proposição encontrada no banco;\n  - proposição não encontrada;\n  - fallback para adapters externos usando mocks.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
       ],
-      "assigneeId": "unassigned",
-      "featureId": "general",
+      "assigneeId": "kaiky-yun",
+      "featureId": "f2",
       "dueDate": "",
       "progress": 100,
       "createdAt": "2026-05-13",
@@ -129,7 +337,7 @@
       "id": "58",
       "title": "feat: gerar gráfico de Burndown real via série temporal de issues",
       "description": "## Objetivo / Contexto\nSubstituir o grafico de Burndown estatico por uma visualizacao dinamica que reflita o progresso real do squad. O grafico deve mostrar a reducao do backlog (queima de tasks) ao longo do tempo.\n\n## Plano de Execucao\n- [ ] Implementar logica no script `generate-github-data.mjs` para analisar a data de criacao e fechamento de cada issue.\n- [ ] Gerar uma serie temporal de 15 a 30 dias contendo o saldo de issues abertas por dia.\n- [ ] Adicionar o campo `burndownData` ao payload JSON.\n- [ ] Refatorar o componente `BurndownChart` para consumir esses dados reais.\n\n## Definicao de Pronto (DoD)\n- [ ] O grafico no Dashboard bate com o historico de issues fechadas no GitHub.\n- [ ] Linha ideal de progresso calculada dinamicamente baseada na data final do Milestone vigente.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -145,10 +353,10 @@
       "id": "57",
       "title": "refactor: remover fallbacks de mock e implementar Strict Mode para integridade de dados",
       "description": "## 🎯 Objetivo\nGarantir que o Dashboard nunca exiba informações falsas (mocks) em caso de falha na API ou falta de dados reais. O sistema deve ser honesto sobre seu estado.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Remoção de todos os operadores de fallback (`|| mockTasks`, `?? mockKpis`) nos componentes.\n- [ ] Implementação de estados de erro visuais claros quando os dados não puderem ser carregados.\n- [ ] Garantia de que o ambiente de produção nunca exiba o conteúdo de `src/mocks/`.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "feature"
       ],
       "assigneeId": "caioflmjr",
       "featureId": "f3",
@@ -161,7 +369,7 @@
       "id": "56",
       "title": "feat: automatizar métricas de contribuição individual na Team Page",
       "description": "## 🎯 Objetivo / Contexto\nRefletir a participação real de cada membro do squad baseando-se em commits mergeados e tarefas concluídas, eliminando o uso de dados fictícios na página de time.\n\n## 🏗️ Impacto Técnico\n- **Lógica**: Cruzar `commitsByAuthor` com a lista de membros.\n- **Frontend**: Atualizar `TeamPage` para exibir o ranking real de produtividade técnica.\n\n## ✅ Definição de Pronto (DoD)\n- [ ] Cards de membros exibem contagem real de Commits e Tasks (via assignee).\n- [ ] Gráfico de produtividade sincronizado com o histórico do Git.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -177,7 +385,7 @@
       "id": "55",
       "title": "feat: extrair Milestones e cronograma de Sprints diretamente da API do GitHub",
       "description": "## 🎯 Objetivo / Contexto\nSubstituir os dados estáticos da `RoadmapPage` por Milestones reais configuradas no GitHub. Isso permite que o time gerencie datas de entrega diretamente no repositório.\n\n## 🛠️ Plano de Execução\n- [ ] Atualizar `generate-github-data.mjs` para buscar `/repos/{repo}/milestones`.\n- [ ] Mapear datas de entrega (`due_on`) para a visualização de cronograma.\n- [ ] Refatorar `RoadmapPage` para consumir o novo payload.\n\n## ✅ Definição de Pronto (DoD)\n- [ ] Milestones criadas no GitHub aparecem automaticamente no dashboard.\n- [ ] Remoção da dependência de `mockSprints` e `mockMilestones`.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -193,10 +401,10 @@
       "id": "54",
       "title": "docs: documentar logica de extracao e calculo de progresso do script de dados do Dashboard",
       "description": "## Objetivo / Contexto\nGarantir que a logica de negocio implementada no script `generate-github-data.mjs` esteja devidamente documentada para facilitar a manutencao e o onboarding de novos membros. O script agora e o motor que alimenta as metricas reais do dashboard.\n\n## Plano de Execucao\n- [ ] Adicionar comentarios tecnicos detalhados no arquivo `generate-github-data.mjs`.\n- [ ] Criar ou atualizar um README/README_DASHBOARD.md explicando o mapeamento de labels para features (ex: feat:f1 -> Consulta).\n- [ ] Explicitar a regra de calculo de progresso (Closed / Total).\n\n## Definicao de Pronto (DoD)\n- [ ] Documentacao revisada e clara.\n- [ ] Mapeamento de features consistente com o Story Map documentado tecnicamente.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "docs"
       ],
       "assigneeId": "caioflmjr",
       "featureId": "f3",
@@ -209,7 +417,7 @@
       "id": "53",
       "title": "ci: adicionar step de Type-checking (tsc) ao workflow de Pull Request do Dashboard",
       "description": "## 📝 Motivação Técnica\nGarantir que erros de tipagem do TypeScript não cheguem à branch `main`, automatizando a validação que hoje é feita manualmente.\n\n## ✅ Definição de Pronto (DoD)\n- [ ] Workflow de CI bloqueia o merge se o comando `tsc` falhar.\n- [ ] Verificação aplicada a todos os PRs que alteram a pasta `squad-dashboard`.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -225,10 +433,10 @@
       "id": "52",
       "title": "test: configurar Vitest e React Testing Library no Squad Dashboard",
       "description": "## 🎯 Objetivo / Contexto\nEstabelecer uma infraestrutura de testes unitários e de integração para o Dashboard, similar ao que já existe no frontend principal, para evitar regressões visuais e lógicas.\n\n## 🛠️ Plano de Execução\n- [ ] Instalar `vitest`, `@testing-library/react` e `@testing-library/jest-dom`.\n- [ ] Configurar `vitest.config.ts` no diretório `squad-dashboard`.\n- [ ] Criar primeiro teste smoke para a `DashboardPage`.\n\n## ✅ Definição de Pronto (DoD)\n- [ ] Comando `npm run test` funcional no dashboard.\n- [ ] Pelo menos um teste unitário passando.\n- [ ] Integração com o workflow de CI configurada.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "test"
       ],
       "assigneeId": "caioflmjr",
       "featureId": "f3",
@@ -241,10 +449,10 @@
       "id": "50",
       "title": "refactor: remover dependência de mocks e implementar Skeletons de carregamento no Dashboard",
       "description": "## 🎯 Objetivo\nGarantir que o dashboard seja uma ferramenta de confiança, removendo valores \"mentirosos\" (mocks) e exibindo estados de carregamento ou erro quando os dados reais não estiverem disponíveis.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Remoção de todas as referências a `mockKpis` e `mockFeatures` na `DashboardPage`.\n- [ ] Implementação de Skeletons (placeholders animados) durante o fetch dos dados.\n- [ ] Tratamento de erro caso o `github-stats.json` esteja inacessível.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "feature"
       ],
       "assigneeId": "caioflmjr",
       "featureId": "f3",
@@ -257,7 +465,7 @@
       "id": "49",
       "title": "ci: automatizar exportação de métricas de cobertura de código para o Squad Dashboard",
       "description": "## 📝 Motivação Técnica\nO KPI de \"Cobertura\" no dashboard é atualmente um valor estático (28%). Precisamos que ele reflita a cobertura real medida pelo `pytest-cov` e `vitest`.\n\n## 🛠️ Plano de Execução\n- [ ] Configurar job de CI para gerar relatório de cobertura em formato JSON.\n- [ ] Atualizar o script de geração de dados para ler esse relatório (ou usar a API do CodeCov/GitHub Artifacts).\n- [ ] Injetar o valor final no payload do dashboard.\n\n## ✅ Definição de Pronto (DoD)\n- [ ] KPI de Cobertura atualizado automaticamente após cada merge na `main`.\n- [ ] Histórico de cobertura (se possível) para gráfico de tendência.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -273,7 +481,7 @@
       "id": "48",
       "title": "feat: calcular progresso de Épicos/Features automaticamente baseado em labels de issues",
       "description": "## 🎯 Objetivo / Contexto\nEliminar o `mockFeatures` do dashboard. O progresso de cada funcionalidade deve ser derivado do status das issues vinculadas a ela via labels (ex: `feat:f1`).\n\n## 🏗️ Impacto Técnico\n- **Lógica**: Agrupar issues por labels de feature e calcular a proporção `closed / total`.\n- **Frontend**: Mapear as labels para nomes amigáveis de features no dashboard.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Widget \"Progresso por Feature\" exibe dados reais do GitHub.\n- [ ] Features sem issues vinculadas não aparecem ou exibem 0% de forma elegante.\n- [ ] Coerência entre o Board do GitHub e o Dashboard garantida.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -289,26 +497,26 @@
       "id": "47",
       "title": "feat: implementar extração dinâmica de Burndown e Velocity no script de dados do GitHub",
       "description": "## 🎯 Objetivo / Contexto\nSubstituir o gráfico de Burndown manual por uma série temporal calculada dinamicamente. O script deve analisar a data de criação e fechamento das issues para gerar os pontos do gráfico.\n\n## 🏗️ Impacto Técnico\n- **Script**: Evoluir `generate-github-data.mjs` para calcular a contagem de issues abertas por dia nos últimos 15-30 dias.\n- **Payload**: Adicionar campo `burndownData` ao `github-stats.json`.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Gráfico de Burndown reflete a realidade das issues no repositório.\n- [ ] Cálculo de Velocity (média de issues concluídas por semana) automatizado.\n- [ ] Scripts de fallback tratam repositórios com poucas issues sem quebrar a UI.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
       ],
       "assigneeId": "caioflmjr",
-      "featureId": "f3",
+      "featureId": "f7",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-12",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/47"
     },
     {
       "id": "46",
       "title": "fix: corrigir extração de data_ultima_movimentacao no SenadoAdapter",
       "description": "## 📝 Descrição\nO `SenadoAdapter` está retornando strings vazias para o campo de data, o que gera inconsistência no banco.\n\n## ✅ Critérios de Correção\n- [ ] Data extraída corretamente do nó de `autuacoes`.\n- [ ] Fallback para data de apresentação implementado.",
-      "status": "in_progress",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "bug"
       ],
       "assigneeId": "kaiky-yun",
       "featureId": "f1",
@@ -321,7 +529,7 @@
       "id": "45",
       "title": "chore: desenvolver script de seed para população idempotente do banco com dados reais",
       "description": "## 📝 Motivação\nFacilitar o setup do ambiente e demonstrações garantindo que o banco tenha dados reais das APIs da Câmara e Senado.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Script `init_db.py` funcional.\n- [ ] Uso de UPSERT para evitar duplicidade em execuções repetidas.",
-      "status": "in_progress",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -337,7 +545,7 @@
       "id": "44",
       "title": "feat: implementar autenticação JWT e segurança de rotas no endpoint /auth/login",
       "description": "## 🎯 Objetivo / Contexto\nEstabelecer um sistema de autenticação seguro baseado em tokens JWT para proteger endpoints sensíveis.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Geração de token JWT no login bem-sucedido.\n- [ ] Middleware de proteção de rotas implementado no backend.",
-      "status": "in_progress",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -353,7 +561,7 @@
       "id": "43",
       "title": "feat: implementar endpoint GET /proposicoes/{id} para exibição de detalhes reais",
       "description": "## 🎯 Objetivo / Contexto\nExpor os dados de uma proposição específica para alimentar a página de detalhes, eliminando a dependência de mocks no frontend.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Endpoint retorna 200 com objeto completo ou 404 para ID inexistente.\n- [ ] Frontend conectado ao novo endpoint.",
-      "status": "in_progress",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -369,7 +577,7 @@
       "id": "42",
       "title": "perf: implementar paginação SQL (LIMIT/OFFSET) em /proposicoes para otimização de memória",
       "description": "## 🎯 Objetivo / Contexto\nEvitar o carregamento de todos os registros em memória. Atualmente a paginação é feita em memória após o fetch de todos os dados.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Query SQL utiliza `LIMIT` e `OFFSET`.\n- [ ] DTO de resposta inclui metadados de paginação (total de itens, páginas).",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -385,10 +593,10 @@
       "id": "41",
       "title": "refactor: normalizar texto e usar ILIKE em SQLProposicaoRepository para busca case-insensitive",
       "description": "## 🎯 Objetivo / Contexto\nGarantir que a busca textual no banco de dados PostgreSQL seja resiliente a variações de maiúsculas/minúsculas e acentuação, melhorando a experiência de busca.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Query SQL utiliza `ILIKE` para busca textual.\n- [ ] Normalização de strings implementada no repositório.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "feature"
       ],
       "assigneeId": "kaiky-yun",
       "featureId": "f6",
@@ -401,7 +609,7 @@
       "id": "40",
       "title": "feat: conectar busca e filtros de /proposicoes ao backend real",
       "description": "## 🎯 Objetivo / Contexto\nSubstituir o consumo de mocks pela integração real com o banco de dados para a listagem de proposições, garantindo que os filtros de UI reflitam o estado real dos dados.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Busca por palavra-chave funciona integrando frontend e backend.\n- [ ] Filtros (tipo, status, órgão) aplicados corretamente na query SQL.\n- [ ] Tela de lista vazia exibe feedback apropriado ao usuário.",
-      "status": "in_progress",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -409,7 +617,7 @@
       "assigneeId": "kaiky-yun",
       "featureId": "f1",
       "dueDate": "",
-      "progress": 0,
+      "progress": 100,
       "createdAt": "2026-05-13",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/40"
     },
@@ -417,10 +625,10 @@
       "id": "39",
       "title": "docs: finalizar code review e documentação técnica da integração de Proposições",
       "description": "## 🎯 Objetivo / Contexto\nConsolidar a revisão de código do PR #4, garantindo que a integração inicial entre frontend e backend esteja documentada e seguindo os padrões do projeto.\n\n## ✅ Entregas\n- Revisão completa do fluxo de dados das proposições.\n- Documentação técnica no README sobre o consumo da API.\n- Validação do contrato entre camadas.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "docs"
       ],
       "assigneeId": "kaiky-yun",
       "featureId": "f1",
@@ -433,10 +641,10 @@
       "id": "38",
       "title": "fix: habilitar CORSMiddleware para resolver bloqueio de integração local",
       "description": "## 📝 Descrição do Problema\nO frontend local (`localhost:5173`) estava impedido de consumir a API devido à falta de políticas de CORS no FastAPI.\n\n## ✅ Critérios de Correção\n- [x] Adicionado `CORSMiddleware` ao `main.py`.\n- [x] Origens permitidas configuradas via env ou fixas para dev.\n- [x] Verificado sucesso no preflight request do navegador.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "bug"
       ],
       "assigneeId": "kaiky-yun",
       "featureId": "f6",
@@ -465,7 +673,7 @@
       "id": "36",
       "title": "feat: integrar componente de listagem de proposições com os serviços da API real",
       "description": "## 🎯 Objetivo / Contexto\nConectar a interface de usuário aos serviços de backend, substituindo o uso de constantes locais por chamadas assíncronas ao servidor.\n\n## ✅ Entregáveis\n- [x] Hook `useProposicoes` ou serviço equivalente conectado.\n- [x] Mapeamento de dados do backend para as props dos cards de UI.\n- [x] Validação de integração em ambiente de desenvolvimento.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -481,7 +689,7 @@
       "id": "35",
       "title": "infra: implementar adapters de infraestrutura com suporte a mocks normalizados",
       "description": "## 📝 Motivação Técnica\nEstabelecer o padrão de design Adapter (ADR-005) para isolar a aplicação das APIs externas, utilizando mocks iniciais que espelham o contrato real da Câmara e Senado.\n\n## ✅ Implementação\n- [x] `CamaraMockAdapter` e `SenadoMockAdapter` funcionais.\n- [x] Normalização de dados para a entidade de domínio `Proposicao`.\n- [x] Testabilidade garantida via injeção de dependência.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -497,7 +705,7 @@
       "id": "34",
       "title": "feat: expor endpoint de busca paginada com suporte a filtros cumulativos",
       "description": "## 🎯 Objetivo / Contexto\nDesenvolver a API principal de consulta de proposições, permitindo filtragem por tipo, status e órgão, além de suporte nativo a paginação.\n\n## ✅ Detalhes Técnicos\n- [x] Endpoint `GET /proposicoes` implementado no FastAPI.\n- [x] Suporte a parâmetros `tipo`, `status`, `orgaoOrigem` e `busca`.\n- [x] Retorno em conformidade com o schema Pydantic definido.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -513,7 +721,7 @@
       "id": "33",
       "title": "chore: estabelecer regras de proteção e revisão obrigatória na branch main",
       "description": "## 📝 Motivação Técnica\nImplementar governança de código para garantir que nenhuma alteração chegue à `main` sem passar por CI e revisão por pares.\n\n## ✅ Configurações Aplicadas\n- [x] \"Require a pull request before merging\" ativado.\n- [x] \"Require status checks to pass before merging\" (Frontend/Backend CI) vinculado.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -529,7 +737,7 @@
       "id": "32",
       "title": "ci: automatizar linting, type-checking e build do Frontend via GitHub Actions",
       "description": "## 📝 Descrição\nCriação do pipeline automatizado para garantir a qualidade do código TypeScript/React.\n\n## ✅ Verificações\n- [x] `npm ci` (instalação limpa).\n- [x] `tsc` (type-checking).\n- [x] `vite build` (validação de bundling).",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -545,13 +753,13 @@
       "id": "31",
       "title": "ci: automatizar validação de sintaxe, linting (Ruff) e testes do Backend",
       "description": "## 📝 Descrição\nCriação do pipeline de integração contínua para o backend Python.\n\n## ✅ Verificações\n- [x] Instalação via `uv`.\n- [x] Linting com `Ruff`.\n- [x] Testes automatizados com `Pytest`.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
       ],
       "assigneeId": "kaiky-yun",
-      "featureId": "f7",
+      "featureId": "f6",
       "dueDate": "",
       "progress": 100,
       "createdAt": "2026-05-11",
@@ -561,10 +769,10 @@
       "id": "30",
       "title": "docs: formalizar padrões de arquitetura em camadas na ADR-001",
       "description": "## 🎯 Objetivo\nRegistrar a decisão arquitetural de utilizar **Layered Architecture** para garantir o desacoplamento entre domínio e infraestrutura.\n\n## 🔗 Referência\n`docs/adr/ADR-001-layered-architecture.md`",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "docs"
       ],
       "assigneeId": "kaiky-yun",
       "featureId": "f6",
@@ -577,10 +785,10 @@
       "id": "29",
       "title": "refactor: decompor backend em camadas de Domain, Application e Infrastructure",
       "description": "## 🎯 Objetivo\nMigrar o código inicial monolítico para uma estrutura desacoplada seguindo a ADR-001.\n\n## 🏗️ Estrutura Implementada\n- `domain/`: Entidades e regras de negócio puras.\n- `application/`: Orquestração de serviços.\n- `infrastructure/`: Implementações de persistência e adapters.\n- `presentation/`: Endpoints e roteamento.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
-        "chore"
+        "feature"
       ],
       "assigneeId": "kaiky-yun",
       "featureId": "f6",
@@ -593,7 +801,7 @@
       "id": "28",
       "title": "chore: inicializar projeto FastAPI com gerenciamento de dependências via uv",
       "description": "## 📝 Motivação\nSetup técnico inicial do backend utilizando Python 3.12 e o gerenciador de pacotes `uv` para máxima performance.\n\n## ✅ Entregáveis\n- `pyproject.toml` configurado.\n- Estrutura base de pastas.\n- Healthcheck endpoint funcional.",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "labels": [
         "chore"
@@ -610,32 +818,32 @@
     {
       "id": "f1",
       "name": "Consulta de Proposições",
-      "progress": 67,
-      "tasksTotal": 6,
-      "tasksDone": 4,
+      "progress": 11,
+      "tasksTotal": 9,
+      "tasksDone": 1,
       "status": "in_progress"
     },
     {
       "id": "f2",
       "name": "Detalhamento da Proposição",
       "progress": 0,
-      "tasksTotal": 1,
+      "tasksTotal": 2,
       "tasksDone": 0,
       "status": "planned"
     },
     {
       "id": "f3",
       "name": "Dashboard Analítico",
-      "progress": 100,
+      "progress": 0,
       "tasksTotal": 11,
-      "tasksDone": 11,
-      "status": "done"
+      "tasksDone": 0,
+      "status": "planned"
     },
     {
       "id": "f4",
       "name": "Inteligência Preditiva",
       "progress": 0,
-      "tasksTotal": 0,
+      "tasksTotal": 3,
       "tasksDone": 0,
       "status": "planned"
     },
@@ -643,254 +851,989 @@
       "id": "f5",
       "name": "Autenticação",
       "progress": 0,
-      "tasksTotal": 1,
+      "tasksTotal": 6,
       "tasksDone": 0,
       "status": "planned"
     },
     {
       "id": "f6",
       "name": "Infraestrutura & Arquitetura",
-      "progress": 88,
-      "tasksTotal": 8,
-      "tasksDone": 7,
-      "status": "in_progress"
+      "progress": 0,
+      "tasksTotal": 12,
+      "tasksDone": 0,
+      "status": "planned"
     },
     {
       "id": "f7",
       "name": "Qualidade & CI/CD",
-      "progress": 100,
+      "progress": 0,
       "tasksTotal": 3,
-      "tasksDone": 3,
-      "status": "done"
+      "tasksDone": 0,
+      "status": "planned"
     }
   ],
   "milestones": [],
-  "burndownData": [
-    {
-      "date": "2026-04-29",
-      "label": "28 de abr.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
+  "burnup": {
+    "metadata": {
+      "startDate": "2026-05-11",
+      "release1Date": "2026-05-27",
+      "release2Date": "2026-07-06",
+      "baselineScope": 18,
+      "methodology": "Burnup baseado em catálogo fixo do Story Map. O progresso é contabilizado apenas quando issues mapeadas para entregáveis reais são fechadas."
     },
-    {
-      "date": "2026-04-30",
-      "label": "29 de abr.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-01",
-      "label": "30 de abr.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-02",
-      "label": "01 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-03",
-      "label": "02 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-04",
-      "label": "03 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-05",
-      "label": "04 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-06",
-      "label": "05 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-07",
-      "label": "06 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-08",
-      "label": "07 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-09",
-      "label": "08 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-10",
-      "label": "09 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-11",
-      "label": "10 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-12",
-      "label": "11 de mai.",
-      "remaining": 0,
-      "ideal": 0,
-      "scope": 0,
-      "addedItems": 0,
-      "completedItems": 0
-    },
-    {
-      "date": "2026-05-13",
-      "label": "12 de mai.",
-      "remaining": 7,
-      "ideal": 0,
-      "scope": 31,
-      "addedItems": 31,
-      "completedItems": 24
-    },
-    {
-      "date": "2026-05-14",
-      "label": "13 de mai.",
-      "remaining": 9,
-      "ideal": 0,
-      "scope": 35,
-      "addedItems": 4,
-      "completedItems": 2
-    }
-  ],
+    "catalog": [
+      {
+        "id": "R1-1",
+        "title": "Busca e Filtros Reais (Backend)",
+        "release": "R1",
+        "feat": "f1",
+        "keywords": [
+          "ilike",
+          "busca",
+          "filtro"
+        ],
+        "status": "done",
+        "completionDate": "2026-05-14",
+        "mappedIssueIds": [
+          91,
+          41,
+          40,
+          34
+        ]
+      },
+      {
+        "id": "R1-2",
+        "title": "Endpoint Detalhe /proposicoes/{id}",
+        "release": "R1",
+        "feat": "f1",
+        "keywords": [
+          "get /proposicoes/{id}",
+          "detalhe real"
+        ],
+        "status": "planned",
+        "completionDate": null,
+        "mappedIssueIds": []
+      },
+      {
+        "id": "R1-3",
+        "title": "Dossiê com Dados Reais",
+        "release": "R1",
+        "feat": "f2",
+        "keywords": [
+          "tempo de tramitação",
+          "dados reais"
+        ],
+        "status": "planned",
+        "completionDate": null,
+        "mappedIssueIds": []
+      },
+      {
+        "id": "R1-4",
+        "title": "Autenticação JWT (Login)",
+        "release": "R1",
+        "feat": "f5",
+        "keywords": [
+          "jwt",
+          "login",
+          "auth/login"
+        ],
+        "status": "in_progress",
+        "completionDate": null,
+        "mappedIssueIds": [
+          81,
+          44
+        ]
+      },
+      {
+        "id": "R1-5",
+        "title": "Cadastro de Usuários",
+        "release": "R1",
+        "feat": "f5",
+        "keywords": [
+          "cadastro",
+          "usuarios/cadastro"
+        ],
+        "status": "planned",
+        "completionDate": null,
+        "mappedIssueIds": []
+      },
+      {
+        "id": "R1-6",
+        "title": "Seed de Dados Reais (Idempotente)",
+        "release": "R1",
+        "feat": "f6",
+        "keywords": [
+          "seed",
+          "init_db",
+          "popular"
+        ],
+        "status": "in_progress",
+        "completionDate": null,
+        "mappedIssueIds": [
+          87,
+          45
+        ]
+      },
+      {
+        "id": "R1-7",
+        "title": "Correção SenadoAdapter (Movimentação)",
+        "release": "R1",
+        "feat": "f6",
+        "keywords": [
+          "senadoadapter",
+          "ultima_movimentacao"
+        ],
+        "status": "in_progress",
+        "completionDate": null,
+        "mappedIssueIds": [
+          87
+        ]
+      },
+      {
+        "id": "R1-8",
+        "title": "Infraestrutura de Testes (Vitest/Pytest)",
+        "release": "R1",
+        "feat": "f7",
+        "keywords": [
+          "test",
+          "vitest",
+          "pytest"
+        ],
+        "status": "done",
+        "completionDate": "2026-05-13",
+        "mappedIssueIds": [
+          31
+        ]
+      },
+      {
+        "id": "R2-1",
+        "title": "Entidade e Timeline de Tramitação",
+        "release": "R2",
+        "feat": "f2",
+        "keywords": [
+          "timeline",
+          "movimentacoes",
+          "tramitacao"
+        ],
+        "status": "planned",
+        "completionDate": null,
+        "mappedIssueIds": []
+      },
+      {
+        "id": "R2-2",
+        "title": "Breakdown de Tempo por Fase",
+        "release": "R2",
+        "feat": "f2",
+        "keywords": [
+          "tempo por fase",
+          "comissão"
+        ],
+        "status": "planned",
+        "completionDate": null,
+        "mappedIssueIds": []
+      },
+      {
+        "id": "R2-3",
+        "title": "Dashboard Real (Endpoints Agregação)",
+        "release": "R2",
+        "feat": "f3",
+        "keywords": [
+          "dashboard/por-",
+          "breakdown"
+        ],
+        "status": "in_progress",
+        "completionDate": null,
+        "mappedIssueIds": [
+          90
+        ]
+      },
+      {
+        "id": "R2-4",
+        "title": "Filtros Globais no Dashboard",
+        "release": "R2",
+        "feat": "f3",
+        "keywords": [
+          "filtros ativos",
+          "dashboard"
+        ],
+        "status": "done",
+        "completionDate": "2026-05-13",
+        "mappedIssueIds": [
+          94,
+          91,
+          90,
+          58,
+          57,
+          55,
+          54,
+          53,
+          52,
+          50,
+          49,
+          48
+        ]
+      },
+      {
+        "id": "R2-5",
+        "title": "Logout com Invalidação (Server-side)",
+        "release": "R2",
+        "feat": "f5",
+        "keywords": [
+          "logout",
+          "blacklist",
+          "redis"
+        ],
+        "status": "in_progress",
+        "completionDate": null,
+        "mappedIssueIds": [
+          93,
+          92
+        ]
+      },
+      {
+        "id": "R2-6",
+        "title": "Recuperação de Senha (E-mail)",
+        "release": "R2",
+        "feat": "f5",
+        "keywords": [
+          "recuperar",
+          "senha",
+          "email"
+        ],
+        "status": "in_progress",
+        "completionDate": null,
+        "mappedIssueIds": [
+          86,
+          81,
+          80
+        ]
+      },
+      {
+        "id": "R2-7",
+        "title": "Bloqueio de Conta (Segurança)",
+        "release": "R2",
+        "feat": "f5",
+        "keywords": [
+          "bloqueio",
+          "tentativas"
+        ],
+        "status": "in_progress",
+        "completionDate": null,
+        "mappedIssueIds": [
+          93
+        ]
+      },
+      {
+        "id": "R2-8",
+        "title": "Worker de Coleta Batch (Celery)",
+        "release": "R2",
+        "feat": "f6",
+        "keywords": [
+          "worker",
+          "celery",
+          "batch",
+          "coleta"
+        ],
+        "status": "in_progress",
+        "completionDate": null,
+        "mappedIssueIds": [
+          94,
+          87
+        ]
+      },
+      {
+        "id": "R2-9",
+        "title": "Cache Redis para Métricas",
+        "release": "R2",
+        "feat": "f6",
+        "keywords": [
+          "cache",
+          "redis"
+        ],
+        "status": "in_progress",
+        "completionDate": null,
+        "mappedIssueIds": [
+          94
+        ]
+      },
+      {
+        "id": "R2-10",
+        "title": "Inteligência Preditiva (IA)",
+        "release": "R2",
+        "feat": "f4",
+        "keywords": [
+          "preditiva",
+          "ia",
+          "previsao"
+        ],
+        "status": "done",
+        "completionDate": "2026-05-14",
+        "mappedIssueIds": [
+          96,
+          87,
+          83,
+          82,
+          58,
+          42,
+          33,
+          32,
+          28
+        ]
+      }
+    ],
+    "series": [
+      {
+        "date": "2026-05-11",
+        "label": "10/05",
+        "plannedScope": 18,
+        "deliveredR1": 0,
+        "deliveredTotal": 0,
+        "idealR1": 0,
+        "idealTotal": 0,
+        "isFuture": false
+      },
+      {
+        "date": "2026-05-12",
+        "label": "11/05",
+        "plannedScope": 18,
+        "deliveredR1": 0,
+        "deliveredTotal": 0,
+        "idealR1": 0.5,
+        "idealTotal": 0.32,
+        "isFuture": false
+      },
+      {
+        "date": "2026-05-13",
+        "label": "12/05",
+        "plannedScope": 18,
+        "deliveredR1": 1,
+        "deliveredTotal": 2,
+        "idealR1": 1,
+        "idealTotal": 0.64,
+        "isFuture": false
+      },
+      {
+        "date": "2026-05-14",
+        "label": "13/05",
+        "plannedScope": 18,
+        "deliveredR1": 2,
+        "deliveredTotal": 4,
+        "idealR1": 1.5,
+        "idealTotal": 0.96,
+        "isFuture": false
+      },
+      {
+        "date": "2026-05-15",
+        "label": "14/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 2,
+        "idealTotal": 1.29,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-16",
+        "label": "15/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 2.5,
+        "idealTotal": 1.61,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-17",
+        "label": "16/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 3,
+        "idealTotal": 1.93,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-18",
+        "label": "17/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 3.5,
+        "idealTotal": 2.25,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-19",
+        "label": "18/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 4,
+        "idealTotal": 2.57,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-20",
+        "label": "19/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 4.5,
+        "idealTotal": 2.89,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-21",
+        "label": "20/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 5,
+        "idealTotal": 3.21,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-22",
+        "label": "21/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 5.5,
+        "idealTotal": 3.54,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-23",
+        "label": "22/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 6,
+        "idealTotal": 3.86,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-24",
+        "label": "23/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 6.5,
+        "idealTotal": 4.18,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-25",
+        "label": "24/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 7,
+        "idealTotal": 4.5,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-26",
+        "label": "25/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 7.5,
+        "idealTotal": 4.82,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-27",
+        "label": "26/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": 8,
+        "idealTotal": 5.14,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-28",
+        "label": "27/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 5.46,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-29",
+        "label": "28/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 5.79,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-30",
+        "label": "29/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 6.11,
+        "isFuture": true
+      },
+      {
+        "date": "2026-05-31",
+        "label": "30/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 6.43,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-01",
+        "label": "31/05",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 6.75,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-02",
+        "label": "01/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 7.07,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-03",
+        "label": "02/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 7.39,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-04",
+        "label": "03/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 7.71,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-05",
+        "label": "04/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 8.04,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-06",
+        "label": "05/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 8.36,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-07",
+        "label": "06/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 8.68,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-08",
+        "label": "07/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 9,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-09",
+        "label": "08/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 9.32,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-10",
+        "label": "09/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 9.64,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-11",
+        "label": "10/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 9.96,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-12",
+        "label": "11/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 10.29,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-13",
+        "label": "12/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 10.61,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-14",
+        "label": "13/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 10.93,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-15",
+        "label": "14/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 11.25,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-16",
+        "label": "15/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 11.57,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-17",
+        "label": "16/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 11.89,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-18",
+        "label": "17/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 12.21,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-19",
+        "label": "18/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 12.54,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-20",
+        "label": "19/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 12.86,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-21",
+        "label": "20/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 13.18,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-22",
+        "label": "21/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 13.5,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-23",
+        "label": "22/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 13.82,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-24",
+        "label": "23/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 14.14,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-25",
+        "label": "24/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 14.46,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-26",
+        "label": "25/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 14.79,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-27",
+        "label": "26/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 15.11,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-28",
+        "label": "27/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 15.43,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-29",
+        "label": "28/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 15.75,
+        "isFuture": true
+      },
+      {
+        "date": "2026-06-30",
+        "label": "29/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 16.07,
+        "isFuture": true
+      },
+      {
+        "date": "2026-07-01",
+        "label": "30/06",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 16.39,
+        "isFuture": true
+      },
+      {
+        "date": "2026-07-02",
+        "label": "01/07",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 16.71,
+        "isFuture": true
+      },
+      {
+        "date": "2026-07-03",
+        "label": "02/07",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 17.04,
+        "isFuture": true
+      },
+      {
+        "date": "2026-07-04",
+        "label": "03/07",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 17.36,
+        "isFuture": true
+      },
+      {
+        "date": "2026-07-05",
+        "label": "04/07",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 17.68,
+        "isFuture": true
+      },
+      {
+        "date": "2026-07-06",
+        "label": "05/07",
+        "plannedScope": 18,
+        "deliveredR1": null,
+        "deliveredTotal": null,
+        "idealR1": null,
+        "idealTotal": 18,
+        "isFuture": true
+      }
+    ]
+  },
   "metrics": {
     "scopeChange": 0,
-    "throughput": 1.7,
-    "completionRate": 74,
+    "throughput": 0.3,
+    "completionRate": 22,
     "avgLeadTime": 0
   },
   "recentWorkflows": [
     {
-      "name": "Squad Dashboard CI",
+      "name": "Deploy Squad Dashboard",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-14T00:42:44Z"
+      "updatedAt": "2026-05-14T13:56:28Z"
     },
     {
-      "name": "Backend CI",
+      "name": "Update Squad Dashboard Data",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-14T00:41:27Z"
+      "updatedAt": "2026-05-14T13:55:46Z"
     },
     {
-      "name": "Squad Dashboard CI",
+      "name": "Deploy Squad Dashboard",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-14T00:22:31Z"
+      "updatedAt": "2026-05-14T08:32:21Z"
     },
     {
-      "name": "Backend CI",
+      "name": "Update Squad Dashboard Data",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-14T00:21:13Z"
+      "updatedAt": "2026-05-14T08:31:44Z"
     },
     {
-      "name": "Squad Dashboard CI",
+      "name": "Frontend CI",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-13T23:15:25Z"
-    },
-    {
-      "name": "Backend CI",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-13T23:10:31Z"
+      "updatedAt": "2026-05-14T02:51:26Z"
     },
     {
       "name": "Backend CI",
       "conclusion": "failure",
       "status": "completed",
-      "updatedAt": "2026-05-13T23:04:53Z"
+      "updatedAt": "2026-05-14T02:51:36Z"
+    },
+    {
+      "name": "Deploy Squad Dashboard",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-14T02:38:09Z"
+    },
+    {
+      "name": "Update Squad Dashboard Data",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-14T02:37:27Z"
+    },
+    {
+      "name": "Squad Dashboard CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-14T02:06:13Z"
     },
     {
       "name": "Backend CI",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-13T22:45:18Z"
-    },
-    {
-      "name": "Squad Dashboard CI",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-13T22:43:53Z"
-    },
-    {
-      "name": "Squad Dashboard CI",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-13T22:17:52Z"
+      "updatedAt": "2026-05-14T02:00:12Z"
     }
   ],
   "contributors": [
     {
       "login": "kaiky-yun",
-      "commits": 89,
-      "prsOpened": 43,
-      "prsMerged": 41,
+      "commits": 100,
+      "prsOpened": 44,
+      "prsMerged": 43,
       "avatarUrl": "https://avatars.githubusercontent.com/u/127952063?v=4"
     },
     {
       "login": "caioflmjr",
-      "commits": 62,
-      "prsOpened": 6,
+      "commits": 68,
+      "prsOpened": 8,
       "prsMerged": 6,
       "avatarUrl": "https://avatars.githubusercontent.com/u/67447767?v=4"
     },
@@ -904,8 +1847,8 @@
     {
       "login": "Heitorovski01",
       "commits": 1,
-      "prsOpened": 0,
-      "prsMerged": 0,
+      "prsOpened": 2,
+      "prsMerged": 1,
       "avatarUrl": "https://avatars.githubusercontent.com/u/170051918?v=4"
     }
   ]
