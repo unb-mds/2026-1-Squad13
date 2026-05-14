@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
 
+    # Segurança e JWT
+    SECRET_KEY: str = "sua-chave-secreta-de-desenvolvimento-muito-segura"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 horas
+
     @property
     def database_url(self) -> str:
         """Gera a URL de conexão para o SQLAlchemy/SQLModel"""
