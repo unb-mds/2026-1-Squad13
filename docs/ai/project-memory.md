@@ -65,3 +65,9 @@ Sempre que uma nova decisão persistente for adicionada, o registro deve seguir 
 **Decisão:** Os testes de integração (acesso a BD, APIs mockadas) são estritamente separados dos testes unitários (execução em memória pura).
 **Justificativa:** Garantir CI rápida (unitários) enquanto mantém garantia de funcionamento do fluxo completo (integração).
 **Impacto:** Novos Adapters de rede ou Repositórios de banco exigem testes na pasta `integration`. Lógicas de cálculo ou formatação devem ir para `unit`.
+
+### [2026-05] Validação Blindada e Automação de Ambiente
+**Evidência:** Scripts `start_dev.sh`, `test_all.sh` e configuração do Ruff/Vitest.
+**Decisão:** Uso de scripts de entrada única para subir o ambiente e validar todo o monorepo. Adoção do Ruff (backend) e Vitest (frontend) como padrões de qualidade.
+**Justificativa:** Reduzir o atrito no onboarding e garantir que nenhum commit quebre a integridade do monorepo.
+**Impacto:** O CI bloqueia merges sem a "Validação Blindada" (lint + tipos + testes) aprovada em ambos os subprojetos.
