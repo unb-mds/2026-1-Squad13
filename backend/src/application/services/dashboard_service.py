@@ -10,9 +10,6 @@ class DashboardService:
         self.repository = repository
 
     def obter_metricas(self) -> Dict:
-        # Busca todas as proposições para calcular métricas globais
-        # Em um sistema real, usaríamos consultas SQL de agregação (COUNT, AVG)
-        # para performance, mas para o MVP acadêmico, processar a lista é didático.
         todas = self.repository.filtrar()
         
         if not todas:
@@ -36,11 +33,10 @@ class DashboardService:
         tempos = [p.tempo_total_dias for p in todas if p.tempo_total_dias is not None]
         tempo_medio = sum(tempos) / len(tempos) if tempos else 0
 
-        # Lógica simplificada para "comissão mais lenta" baseada no orgao_atual
-        # Agrupamos por órgão e calculamos a média de tempo
+        # Agrupamento por órgão para identificar a comissão mais lenta
         orgaos: Dict[str, List[int]] = {}
         for p in todas:
-            if p.orgao_atual and p.tempo_total_dias:
+            if p.orgao_atual and p.tempo_total_dias is not None:
                 if p.orgao_atual not in orgaos:
                     orgaos[p.orgao_atual] = []
                 orgaos[p.orgao_atual].append(p.tempo_total_dias)
@@ -59,3 +55,91 @@ class DashboardService:
             "comissaoMaiorTempo": pior_orgao,
             "comissaoMaiorTempoMedia": int(pior_media)
         }
+
+    def obter_dados_tipo(self) -> List[Dict]:
+        todas = self.repository.filtrar()
+        tipos: Dict[str, Dict] = {}
+        for p in todas:
+            if p.tipo not in tipos:
+                tipos[p.tipo] = {"tipo": p.tipo, "tempos": [], "quantidade": 0}
+            tipos[p.tipo]["quantidade"] += 1
+            if p.tempo_total_dias is not None:
+                tipos[p.tipo]["tempos"].append(p.tempo_total_dias)
+        
+        resultado = []
+        for info in tipos.values():
+            tempo_medio = sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
+            resultado.append({
+                "tipo": info["tipo"],
+                "tempoMedio": int(tempo_medio),
+                "quantidade": info["quantidade"]
+            })
+        return sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+
+    def obter_dados_comissao(self) -> List[Dict]:
+        todas = self.repository.filtrar()
+        orgaos: Dict[str, Dict] = {}
+        for p in todas:
+            orgao = p.orgao_atual or "Desconhecido"
+            if orgao not in orgaos:
+                orgaos[orgao] = {"comissao": orgao, "tempos": [], "quantidade": 0}
+            orgaos[orgao]["quantidade"] += 1
+            if p.tempo_total_dias is not None:
+                orgaos[orgao]["tempos"].append(p.tempo_total_dias)
+        
+        resultado = []
+        for info in orgaos.values():
+            tempo_medio = sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
+            resultado.append({
+                "comissao": info["comissao"],
+                "tempoMedio": int(tempo_medio),
+                "quantidade": info["quantidade"]
+            })
+        return sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
+
+    def obter_dados_status(self) -> List[Dict]:
+        todas = self.repository.filtrar()
+        if not todas: return []
+        
+        total = len(todas)
+        contagem: Dict[str, int] = {}
+        for p in todas:
+            contagem[p.status] = contagem.get(p.status, 0) + 1
+            
+        return [
+            {
+                "status": status,
+                "quantidade": qtd,
+                "percentual": round((qtd / total) * 100)
+            }
+            for status, qtd in contagem.items()
+        ]
+
+    def obter_gargalos(self) -> List[Dict]:
+        todas = self.repository.filtrar()
+        orgaos: Dict[str, Dict] = {}
+        for p in todas:
+            orgao = p.orgao_atual or "Desconhecido"
+            if orgao not in orgaos:
+                orgaos[orgao] = {"orgao": orgao, "tempos": [], "proposicoes": 0, "atrasos": 0}
+            
+            orgaos[orgao]["proposicoes"] += 1
+            if p.atraso_critico:
+                orgaos[orgao]["atrasos"] += 1
+            if p.tempo_total_dias is not None:
+                orgaos[orgao]["tempos"].append(p.tempo_total_dias)
+        
+        resultado = []
+        for info in orgaos.values():
+            # Converte dias para meses (média de 30 dias)
+            tempo_medio_meses = (sum(info["tempos"]) / len(info["tempos"]) / 30) if info["tempos"] else 0
+            taxa_atraso = (info["atrasos"] / info["proposicoes"] * 100) if info["proposicoes"] else 0
+            
+            resultado.append({
+                "orgao": info["orgao"],
+                "tempoMedioMeses": round(tempo_medio_meses, 1),
+                "quantidadeProposicoes": info["proposicoes"],
+                "taxaAtraso": round(taxa_atraso)
+            })
+        
+        return sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
