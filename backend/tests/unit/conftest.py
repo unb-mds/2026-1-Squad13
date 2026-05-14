@@ -9,8 +9,8 @@ def mock_repositorio(lista_proposicoes):
     Cada teste pode sobrescrever o return_value se precisar.
     """
     repo = MagicMock()
-    # Note: O repositório real usa o método 'filtrar' no BuscarProposicoesService.executar
     repo.filtrar.return_value = lista_proposicoes
+    repo.contar.return_value = len(lista_proposicoes)
     return repo
 
 @pytest.fixture
