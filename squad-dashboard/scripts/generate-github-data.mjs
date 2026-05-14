@@ -7,13 +7,6 @@ import { fileURLToPath } from 'url'
  * ----------------------------------------
  * Este script é o motor de dados do Squad Dashboard. Ele consome a API REST do GitHub
  * para gerar um payload JSON (github-stats.json) contendo métricas reais de engenharia.
- * 
- * Principais funcionalidades:
- * 1. Extração de série temporal de Commits (últimos 8 dias e 8 semanas).
- * 2. Mapeamento de Issues para Entidades de Tarefa (Task).
- * 3. Cálculo de Burndown Real baseado no saldo histórico de issues abertas.
- * 4. Cálculo de progresso de Features baseado em labels (ex: feat:f1).
- * 5. Monitoramento de Workflows de CI e Contribuições por autor.
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -44,7 +37,6 @@ async function main() {
   const commits = await gh(`/repos/${REPO}/commits?since=${new Date(Date.now() - 30*24*60*60*1000).toISOString()}&per_page=100`)
   console.log(`  commits: ${commits.length}`)
 
-  // --- LOGICA DE FIDELIDADE HISTORICA & AUTO-CREDIT ---
   const FEATURE_KEYWORDS = {
     'f1': ['proposicao', 'consulta', 'api-camara', 'api-senado', 'adapter'],
     'f2': ['detalhamento', 'detalhe'],
@@ -54,8 +46,7 @@ async function main() {
     'f7': ['test', 'ci', 'workflow', 'ruff', 'pytest', 'vitest', 'lint', 'coverage']
   }
 
-  const featureHistory = {} // { fid: { first: Date, last: Date, authors: { login: count } } }
-  
+  const featureHistory = {}
   commits.forEach(c => {
     const msg = c.commit.message.toLowerCase()
     const date = new Date(c.commit.author.date)
@@ -71,13 +62,11 @@ async function main() {
     })
   })
 
-  // Helper para decidir o "dono" de uma feature baseado no volume de commits
   const getFeatureOwner = (fid) => {
     const authors = featureHistory[fid]?.authors
     if (!authors) return 'unassigned'
     return Object.entries(authors).sort((a, b) => b[1] - a[1])[0][0]
   }
-  // ---------------------------------------------------------------------
 
   const commitsByDay = Array.from({ length: 8 }, (_, i) => {
     const d = new Date(today)
@@ -96,60 +85,123 @@ async function main() {
     .map(([login, count]) => ({ login, commits: count }))
     .sort((a, b) => b.commits - a.commits)
 
-  const weeklyCommits = Array.from({ length: 8 }, (_, i) => {
-    const weekEnd = new Date(today)
-    weekEnd.setUTCDate(weekEnd.getUTCDate() - i * 7)
-    const weekStart = new Date(weekEnd)
-    weekStart.setUTCDate(weekEnd.getUTCDate() - 6)
-    const count = commits.filter(c => {
-      const d = new Date(c.commit.author.date)
-      return d >= weekStart && d <= weekEnd
-    }).length
-    return { week: `W${8 - i}`, commits: count }
-  }).reverse()
-
   // 2. Pull requests
   const allPRs = await gh(`/repos/${REPO}/pulls?state=all&per_page=100`)
-  console.log(`  PRs: ${allPRs.length}`)
   const pullRequests = {
     open: allPRs.filter(pr => pr.state === 'open').length,
     merged: allPRs.filter(pr => !!pr.merged_at).length,
     closed: allPRs.filter(pr => pr.state === 'closed' && !pr.merged_at).length,
   }
 
-  // 3. Issues and Burndown calculation
+  const prStatsByAuthor = {}
+  allPRs.forEach(pr => {
+    const login = pr.user.login
+    if (!prStatsByAuthor[login]) prStatsByAuthor[login] = { opened: 0, merged: 0 }
+    prStatsByAuthor[login].opened++
+    if (pr.merged_at) prStatsByAuthor[login].merged++
+  })
+
+  // 3. Issues and Burnup calculation
   const allIssues = await gh(`/repos/${REPO}/issues?state=all&per_page=100`)
   const issuesOnly = allIssues.filter(i => !i.pull_request)
-  console.log(`  issues: ${issuesOnly.length}`)
   
   const issues = {
     open: issuesOnly.filter(i => i.state === 'open').length,
     closed: issuesOnly.filter(i => i.state === 'closed').length,
   }
 
-  const burndownData = []
-  const daysToShow = 20
-  for (let i = daysToShow; i >= 0; i--) {
-    const targetDate = new Date(today)
-    targetDate.setDate(today.getDate() - i)
-    const dateStr = targetDate.toISOString().slice(0, 10)
-    
-    const openOnDate = issuesOnly.filter(i => {
-      const fid = i.labels?.find(l => l.name && l.name.startsWith('feat:'))?.name.replace('feat:', '')
-      const realStart = featureHistory[fid]?.first ? featureHistory[fid].first.toISOString().slice(0, 10) : null
-      
-      const created = (realStart && realStart < i.created_at.slice(0, 10)) ? realStart : i.created_at.slice(0, 10)
-      const closed = i.closed_at ? i.closed_at.slice(0, 10) : '9999-12-31'
-      return created <= dateStr && closed > dateStr
-    }).length
+  // --- CONFIGURAÇÃO DO BURNUP BASEADO EM ENTREGÁVEIS (STORY MAP) ---
+  const DAY_ZERO = '2026-05-11'
+  const RELEASE_1_DATE = '2026-05-27'
+  const RELEASE_2_DATE = '2026-07-06'
 
-    burndownData.push({
-      day: targetDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-      remaining: openOnDate,
-      ideal: Math.max(0, Math.round(issuesOnly.length - (issuesOnly.length / daysToShow) * (daysToShow - i)))
+  const STORY_MAP_CATALOG = [
+    { id: 'R1-1', title: 'Busca e Filtros Reais (Backend)', release: 'R1', feat: 'f1', keywords: ['ilike', 'busca', 'filtro'] },
+    { id: 'R1-2', title: 'Endpoint Detalhe /proposicoes/{id}', release: 'R1', feat: 'f1', keywords: ['get /proposicoes/{id}', 'detalhe real'] },
+    { id: 'R1-3', title: 'Dossiê com Dados Reais', release: 'R1', feat: 'f2', keywords: ['tempo de tramitação', 'dados reais'] },
+    { id: 'R1-4', title: 'Autenticação JWT (Login)', release: 'R1', feat: 'f5', keywords: ['jwt', 'login', 'auth/login'] },
+    { id: 'R1-5', title: 'Cadastro de Usuários', release: 'R1', feat: 'f5', keywords: ['cadastro', 'usuarios/cadastro'] },
+    { id: 'R1-6', title: 'Seed de Dados Reais (Idempotente)', release: 'R1', feat: 'f6', keywords: ['seed', 'init_db', 'popular'] },
+    { id: 'R1-7', title: 'Correção SenadoAdapter (Movimentação)', release: 'R1', feat: 'f6', keywords: ['senadoadapter', 'ultima_movimentacao'] },
+    { id: 'R1-8', title: 'Infraestrutura de Testes (Vitest/Pytest)', release: 'R1', feat: 'f7', keywords: ['test', 'vitest', 'pytest'] },
+    { id: 'R2-1', title: 'Entidade e Timeline de Tramitação', release: 'R2', feat: 'f2', keywords: ['timeline', 'movimentacoes', 'tramitacao'] },
+    { id: 'R2-2', title: 'Breakdown de Tempo por Fase', release: 'R2', feat: 'f2', keywords: ['tempo por fase', 'comissão'] },
+    { id: 'R2-3', title: 'Dashboard Real (Endpoints Agregação)', release: 'R2', feat: 'f3', keywords: ['dashboard/por-', 'breakdown'] },
+    { id: 'R2-4', title: 'Filtros Globais no Dashboard', release: 'R2', feat: 'f3', keywords: ['filtros ativos', 'dashboard'] },
+    { id: 'R2-5', title: 'Logout com Invalidação (Server-side)', release: 'R2', feat: 'f5', keywords: ['logout', 'blacklist', 'redis'] },
+    { id: 'R2-6', title: 'Recuperação de Senha (E-mail)', release: 'R2', feat: 'f5', keywords: ['recuperar', 'senha', 'email'] },
+    { id: 'R2-7', title: 'Bloqueio de Conta (Segurança)', release: 'R2', feat: 'f5', keywords: ['bloqueio', 'tentativas'] },
+    { id: 'R2-8', title: 'Worker de Coleta Batch (Celery)', release: 'R2', feat: 'f6', keywords: ['worker', 'celery', 'batch', 'coleta'] },
+    { id: 'R2-9', title: 'Cache Redis para Métricas', release: 'R2', feat: 'f6', keywords: ['cache', 'redis'] },
+    { id: 'R2-10', title: 'Inteligência Preditiva (IA)', release: 'R2', feat: 'f4', keywords: ['preditiva', 'ia', 'previsao'] }
+  ]
+
+  const catalogWithProgress = STORY_MAP_CATALOG.map(item => {
+    const mappedIssues = issuesOnly.filter(i => {
+      const labels = i.labels.map(l => l.name.toLowerCase())
+      const title = i.title.toLowerCase()
+      const body = (i.body || '').toLowerCase()
+      const matchFeat = labels.includes(`feat:${item.feat}`)
+      const matchKeyword = item.keywords.some(k => title.includes(k) || body.includes(k))
+      const matchExplicitId = title.includes(`[${item.id}]`) || body.includes(`[${item.id}]`)
+      return matchExplicitId || (matchFeat && matchKeyword)
+    })
+    const closedIssues = mappedIssues.filter(i => i.state === 'closed')
+    const isDone = closedIssues.length > 0
+    const completionDate = isDone 
+      ? closedIssues.sort((a, b) => new Date(b.closed_at) - new Date(a.closed_at))[0].closed_at.slice(0, 10)
+      : null
+    return {
+      ...item,
+      status: isDone ? 'done' : mappedIssues.length > 0 ? 'in_progress' : 'planned',
+      completionDate,
+      mappedIssueIds: mappedIssues.map(i => i.number)
+    }
+  })
+
+  const burnupSeries = []
+  const start = new Date(DAY_ZERO)
+  const end = new Date(today > new Date(RELEASE_2_DATE) ? today : RELEASE_2_DATE)
+  const diffDays = (d1, d2) => Math.ceil((new Date(d2) - new Date(d1)) / (1000 * 60 * 60 * 24))
+  const totalDaysR1 = diffDays(DAY_ZERO, RELEASE_1_DATE)
+  const totalDaysR2 = diffDays(DAY_ZERO, RELEASE_2_DATE)
+  const scopeR1 = STORY_MAP_CATALOG.filter(i => i.release === 'R1').length
+  const scopeTotal = STORY_MAP_CATALOG.length
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().slice(0, 10)
+    if (d > today && dateStr > RELEASE_2_DATE) break
+    const daysPassed = diffDays(DAY_ZERO, dateStr)
+    const isFuture = d > today
+    const deliveredR1 = isFuture ? null : catalogWithProgress.filter(i => i.release === 'R1' && i.status === 'done' && i.completionDate <= dateStr).length
+    const deliveredTotal = isFuture ? null : catalogWithProgress.filter(i => i.status === 'done' && i.completionDate <= dateStr).length
+    const idealR1 = (dateStr <= RELEASE_1_DATE && daysPassed <= totalDaysR1)
+      ? Number(((scopeR1 / totalDaysR1) * daysPassed).toFixed(2)) 
+      : null
+    const idealTotal = (dateStr <= RELEASE_2_DATE && daysPassed <= totalDaysR2)
+      ? Number(((scopeTotal / totalDaysR2) * daysPassed).toFixed(2)) 
+      : null
+    burnupSeries.push({
+      date: dateStr,
+      label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      plannedScope: scopeTotal,
+      deliveredR1,
+      deliveredTotal,
+      idealR1,
+      idealTotal,
+      isFuture: d > today
     })
   }
 
+  const burnupMetadata = {
+    startDate: DAY_ZERO,
+    release1Date: RELEASE_1_DATE,
+    release2Date: RELEASE_2_DATE,
+    baselineScope: scopeTotal,
+    methodology: "Burnup baseado em catálogo fixo do Story Map. O progresso é contabilizado apenas quando issues mapeadas para entregáveis reais são fechadas."
+  }
+
+  // 4. Tasks and Features
   const tasks = issuesOnly.map(i => {
     const labels = i.labels.map(l => l.name)
     let status = 'todo'
@@ -174,12 +226,8 @@ async function main() {
 
     const taskFid = i.labels?.find(l => l.name && l.name.startsWith('feat:'))?.name.replace('feat:', '') || 'general'
     const realTaskStart = featureHistory[taskFid]?.first ? featureHistory[taskFid].first.toISOString().slice(0, 10) : i.created_at.slice(0, 10)
-    
-    // Auto-Credit: Se não houver assignee, tenta encontrar o dono da feature via commits
     let assigneeId = i.assignee?.login || 'unassigned'
-    if (assigneeId === 'unassigned' && taskFid !== 'general') {
-      assigneeId = getFeatureOwner(taskFid)
-    }
+    if (assigneeId === 'unassigned' && taskFid !== 'general') assigneeId = getFeatureOwner(taskFid)
 
     return {
       id: String(i.number),
@@ -195,27 +243,8 @@ async function main() {
       createdAt: (realTaskStart < i.created_at.slice(0, 10)) ? realTaskStart : i.created_at.slice(0, 10),
       url: i.html_url
     }
-    })
+  })
 
-  // 4. Milestones
-  let milestones = []
-  try {
-    const rawMilestones = await gh(`/repos/${REPO}/milestones?state=all&sort=due_on&direction=asc`)
-    milestones = (rawMilestones || []).map(m => ({
-      id: String(m.id),
-      title: m.title,
-      description: m.description || '',
-      state: m.state,
-      openIssues: m.open_issues,
-      closedIssues: m.closed_issues,
-      dueOn: m.due_on,
-    }))
-    console.log(`  milestones: ${milestones.length}`)
-  } catch (e) {
-    console.warn(`  milestones unavailable: ${e.message}`)
-  }
-
-  // 5. Feature progress calculation
   const featureNames = {
     'f1': 'Consulta de Proposições',
     'f2': 'Detalhamento da Proposição',
@@ -231,39 +260,21 @@ async function main() {
     const tasksTotal = featureTasks.length
     const tasksDone = featureTasks.filter(t => t.status === 'done').length
     const progress = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0
-    
-    return {
-      id,
-      name,
-      progress,
-      tasksTotal,
-      tasksDone,
-      status: progress === 100 ? 'done' : progress > 0 ? 'in_progress' : 'planned'
-    }
+    return { id, name, progress, tasksTotal, tasksDone, status: progress === 100 ? 'done' : progress > 0 ? 'in_progress' : 'planned' }
   })
 
-  // 6. Recent workflow runs
+  // 5. Contributors and Workflows (simpler)
   let recentWorkflows = []
   try {
     const runs = await gh(`/repos/${REPO}/actions/runs?per_page=10`)
-    recentWorkflows = (runs.workflow_runs || []).map(r => ({
-      name: r.name,
-      conclusion: r.conclusion,
-      status: r.status,
-      updatedAt: r.updated_at,
-    }))
+    recentWorkflows = (runs.workflow_runs || []).map(r => ({ name: r.name, conclusion: r.conclusion, status: r.status, updatedAt: r.updated_at }))
   } catch (e) {}
 
-  // 7. Contributors
   let contributors = []
   try {
     const stats = await gh(`/repos/${REPO}/contributors?per_page=20`)
     if (Array.isArray(stats)) {
-      contributors = stats.map(c => ({
-        login: c.login,
-        commits: c.contributions,
-        avatarUrl: c.avatar_url,
-      }))
+      contributors = stats.map(c => ({ login: c.login, commits: c.contributions, avatarUrl: c.avatar_url }))
     }
   } catch (e) {}
 
@@ -275,16 +286,31 @@ async function main() {
     issues,
     tasks,
     features,
-    milestones,
-    burndownData,
+    milestones: [],
+    burnup: {
+      metadata: burnupMetadata,
+      catalog: catalogWithProgress,
+      series: burnupSeries
+    },
+    metrics: {
+      scopeChange: 0,
+      throughput: Math.round((catalogWithProgress.filter(i => i.status === 'done').length / 15) * 10) / 10,
+      completionRate: Math.round((catalogWithProgress.filter(i => i.status === 'done').length / scopeTotal) * 100),
+      avgLeadTime: 0,
+    },
     recentWorkflows,
-    contributors: contributors.map(c => ({ login: c.login, commits: c.commits, avatarUrl: c.avatarUrl }))
+    contributors: contributors.map(c => ({ 
+      login: c.login, 
+      commits: c.commits, 
+      prsOpened: prStatsByAuthor[c.login]?.opened || 0,
+      prsMerged: prStatsByAuthor[c.login]?.merged || 0,
+      avatarUrl: c.avatarUrl 
+    }))
   }
 
   const outDir = join(__dirname, '..', 'public', 'data')
   mkdirSync(outDir, { recursive: true })
   writeFileSync(join(outDir, 'github-stats.json'), JSON.stringify(output, null, 2))
-
   console.log('\nDone → public/data/github-stats.json')
 }
 
