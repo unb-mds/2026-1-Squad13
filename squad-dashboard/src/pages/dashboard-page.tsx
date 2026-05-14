@@ -1,6 +1,6 @@
 import { CheckCircle2, Clock, Activity, TrendingUp, AlertTriangle } from 'lucide-react'
 import { KpiCard } from '@/widgets/kpi-card'
-import { BurndownChart } from '@/widgets/burndown-chart'
+import { ProjectBurnupChart } from '@/widgets/project-burnup-chart'
 import { CommitsChart } from '@/widgets/commits-chart'
 import { ProgressBar } from '@/shared/ui/progress-bar'
 import { Skeleton } from '@/shared/ui/skeleton'
@@ -140,8 +140,11 @@ export function DashboardPage() {
           )}
         </div>
 
-        {/* Lado Direito: Burndown */}
-        <BurndownChart data={gh?.burndownData} />
+        {/* Lado Direito: Burnup */}
+        <ProjectBurnupChart 
+          data={gh?.burnup?.series} 
+          metadata={gh?.burnup?.metadata}
+        />
       </div>
 
       {/* Gráfico de Commits */}
