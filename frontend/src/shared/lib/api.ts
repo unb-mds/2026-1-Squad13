@@ -38,28 +38,44 @@ const delay = (ms: number) => new Promise((res) => setTimeout(res, ms))
 
 // --- Auth ---
 export async function loginApi(email: string, senha: string): Promise<{ token: string; user: { id: string; nome: string; email: string; perfil: 'analista' } }> {
-  await delay(800)
-  if (email === 'demo@lextrack.gov.br' && senha === 'demo123') {
-    return {
-      token: 'fake-jwt-token-' + Date.now(),
-      user: { id: '1', nome: 'Ana Paula Legislativa', email, perfil: 'analista' },
-    }
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: senha }),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.detail || 'Credenciais inválidas. Verifique seu e-mail e senha.')
   }
-  if (email && senha.length >= 6) {
-    return {
-      token: 'fake-jwt-token-' + Date.now(),
-      user: { id: '2', nome: email.split('@')[0], email, perfil: 'analista' },
-    }
+
+  const data = await response.json()
+  
+  return {
+    token: data.access_token,
+    user: {
+      id: String(data.user.id),
+      nome: data.user.nome,
+      email: data.user.email,
+      perfil: data.user.perfil,
+    },
   }
-  throw new Error('Credenciais inválidas. Verifique seu e-mail e senha.')
 }
 
-export async function cadastroApi(nome: string, email: string, _senha: string): Promise<{ token: string; user: { id: string; nome: string; email: string; perfil: 'analista' } }> {
-  await delay(1000)
-  return {
-    token: 'fake-jwt-token-' + Date.now(),
-    user: { id: '3', nome, email, perfil: 'analista' },
+export async function cadastroApi(nome: string, email: string, senha: string): Promise<{ token: string; user: { id: string; nome: string; email: string; perfil: 'analista' } }> {
+  const response = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome, email, password: senha }),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.detail || 'Erro ao realizar cadastro.')
   }
+
+  // Após o cadastro, fazemos o login automaticamente para obter o token
+  return loginApi(email, senha)
 }
 
 export async function recuperarSenhaApi(_email: string): Promise<void> {
