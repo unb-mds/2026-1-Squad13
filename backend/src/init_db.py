@@ -1,3 +1,4 @@
+from domain.entities.proposicao import Proposicao  # noqa: F401
 from infrastructure.database import init_db
 
 def run():
