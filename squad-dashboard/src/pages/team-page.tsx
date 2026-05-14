@@ -20,6 +20,8 @@ export function TeamPage() {
       const tasksCompleted = memberTasks.filter(t => t.status === 'done').length
       const tasksPending = memberTasks.length - tasksCompleted
       const commits = contributor?.commits ?? 0
+      const prsOpened = contributor?.prsOpened ?? 0
+      const prsMerged = contributor?.prsMerged ?? 0
       
       // Basic productivity score: (commits * 1.5) + (tasks * 10) capped at 100
       const productivity = Math.min(100, (commits * 1.5) + (tasksCompleted * 10))
@@ -29,6 +31,8 @@ export function TeamPage() {
         commits,
         tasksCompleted,
         tasksPending,
+        prsOpened,
+        prsMerged,
         productivity: Math.round(productivity),
       }
     })

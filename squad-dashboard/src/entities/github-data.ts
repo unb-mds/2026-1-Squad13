@@ -18,6 +18,8 @@ export interface GithubWeeklyCommit {
 export interface GithubContributor {
   login: string
   commits: number
+  prsOpened: number
+  prsMerged: number
   avatarUrl: string
 }
 
@@ -64,11 +66,39 @@ export interface GithubData {
     createdAt: string
     updatedAt: string
   }[]
-  burndownData: {
-    day: string
-    remaining: number
-    ideal: number
-  }[]
+  burnup: {
+    metadata: {
+      startDate: string
+      release1Date: string
+      release2Date: string
+      baselineScope: number
+      methodology: string
+    }
+    catalog: {
+      id: string
+      title: string
+      release: string
+      status: 'planned' | 'in_progress' | 'done'
+      completionDate: string | null
+      mappedIssueIds: number[]
+    }[]
+    series: {
+      date: string
+      label: string
+      plannedScope: number
+      deliveredR1: number
+      deliveredTotal: number
+      idealR1: number
+      idealTotal: number
+      isFuture: boolean
+    }[]
+  }
+  metrics: {
+    scopeChange: number
+    throughput: number
+    completionRate: number
+    avgLeadTime: number
+  }
   recentWorkflows: GithubWorkflowRun[]
   contributors: GithubContributor[]
 }
