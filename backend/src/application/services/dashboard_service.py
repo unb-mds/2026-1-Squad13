@@ -99,7 +99,8 @@ class DashboardService:
 
     def obter_dados_status(self) -> List[Dict]:
         todas = self.repository.filtrar()
-        if not todas: return []
+        if not todas:
+            return []
         
         total = len(todas)
         contagem: Dict[str, int] = {}
