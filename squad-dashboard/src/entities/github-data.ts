@@ -18,6 +18,8 @@ export interface GithubWeeklyCommit {
 export interface GithubContributor {
   login: string
   commits: number
+  prsOpened: number
+  prsMerged: number
   avatarUrl: string
 }
 
@@ -65,10 +67,20 @@ export interface GithubData {
     updatedAt: string
   }[]
   burndownData: {
-    day: string
+    date: string
+    label: string
     remaining: number
     ideal: number
+    scope: number
+    addedItems: number
+    completedItems: number
   }[]
+  metrics: {
+    scopeChange: number
+    throughput: number
+    completionRate: number
+    avgLeadTime: number
+  }
   recentWorkflows: GithubWorkflowRun[]
   contributors: GithubContributor[]
 }
