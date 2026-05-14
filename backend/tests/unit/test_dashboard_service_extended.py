@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import Mock
-from datetime import date, timedelta
 from domain.entities.proposicao import Proposicao
 from application.services.dashboard_service import DashboardService
 

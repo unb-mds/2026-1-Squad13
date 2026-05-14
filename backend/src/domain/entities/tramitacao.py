@@ -1,6 +1,5 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
-from datetime import date
 
 class Tramitacao(SQLModel, table=True):
     """

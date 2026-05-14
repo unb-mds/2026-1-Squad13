@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from domain.entities.tramitacao import Tramitacao
