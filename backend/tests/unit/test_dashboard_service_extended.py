@@ -86,3 +86,47 @@ def test_obter_gargalos(mock_repo):
     assert gargalos[1]["orgao"] == "CFT"
     assert gargalos[1]["taxaAtraso"] == 0
     assert gargalos[1]["tempoMedioMeses"] == 2.0 # 60 / 30
+
+def test_obter_dados_comissao(mock_repo):
+    p1 = Proposicao(id="1", tipo="PL", numero="1", ano=2024, status="S", 
+                    data_apresentacao="D", data_ultima_movimentacao="D",
+                    orgao_atual="CCJ", tempo_total_dias=100)
+    p2 = Proposicao(id="2", tipo="PL", numero="2", ano=2024, status="S", 
+                    data_apresentacao="D", data_ultima_movimentacao="D",
+                    orgao_atual=None, tempo_total_dias=200) # Deve virar "Desconhecido"
+    
+    mock_repo.filtrar.return_value = [p1, p2]
+    service = DashboardService(mock_repo)
+    
+    dados = service.obter_dados_comissao()
+    
+    assert len(dados) == 2
+    # Ordenado por tempoMedio desc: Desconhecido (200) vem antes de CCJ (100)
+    assert dados[0]["comissao"] == "Desconhecido"
+    assert dados[1]["comissao"] == "CCJ"
+
+def test_obter_dados_status(mock_repo):
+    mock_repo.filtrar.return_value = []
+    service = DashboardService(mock_repo)
+    assert service.obter_dados_status() == []
+
+    p1 = Proposicao(id="1", tipo="PL", numero="1", ano=2024, status="Aprovada", 
+                    data_apresentacao="D", data_ultima_movimentacao="D",
+                    orgao_atual="CCJ", tempo_total_dias=100)
+    p2 = Proposicao(id="2", tipo="PL", numero="2", ano=2024, status="Aprovada", 
+                    data_apresentacao="D", data_ultima_movimentacao="D",
+                    orgao_atual="CCJ", tempo_total_dias=200)
+    p3 = Proposicao(id="3", tipo="PL", numero="3", ano=2024, status="Em tramitação", 
+                    data_apresentacao="D", data_ultima_movimentacao="D",
+                    orgao_atual="CCJ", tempo_total_dias=300)
+    
+    mock_repo.filtrar.return_value = [p1, p2, p3]
+    service = DashboardService(mock_repo)
+    
+    dados = service.obter_dados_status()
+    
+    assert len(dados) == 2
+    # Aprovada: 2/3 = 67%
+    aprovada = next(d for d in dados if d["status"] == "Aprovada")
+    assert aprovada["quantidade"] == 2
+    assert aprovada["percentual"] == 67
