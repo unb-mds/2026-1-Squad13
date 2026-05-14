@@ -1,10 +1,19 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from presentation.controllers import proposicao_controller, dashboard_controller, auth_controller
 from infrastructure.database import get_session
 from sqlmodel import Session, text
 
-app = FastAPI(title="Monitor Legislativo API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: executado quando a aplicação inicia
+    print("🚀 Backend Monitor Legislativo iniciado com sucesso!")
+    yield
+    # Shutdown: executado quando a aplicação encerra
+    print("👋 Backend Monitor Legislativo encerrado.")
+
+app = FastAPI(title="Monitor Legislativo API", lifespan=lifespan)
 
 # Configuração de CORS
 origins = [
