@@ -1,4 +1,3 @@
-import pytest
 from domain.entities.tramitacao import Tramitacao
 
 def test_tramitacao_data_formatada():

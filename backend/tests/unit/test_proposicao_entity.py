@@ -1,5 +1,3 @@
-import pytest
-from datetime import date
 from domain.entities.proposicao import Proposicao
 
 def test_atualizar_metricas_sem_data_apresentacao():
