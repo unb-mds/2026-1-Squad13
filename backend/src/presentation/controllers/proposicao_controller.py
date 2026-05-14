@@ -71,24 +71,6 @@ def _to_response(p) -> dict:
 
 # --- Controller ---
 
-@router.get("/proposicoes/{id}", response_model=ProposicaoResponse)
-def obter_detalhe_proposicao(
-    id: str,
-    session: Session = Depends(get_session)
-):
-    repository = SQLProposicaoRepository(session)
-    camara_adapter = CamaraAdapter()
-    senado_adapter = SenadoAdapter()
-    service = DetalheProposicaoService(repository, camara_adapter, senado_adapter)
-    
-    try:
-        proposicao = service.executar(id)
-        return _to_response(proposicao)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
-
 @router.get("/proposicoes", response_model=ProposicoesListResponse)
 def buscar_proposicoes(
     busca: Optional[str] = Query(default=None),
@@ -103,7 +85,7 @@ def buscar_proposicoes(
 ):
     repository = SQLProposicaoRepository(session)
     service = BuscarProposicoesService(repository)
-    
+
     filtros = {
         "busca": busca,
         "tipo": tipo,
@@ -112,14 +94,14 @@ def buscar_proposicoes(
         "data_inicio": data_inicio,
         "data_fim": data_fim
     }
-    
+
     try:
         resultado = service.executar(
             filtros=filtros,
             pagina=pagina,
             itens_por_pagina=itens_por_pagina
         )
-        
+
         return {
             "items": [_to_response(p) for p in resultado["items"]],
             "total": resultado["total"],
@@ -128,3 +110,22 @@ def buscar_proposicoes(
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/proposicoes/{id}", response_model=ProposicaoResponse)
+def obter_detalhe_proposicao(
+    id: str,
+    session: Session = Depends(get_session)
+):
+    repository = SQLProposicaoRepository(session)
+    camara_adapter = CamaraAdapter()
+    senado_adapter = SenadoAdapter()
+    service = DetalheProposicaoService(repository, camara_adapter, senado_adapter)
+
+    try:
+        proposicao = service.executar(id)
+        return _to_response(proposicao)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
