@@ -91,7 +91,7 @@ export interface User {
   id: string
   nome: string
   email: string
-  perfil: 'analista' | 'gestor' | 'publico'
+  role: 'analista' | 'gestor' | 'publico'
 }
 
 export interface AuthState {

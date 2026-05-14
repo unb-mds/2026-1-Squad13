@@ -37,7 +37,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms))
 
 // --- Auth ---
-export async function loginApi(email: string, senha: string): Promise<{ token: string; user: { id: string; nome: string; email: string; perfil: 'analista' } }> {
+export async function loginApi(email: string, senha: string): Promise<{ token: string; user: { id: string; nome: string; email: string; role: 'analista' } }> {
   const response = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -57,12 +57,12 @@ export async function loginApi(email: string, senha: string): Promise<{ token: s
       id: String(data.user.id),
       nome: data.user.nome,
       email: data.user.email,
-      perfil: data.user.perfil,
+      role: data.user.role,
     },
   }
 }
 
-export async function cadastroApi(nome: string, email: string, senha: string): Promise<{ token: string; user: { id: string; nome: string; email: string; perfil: 'analista' } }> {
+export async function cadastroApi(nome: string, email: string, senha: string): Promise<{ token: string; user: { id: string; nome: string; email: string; role: 'analista' } }> {
   const response = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

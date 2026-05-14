@@ -65,7 +65,7 @@ export function AppLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-medium truncate">{user?.nome}</p>
-              <p className="text-ink-400 text-xs truncate capitalize">{user?.perfil}</p>
+              <p className="text-ink-400 text-xs truncate capitalize">{user?.role}</p>
             </div>
             <button
               onClick={handleLogout}
