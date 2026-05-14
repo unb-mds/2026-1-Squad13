@@ -1,4 +1,5 @@
 from typing import List, Optional
+from sqlalchemy import func
 from sqlmodel import Session, select
 from domain.entities.proposicao import Proposicao
 
@@ -30,10 +31,12 @@ class SQLProposicaoRepository:
         busca: Optional[str] = None,
         orgao_origem: Optional[str] = None,
         data_inicio: Optional[str] = None,
-        data_fim: Optional[str] = None
+        data_fim: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> List[Proposicao]:
         statement = select(Proposicao)
-        
+
         if tipo:
             statement = statement.where(Proposicao.tipo == tipo)
         if numero:
@@ -52,14 +55,64 @@ class SQLProposicaoRepository:
             statement = statement.where(Proposicao.data_apresentacao >= data_inicio)
         if data_fim:
             statement = statement.where(Proposicao.data_apresentacao <= data_fim)
-            
+
         if busca:
             termo = f"%{busca}%"
             statement = statement.where(
-                (Proposicao.ementa.like(termo)) |
-                (Proposicao.numero.like(termo)) |
-                (Proposicao.autor.like(termo))
+                (Proposicao.ementa.ilike(termo)) |
+                (Proposicao.numero.ilike(termo)) |
+                (Proposicao.autor.ilike(termo))
             )
-        
-        results = self.session.exec(statement)
-        return list(results.all())
+
+        statement = statement.order_by(Proposicao.id)
+
+        if offset is not None:
+            statement = statement.offset(offset)
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        return list(self.session.exec(statement).all())
+
+    def contar(
+        self,
+        tipo: Optional[str] = None,
+        numero: Optional[str] = None,
+        ano: Optional[int] = None,
+        autor: Optional[str] = None,
+        uf_autor: Optional[str] = None,
+        status: Optional[str] = None,
+        busca: Optional[str] = None,
+        orgao_origem: Optional[str] = None,
+        data_inicio: Optional[str] = None,
+        data_fim: Optional[str] = None,
+    ) -> int:
+        statement = select(func.count()).select_from(Proposicao)
+
+        if tipo:
+            statement = statement.where(Proposicao.tipo == tipo)
+        if numero:
+            statement = statement.where(Proposicao.numero == str(numero))
+        if ano:
+            statement = statement.where(Proposicao.ano == ano)
+        if autor:
+            statement = statement.where(Proposicao.autor.contains(autor))
+        if uf_autor:
+            statement = statement.where(Proposicao.uf_autor == uf_autor)
+        if status:
+            statement = statement.where(Proposicao.status == status)
+        if orgao_origem:
+            statement = statement.where(Proposicao.orgao_origem == orgao_origem)
+        if data_inicio:
+            statement = statement.where(Proposicao.data_apresentacao >= data_inicio)
+        if data_fim:
+            statement = statement.where(Proposicao.data_apresentacao <= data_fim)
+
+        if busca:
+            termo = f"%{busca}%"
+            statement = statement.where(
+                (Proposicao.ementa.ilike(termo)) |
+                (Proposicao.numero.ilike(termo)) |
+                (Proposicao.autor.ilike(termo))
+            )
+
+        return self.session.exec(statement).one()
