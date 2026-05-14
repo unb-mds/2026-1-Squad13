@@ -6,6 +6,10 @@ from sqlmodel import Session, text
 
 app = FastAPI(title="Monitor Legislativo API")
 
+@app.on_event("startup")
+def startup_event():
+    print("🚀 Backend Monitor Legislativo iniciado com sucesso!")
+
 # Configuração de CORS
 origins = [
     "http://localhost:5173",

@@ -45,9 +45,23 @@ sleep 5
 
 # 3. Subir as aplicações
 echo -e "${YELLOW}⚙️  Subindo Backend e Frontend...${NC}"
-docker compose up -d backend frontend
+docker compose up -d --build backend frontend
 
-# 4. Verificar status
+# 4. Verificar se o backend subiu
+echo -e "${BLUE}⏳ Verificando saúde do backend...${NC}"
+sleep 5
+if ! docker ps | grep -q monitor_backend; then
+    echo -e "${RED}❌ Erro: O container do backend não está rodando.${NC}"
+    echo -e "${YELLOW}Logs do erro:${NC}"
+    docker logs monitor_backend
+    exit 1
+fi
+
+# 5. Inicializar o Banco de Dados (Criar tabelas)
+echo -e "${YELLOW}🗄️  Inicializando tabelas do banco de dados...${NC}"
+docker compose exec -T backend uv run python src/init_db.py
+
+# 6. Verificar status
 echo -e "\n${BLUE}📊 Status dos Containers:${NC}"
 docker compose ps
 
