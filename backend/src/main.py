@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from presentation.controllers import proposicao_controller, dashboard_controller
+from presentation.controllers import proposicao_controller, dashboard_controller, auth_controller
 from infrastructure.database import get_session
 from sqlmodel import Session, text
 
@@ -35,5 +35,6 @@ def health(session: Session = Depends(get_session)):
         return {"status": "error", "database": "disconnected"}
 
 # Incluindo as rotas da camada de apresentação
+app.include_router(auth_controller.router)
 app.include_router(proposicao_controller.router)
 app.include_router(dashboard_controller.router)
