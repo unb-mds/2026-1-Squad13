@@ -9,6 +9,33 @@ class DashboardService:
     def __init__(self, repository: SQLProposicaoRepository):
         self.repository = repository
 
+    def _agrupar_status(self, status_raw: str) -> str:
+        status = status_raw.lower()
+        
+        # 1. Aprovadas / Concluídas positivamente
+        if any(term in status for term in [
+            "aprovad", "sancionad", "norma jurídica", "promulgad", 
+            "transformad", "enviado à sanção", "ofício ao senado - sancionado"
+        ]):
+            return "Aprovada/Sancionada"
+            
+        # 2. Rejeitadas / Concluídas negativamente / Arquivadas
+        if any(term in status for term in [
+            "rejeitad", "arquivad", "retirad", "prejudicad", 
+            "indiferid", "devolvida", "negado", "materia despachada"
+        ]):
+            return "Rejeitada/Arquivada"
+            
+        # 3. Em tramitação / Ativas
+        if any(term in status for term in [
+            "tramitação", "análise", "votação", "pauta", "apresentação", 
+            "mesa", "relator", "parecer", "aguardando", "comissão", 
+            "ofício", "recebimento", "leitura", "despacho", "relatório"
+        ]) or status == "sem status":
+            return "Em tramitação"
+            
+        return "Outros"
+
     def obter_metricas(self) -> Dict:
         todas = self.repository.filtrar()
         
@@ -25,9 +52,9 @@ class DashboardService:
             }
 
         total = len(todas)
-        aprovadas = [p for p in todas if p.status in ["Aprovada", "Sancionada"]]
-        em_tramitacao = [p for p in todas if p.status in ["Em tramitação", "Em análise", "Aguardando votação"]]
-        rejeitadas = [p for p in todas if p.status in ["Rejeitada", "Arquivada"]]
+        aprovadas = [p for p in todas if self._agrupar_status(p.status) == "Aprovada/Sancionada"]
+        em_tramitacao = [p for p in todas if self._agrupar_status(p.status) == "Em tramitação"]
+        rejeitadas = [p for p in todas if self._agrupar_status(p.status) == "Rejeitada/Arquivada"]
         com_atraso = [p for p in todas if p.atraso_critico]
         
         tempos = [p.tempo_total_dias for p in todas if p.tempo_total_dias is not None]
@@ -105,9 +132,10 @@ class DashboardService:
         total = len(todas)
         contagem: Dict[str, int] = {}
         for p in todas:
-            contagem[p.status] = contagem.get(p.status, 0) + 1
+            status_agrupado = self._agrupar_status(p.status)
+            contagem[status_agrupado] = contagem.get(status_agrupado, 0) + 1
             
-        return [
+        resultado = [
             {
                 "status": status,
                 "quantidade": qtd,
@@ -115,6 +143,7 @@ class DashboardService:
             }
             for status, qtd in contagem.items()
         ]
+        return sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
 
     def obter_gargalos(self) -> List[Dict]:
         todas = self.repository.filtrar()

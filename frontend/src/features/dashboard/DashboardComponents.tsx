@@ -72,6 +72,15 @@ export function DashboardMetricas() {
   )
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  'Aprovada/Sancionada': '#34d399', // Emerald 400
+  'Em tramitação': '#c2ff3d',      // Volt 400
+  'Rejeitada/Arquivada': '#fb7185', // Rose 400
+  'Outros': '#8080b0',              // Ink 400
+}
+
+const DEFAULT_COLORS = ['#6366f1', '#f59e0b', '#22d3ee', '#a78bfa']
+
 export function DashboardGraficos() {
   const [dadosTipo, setDadosTipo] = useState<DadosGraficoTipo[]>([])
   const [dadosComissao, setDadosComissao] = useState<DadosGraficoComissao[]>([])
@@ -105,13 +114,13 @@ export function DashboardGraficos() {
           <p className="text-xs text-ink-400 mt-0.5">Em dias de tramitação</p>
         </CardHeader>
         <CardBody>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={dadosTipo} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2e2e52" />
-              <XAxis dataKey="tipo" tick={{ fill: '#8080b0', fontSize: 12 }} />
-              <YAxis tick={{ fill: '#8080b0', fontSize: 11 }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="tempoMedio" fill="#c2ff3d" radius={[4, 4, 0, 0]} />
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={dadosTipo} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#2e2e52" vertical={false} />
+              <XAxis dataKey="tipo" tick={{ fill: '#8080b0', fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#8080b0', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#ffffff05' }} />
+              <Bar dataKey="tempoMedio" fill="#c2ff3d" radius={[4, 4, 0, 0]} barSize={32} />
             </BarChart>
           </ResponsiveContainer>
         </CardBody>
@@ -121,16 +130,16 @@ export function DashboardGraficos() {
       <Card>
         <CardHeader>
           <p className="text-sm font-medium text-ink-200">Tempo médio por comissão</p>
-          <p className="text-xs text-ink-400 mt-0.5">Dias de análise por órgão</p>
+          <p className="text-xs text-ink-400 mt-0.5">Dias de análise por órgão (Top 10)</p>
         </CardHeader>
         <CardBody>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={dadosComissao} layout="vertical" margin={{ top: 0, right: 0, left: 20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2e2e52" />
-              <XAxis type="number" tick={{ fill: '#8080b0', fontSize: 11 }} />
-              <YAxis dataKey="comissao" type="category" tick={{ fill: '#8080b0', fontSize: 11 }} width={50} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="tempoMedio" fill="#6366f1" radius={[0, 4, 4, 0]} />
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={dadosComissao} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#2e2e52" horizontal={false} />
+              <XAxis type="number" tick={{ fill: '#8080b0', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis dataKey="comissao" type="category" tick={{ fill: '#8080b0', fontSize: 11 }} width={70} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#ffffff05' }} />
+              <Bar dataKey="tempoMedio" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={14} />
             </BarChart>
           </ResponsiveContainer>
         </CardBody>
@@ -143,15 +152,38 @@ export function DashboardGraficos() {
           <p className="text-xs text-ink-400 mt-0.5">Proporção atual do acervo</p>
         </CardHeader>
         <CardBody>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={240}>
             <PieChart>
-              <Pie data={dadosStatus} dataKey="quantidade" nameKey="status" cx="50%" cy="50%" outerRadius={70} innerRadius={35}>
-                {dadosStatus.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              <Pie
+                data={dadosStatus}
+                dataKey="quantidade"
+                nameKey="status"
+                cx="50%"
+                cy="45%"
+                outerRadius={80}
+                innerRadius={55}
+                paddingAngle={4}
+                stroke="none"
+              >
+                {dadosStatus.map((entry, i) => (
+                  <Cell 
+                    key={i} 
+                    fill={STATUS_COLORS[entry.status] || DEFAULT_COLORS[i % DEFAULT_COLORS.length]} 
+                  />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number, name: string) => [`${v} proposições`, name]} contentStyle={{ background: '#1e1e38', border: '1px solid #3d3d6b', borderRadius: 8 }} />
-              <Legend formatter={(v) => <span style={{ color: '#8080b0', fontSize: 11 }}>{v}</span>} />
+              <Tooltip 
+                formatter={(v: number) => [`${v} proposições`, 'Quantidade']} 
+                contentStyle={{ background: '#1e1e38', border: '1px solid #3d3d6b', borderRadius: 8, fontSize: 12 }}
+                itemStyle={{ color: '#fff' }}
+              />
+              <Legend 
+                verticalAlign="bottom"
+                height={36}
+                formatter={(v) => <span className="text-[11px] text-ink-300 ml-1">{v}</span>} 
+                iconType="circle"
+                iconSize={8}
+              />
             </PieChart>
           </ResponsiveContainer>
         </CardBody>

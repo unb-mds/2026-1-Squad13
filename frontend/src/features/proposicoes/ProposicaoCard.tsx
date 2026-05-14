@@ -11,10 +11,11 @@ interface ProposicaoCardProps {
 
 export function ProposicaoCard({ proposicao }: ProposicaoCardProps) {
   const navigate = useNavigate()
+  const codigoSlug = proposicao.codigoNormalizado || `${proposicao.tipo}-${proposicao.numero}-${proposicao.ano}`
 
   return (
     <div
-      onClick={() => navigate(`/proposicoes/${proposicao.id}`)}
+      onClick={() => navigate(`/proposicoes/${codigoSlug}`)}
       className={`group relative bg-ink-800 border rounded-xl p-4 cursor-pointer transition-all duration-200 hover:border-volt-400/30 hover:bg-ink-700/50 hover:shadow-lg hover:shadow-volt-400/5 ${
         proposicao.atrasoCritico ? 'border-rose-500/40 shadow-rose-500/5' : 'border-ink-700/50'
       }`}
