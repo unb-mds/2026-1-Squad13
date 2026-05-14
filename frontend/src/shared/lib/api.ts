@@ -83,18 +83,10 @@ export async function listarProposicoes(
   params.append('pagina', String(pagina))
   params.append('itens_por_pagina', String(itensPorPagina))
 
-  // Se nenhum filtro foi preenchido, nem tenta chamar a API (evita erro 400 do Backend)
-  const temFiltro = Object.values(filtros).some((v) => v && String(v).trim() !== '')
-  if (!temFiltro) {
-    const items = paginar(PROPOSICOES_MOCK, pagina, itensPorPagina)
-    return { items, total: PROPOSICOES_MOCK.length }
-  }
-
   try {
     const response = await fetch(`${API_BASE}/proposicoes?${params.toString()}`)
-    
+
     if (!response.ok) {
-      // Se a API falhar, podemos cair para o mock (útil para desenvolvimento)
       console.warn('API falhou, usando dados mockados.')
       const filtradas = filtrarMocks(PROPOSICOES_MOCK, filtros)
       const items = paginar(filtradas, pagina, itensPorPagina)
@@ -102,8 +94,6 @@ export async function listarProposicoes(
     }
 
     const data = await response.json()
-    
-    // O backend já retorna no formato camelCase adequado pelo ProposicaoResponse
     return { items: data.items, total: data.total }
   } catch (error) {
     console.warn('Erro ao conectar na API, usando dados mockados:', error)
@@ -114,8 +104,21 @@ export async function listarProposicoes(
 }
 
 export async function obterProposicao(id: string): Promise<Proposicao | null> {
-  await delay(400)
-  return PROPOSICOES_MOCK.find((p) => p.id === id) ?? null
+  try {
+    const response = await fetch(`${API_BASE}/proposicoes/${id}`)
+
+    if (response.status === 404) return null
+
+    if (!response.ok) {
+      console.warn(`API falhou para /proposicoes/${id}, usando dados mockados.`)
+      return PROPOSICOES_MOCK.find((p) => p.id === id) ?? null
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.warn('Erro ao conectar na API, usando dados mockados:', error)
+    return PROPOSICOES_MOCK.find((p) => p.id === id) ?? null
+  }
 }
 
 export async function obterMovimentacoes(proposicaoId: string): Promise<MovimentacaoTramitacao[]> {
