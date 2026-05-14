@@ -1,18 +1,14 @@
 {
-  "generatedAt": "2026-05-13T14:31:28.524Z",
+  "generatedAt": "2026-05-14T00:54:24.141Z",
   "totalCommits": 100,
   "commitsByDay": [
     {
-      "date": "05 de mai",
-      "commits": 2
-    },
-    {
       "date": "06 de mai",
-      "commits": 4
+      "commits": 0
     },
     {
       "date": "07 de mai",
-      "commits": 3
+      "commits": 0
     },
     {
       "date": "08 de mai",
@@ -24,7 +20,7 @@
     },
     {
       "date": "10 de mai",
-      "commits": 41
+      "commits": 16
     },
     {
       "date": "11 de mai",
@@ -32,19 +28,103 @@
     },
     {
       "date": "12 de mai",
-      "commits": 21
+      "commits": 55
+    },
+    {
+      "date": "13 de mai",
+      "commits": 0
     }
   ],
   "pullRequests": {
-    "open": 0,
-    "merged": 28,
+    "open": 1,
+    "merged": 47,
     "closed": 1
   },
   "issues": {
-    "open": 7,
-    "closed": 23
+    "open": 9,
+    "closed": 26
   },
   "tasks": [
+    {
+      "id": "83",
+      "title": "feat(auth): implementar middleware de proteção de rotas via Depends",
+      "description": "## Objetivo\nGarantir que apenas usuários autenticados acessem rotas sensíveis.\n\n## Critérios de Aceite\n- [ ] Middleware 'get_current_user' implementado.\n- [ ] Rota de Relatórios protegida.\n- [ ] Erro 401 Unauthorized retornado corretamente.",
+      "status": "todo",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-14",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/83"
+    },
+    {
+      "id": "82",
+      "title": "feat(auth): criar endpoints /auth/login e /auth/register",
+      "description": "## Objetivo\nExpor a funcionalidade de autenticação via API.\n\n## Critérios de Aceite\n- [ ] Endpoint POST /auth/register funcional.\n- [ ] Endpoint POST /auth/login retornando JWT.\n- [ ] Integração com o frontend (remoção de mocks no api.ts).",
+      "status": "todo",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-14",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/82"
+    },
+    {
+      "id": "81",
+      "title": "feat(auth): implementar serviço de hashing (Bcrypt) e geração de tokens JWT",
+      "description": "## Objetivo\nImplementar a lógica de segurança para proteção de senhas e autenticação stateless.\n\n## Critérios de Aceite\n- [ ] Senhas armazenadas apenas como hash (bcrypt).\n- [ ] Serviço de geração e validação de tokens JWT funcional.\n- [ ] Testes unitários para hashing e tokens.",
+      "status": "todo",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-14",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/81"
+    },
+    {
+      "id": "80",
+      "title": "feat(auth): implementar entidade Usuario e migrations de banco de dados",
+      "description": "## Objetivo\nCriar a fundação de dados para o sistema de autenticação.\n\n## Critérios de Aceite\n- [ ] Tabela 'usuario' criada no banco via SQLModel.\n- [ ] Campos: id, email (unique), senha_hash, role.\n- [ ] Script de migração validado.",
+      "status": "todo",
+      "priority": "high",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 0,
+      "createdAt": "2026-05-14",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/80"
+    },
+    {
+      "id": "78",
+      "title": "chore: Isolar chamadas externas nos testes do endpoint de detalhe de proposição",
+      "description": "## Contexto\n\nO endpoint `GET /proposicoes/{id}` pode consultar APIs externas da Câmara e do Senado quando a proposição não está disponível no banco local.\n\nEsse comportamento faz parte da regra atual do projeto e deve ser mantido.\n\nPorém, os testes automatizados não devem depender de chamadas reais para essas APIs, pois isso torna a suíte instável, lenta e dependente de rede.\n\n## Objetivo\n\nManter a integração com APIs externas no código da aplicação, mas isolar essas chamadas nos testes usando mocks/fakes.\n\n## Critérios de aceitação\n\n- O comportamento do endpoint deve continuar permitindo consulta às APIs externas quando necessário.\n- Os testes automatizados não devem realizar chamadas reais para Câmara/Senado.\n- As dependências externas devem ser mockadas/fakeadas nos testes.\n- A suíte backend deve rodar localmente e no CI sem depender de internet.\n- Deve haver cobertura para:\n  - proposição encontrada no banco;\n  - proposição não encontrada;\n  - fallback para adapters externos usando mocks.",
+      "status": "done",
+      "priority": "medium",
+      "labels": [
+        "chore"
+      ],
+      "assigneeId": "unassigned",
+      "featureId": "general",
+      "dueDate": "",
+      "progress": 100,
+      "createdAt": "2026-05-13",
+      "url": "https://github.com/unb-mds/2026-1-Squad13/issues/78"
+    },
     {
       "id": "58",
       "title": "feat: gerar gráfico de Burndown real via série temporal de issues",
@@ -58,7 +138,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/58"
     },
     {
@@ -74,7 +154,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/57"
     },
     {
@@ -90,7 +170,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/56"
     },
     {
@@ -106,7 +186,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/55"
     },
     {
@@ -122,7 +202,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/54"
     },
     {
@@ -138,7 +218,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/53"
     },
     {
@@ -154,7 +234,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/52"
     },
     {
@@ -170,7 +250,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/50"
     },
     {
@@ -186,7 +266,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/49"
     },
     {
@@ -202,7 +282,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/48"
     },
     {
@@ -218,7 +298,7 @@
       "featureId": "f3",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-12",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/47"
     },
     {
@@ -234,7 +314,7 @@
       "featureId": "f1",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-13",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/46"
     },
     {
@@ -250,7 +330,7 @@
       "featureId": "f6",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-06",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/45"
     },
     {
@@ -289,7 +369,7 @@
       "id": "42",
       "title": "perf: implementar paginação SQL (LIMIT/OFFSET) em /proposicoes para otimização de memória",
       "description": "## 🎯 Objetivo / Contexto\nEvitar o carregamento de todos os registros em memória. Atualmente a paginação é feita em memória após o fetch de todos os dados.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Query SQL utiliza `LIMIT` e `OFFSET`.\n- [ ] DTO de resposta inclui metadados de paginação (total de itens, páginas).",
-      "status": "in_progress",
+      "status": "done",
       "priority": "medium",
       "labels": [
         "chore"
@@ -297,15 +377,15 @@
       "assigneeId": "kaiky-yun",
       "featureId": "f6",
       "dueDate": "",
-      "progress": 0,
-      "createdAt": "2026-05-06",
+      "progress": 100,
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/42"
     },
     {
       "id": "41",
       "title": "refactor: normalizar texto e usar ILIKE em SQLProposicaoRepository para busca case-insensitive",
       "description": "## 🎯 Objetivo / Contexto\nGarantir que a busca textual no banco de dados PostgreSQL seja resiliente a variações de maiúsculas/minúsculas e acentuação, melhorando a experiência de busca.\n\n## ✅ Critérios de Aceitação (DoD)\n- [ ] Query SQL utiliza `ILIKE` para busca textual.\n- [ ] Normalização de strings implementada no repositório.",
-      "status": "in_progress",
+      "status": "done",
       "priority": "medium",
       "labels": [
         "chore"
@@ -313,8 +393,8 @@
       "assigneeId": "kaiky-yun",
       "featureId": "f6",
       "dueDate": "",
-      "progress": 0,
-      "createdAt": "2026-05-06",
+      "progress": 100,
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/41"
     },
     {
@@ -330,7 +410,7 @@
       "featureId": "f1",
       "dueDate": "",
       "progress": 0,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-13",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/40"
     },
     {
@@ -346,7 +426,7 @@
       "featureId": "f1",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-13",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/39"
     },
     {
@@ -362,7 +442,7 @@
       "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-06",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/38"
     },
     {
@@ -374,11 +454,11 @@
       "labels": [
         "chore"
       ],
-      "assigneeId": "caioflmjr",
+      "assigneeId": "kaiky-yun",
       "featureId": "f1",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-13",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/37"
     },
     {
@@ -394,7 +474,7 @@
       "featureId": "f1",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-13",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/36"
     },
     {
@@ -410,7 +490,7 @@
       "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-06",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/35"
     },
     {
@@ -426,7 +506,7 @@
       "featureId": "f1",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-11",
+      "createdAt": "2026-05-13",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/34"
     },
     {
@@ -442,7 +522,7 @@
       "featureId": "f7",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-07",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/33"
     },
     {
@@ -458,7 +538,7 @@
       "featureId": "f7",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-07",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/32"
     },
     {
@@ -474,7 +554,7 @@
       "featureId": "f7",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-07",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/31"
     },
     {
@@ -490,7 +570,7 @@
       "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-06",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/30"
     },
     {
@@ -506,7 +586,7 @@
       "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-06",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/29"
     },
     {
@@ -522,7 +602,7 @@
       "featureId": "f6",
       "dueDate": "",
       "progress": 100,
-      "createdAt": "2026-05-06",
+      "createdAt": "2026-05-11",
       "url": "https://github.com/unb-mds/2026-1-Squad13/issues/28"
     }
   ],
@@ -570,9 +650,9 @@
     {
       "id": "f6",
       "name": "Infraestrutura & Arquitetura",
-      "progress": 63,
+      "progress": 88,
       "tasksTotal": 8,
-      "tasksDone": 5,
+      "tasksDone": 7,
       "status": "in_progress"
     },
     {
@@ -587,192 +667,245 @@
   "milestones": [],
   "burndownData": [
     {
-      "day": "23 de abr.",
+      "date": "2026-04-29",
+      "label": "28 de abr.",
       "remaining": 0,
-      "ideal": 30
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "24 de abr.",
+      "date": "2026-04-30",
+      "label": "29 de abr.",
       "remaining": 0,
-      "ideal": 29
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "25 de abr.",
+      "date": "2026-05-01",
+      "label": "30 de abr.",
       "remaining": 0,
-      "ideal": 27
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "26 de abr.",
+      "date": "2026-05-02",
+      "label": "01 de mai.",
       "remaining": 0,
-      "ideal": 26
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "27 de abr.",
+      "date": "2026-05-03",
+      "label": "02 de mai.",
       "remaining": 0,
-      "ideal": 24
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "28 de abr.",
+      "date": "2026-05-04",
+      "label": "03 de mai.",
       "remaining": 0,
-      "ideal": 23
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "29 de abr.",
+      "date": "2026-05-05",
+      "label": "04 de mai.",
       "remaining": 0,
-      "ideal": 21
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "30 de abr.",
+      "date": "2026-05-06",
+      "label": "05 de mai.",
       "remaining": 0,
-      "ideal": 20
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "01 de mai.",
+      "date": "2026-05-07",
+      "label": "06 de mai.",
       "remaining": 0,
-      "ideal": 18
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "02 de mai.",
+      "date": "2026-05-08",
+      "label": "07 de mai.",
       "remaining": 0,
-      "ideal": 17
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "03 de mai.",
+      "date": "2026-05-09",
+      "label": "08 de mai.",
       "remaining": 0,
-      "ideal": 15
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "04 de mai.",
+      "date": "2026-05-10",
+      "label": "09 de mai.",
       "remaining": 0,
-      "ideal": 14
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "05 de mai.",
+      "date": "2026-05-11",
+      "label": "10 de mai.",
       "remaining": 0,
-      "ideal": 12
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "06 de mai.",
-      "remaining": 8,
-      "ideal": 11
+      "date": "2026-05-12",
+      "label": "11 de mai.",
+      "remaining": 0,
+      "ideal": 0,
+      "scope": 0,
+      "addedItems": 0,
+      "completedItems": 0
     },
     {
-      "day": "07 de mai.",
-      "remaining": 11,
-      "ideal": 9
-    },
-    {
-      "day": "08 de mai.",
-      "remaining": 11,
-      "ideal": 8
-    },
-    {
-      "day": "09 de mai.",
-      "remaining": 11,
-      "ideal": 6
-    },
-    {
-      "day": "10 de mai.",
-      "remaining": 11,
-      "ideal": 5
-    },
-    {
-      "day": "11 de mai.",
-      "remaining": 29,
-      "ideal": 3
-    },
-    {
-      "day": "12 de mai.",
-      "remaining": 29,
-      "ideal": 2
-    },
-    {
-      "day": "13 de mai.",
+      "date": "2026-05-13",
+      "label": "12 de mai.",
       "remaining": 7,
-      "ideal": 0
+      "ideal": 0,
+      "scope": 31,
+      "addedItems": 31,
+      "completedItems": 24
+    },
+    {
+      "date": "2026-05-14",
+      "label": "13 de mai.",
+      "remaining": 9,
+      "ideal": 0,
+      "scope": 35,
+      "addedItems": 4,
+      "completedItems": 2
     }
   ],
+  "metrics": {
+    "scopeChange": 0,
+    "throughput": 1.7,
+    "completionRate": 74,
+    "avgLeadTime": 0
+  },
   "recentWorkflows": [
     {
-      "name": "Deploy Squad Dashboard",
+      "name": "Squad Dashboard CI",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-13T14:17:57Z"
+      "updatedAt": "2026-05-14T00:42:44Z"
     },
     {
-      "name": "Update Squad Dashboard Data",
+      "name": "Backend CI",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-13T14:17:16Z"
+      "updatedAt": "2026-05-14T00:41:27Z"
     },
     {
       "name": "Squad Dashboard CI",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-13T12:46:58Z"
+      "updatedAt": "2026-05-14T00:22:31Z"
     },
     {
-      "name": "Deploy Squad Dashboard",
+      "name": "Backend CI",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-13T08:38:49Z"
-    },
-    {
-      "name": "Update Squad Dashboard Data",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-13T08:38:08Z"
-    },
-    {
-      "name": "Deploy Squad Dashboard",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-13T05:50:25Z"
+      "updatedAt": "2026-05-14T00:21:13Z"
     },
     {
       "name": "Squad Dashboard CI",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-13T05:50:17Z"
+      "updatedAt": "2026-05-13T23:15:25Z"
     },
     {
-      "name": "Squad Dashboard CI",
+      "name": "Backend CI",
       "conclusion": "success",
       "status": "completed",
-      "updatedAt": "2026-05-13T05:47:50Z"
+      "updatedAt": "2026-05-13T23:10:31Z"
     },
     {
-      "name": "Squad Dashboard CI",
-      "conclusion": "success",
-      "status": "completed",
-      "updatedAt": "2026-05-13T05:43:47Z"
-    },
-    {
-      "name": "Squad Dashboard CI",
+      "name": "Backend CI",
       "conclusion": "failure",
       "status": "completed",
-      "updatedAt": "2026-05-13T05:25:23Z"
+      "updatedAt": "2026-05-13T23:04:53Z"
+    },
+    {
+      "name": "Backend CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-13T22:45:18Z"
+    },
+    {
+      "name": "Squad Dashboard CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-13T22:43:53Z"
+    },
+    {
+      "name": "Squad Dashboard CI",
+      "conclusion": "success",
+      "status": "completed",
+      "updatedAt": "2026-05-13T22:17:52Z"
     }
   ],
   "contributors": [
     {
       "login": "kaiky-yun",
-      "commits": 61,
+      "commits": 89,
+      "prsOpened": 43,
+      "prsMerged": 41,
       "avatarUrl": "https://avatars.githubusercontent.com/u/127952063?v=4"
     },
     {
       "login": "caioflmjr",
-      "commits": 56,
+      "commits": 62,
+      "prsOpened": 6,
+      "prsMerged": 6,
       "avatarUrl": "https://avatars.githubusercontent.com/u/67447767?v=4"
     },
     {
       "login": "RochaCarla",
       "commits": 1,
+      "prsOpened": 0,
+      "prsMerged": 0,
       "avatarUrl": "https://avatars.githubusercontent.com/u/5897389?v=4"
     },
     {
       "login": "Heitorovski01",
       "commits": 1,
+      "prsOpened": 0,
+      "prsMerged": 0,
       "avatarUrl": "https://avatars.githubusercontent.com/u/170051918?v=4"
     }
   ]

@@ -117,6 +117,14 @@ async function main() {
     closed: allPRs.filter(pr => pr.state === 'closed' && !pr.merged_at).length,
   }
 
+  const prStatsByAuthor = {}
+  allPRs.forEach(pr => {
+    const login = pr.user.login
+    if (!prStatsByAuthor[login]) prStatsByAuthor[login] = { opened: 0, merged: 0 }
+    prStatsByAuthor[login].opened++
+    if (pr.merged_at) prStatsByAuthor[login].merged++
+  })
+
   // 3. Issues and Burndown calculation
   const allIssues = await gh(`/repos/${REPO}/issues?state=all&per_page=100`)
   const issuesOnly = allIssues.filter(i => !i.pull_request)
@@ -127,28 +135,51 @@ async function main() {
     closed: issuesOnly.filter(i => i.state === 'closed').length,
   }
 
+  // --- NOVA LÓGICA DE BURNDOWN SEMÂNTICO ---
+  const daysToShow = 15
+  const startDate = new Date(today)
+  startDate.setDate(today.getDate() - daysToShow)
+  
+  // Escopo inicial: issues que existiam na data de início
+  const initialScopeIssues = issuesOnly.filter(i => {
+    const created = new Date(i.created_at)
+    return created <= startDate
+  })
+  const initialScopeCount = initialScopeIssues.length
+
   const burndownData = []
-  const daysToShow = 20
-  for (let i = daysToShow; i >= 0; i--) {
-    const targetDate = new Date(today)
-    targetDate.setDate(today.getDate() - i)
+  for (let i = 0; i <= daysToShow; i++) {
+    const targetDate = new Date(startDate)
+    targetDate.setDate(startDate.getDate() + i)
     const dateStr = targetDate.toISOString().slice(0, 10)
     
+    // Issues abertas no final deste dia
     const openOnDate = issuesOnly.filter(i => {
-      const fid = i.labels?.find(l => l.name && l.name.startsWith('feat:'))?.name.replace('feat:', '')
-      const realStart = featureHistory[fid]?.first ? featureHistory[fid].first.toISOString().slice(0, 10) : null
-      
-      const created = (realStart && realStart < i.created_at.slice(0, 10)) ? realStart : i.created_at.slice(0, 10)
+      const created = i.created_at.slice(0, 10)
       const closed = i.closed_at ? i.closed_at.slice(0, 10) : '9999-12-31'
       return created <= dateStr && closed > dateStr
     }).length
 
+    // Itens adicionados NESTE dia (escopo novo)
+    const addedToday = issuesOnly.filter(i => i.created_at.slice(0, 10) === dateStr && new Date(i.created_at) > startDate).length
+    
+    // Itens concluídos NESTE dia
+    const completedToday = issuesOnly.filter(i => i.closed_at && i.closed_at.slice(0, 10) === dateStr).length
+
+    // Escopo total acumulado até este dia
+    const totalScopeOnDate = issuesOnly.filter(i => i.created_at.slice(0, 10) <= dateStr).length
+
     burndownData.push({
-      day: targetDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      date: dateStr,
+      label: targetDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
       remaining: openOnDate,
-      ideal: Math.max(0, Math.round(issuesOnly.length - (issuesOnly.length / daysToShow) * (daysToShow - i)))
+      ideal: Math.max(0, Math.round(initialScopeCount - (initialScopeCount / daysToShow) * i)),
+      scope: totalScopeOnDate,
+      addedItems: addedToday,
+      completedItems: completedToday
     })
   }
+  // -----------------------------------------
 
   const tasks = issuesOnly.map(i => {
     const labels = i.labels.map(l => l.name)
@@ -277,8 +308,20 @@ async function main() {
     features,
     milestones,
     burndownData,
+    metrics: {
+      scopeChange: initialScopeCount > 0 ? Math.round(((burndownData[burndownData.length - 1].scope / initialScopeCount) - 1) * 100) : 0,
+      throughput: Math.round((burndownData.reduce((acc, curr) => acc + curr.completedItems, 0) / daysToShow) * 10) / 10,
+      completionRate: burndownData[burndownData.length - 1].scope > 0 ? Math.round(((burndownData[burndownData.length - 1].scope - burndownData[burndownData.length - 1].remaining) / burndownData[burndownData.length - 1].scope) * 100) : 0,
+      avgLeadTime: 0, // Placeholder para futura implementação
+    },
     recentWorkflows,
-    contributors: contributors.map(c => ({ login: c.login, commits: c.commits, avatarUrl: c.avatarUrl }))
+    contributors: contributors.map(c => ({ 
+      login: c.login, 
+      commits: c.commits, 
+      prsOpened: prStatsByAuthor[c.login]?.opened || 0,
+      prsMerged: prStatsByAuthor[c.login]?.merged || 0,
+      avatarUrl: c.avatarUrl 
+    }))
   }
 
   const outDir = join(__dirname, '..', 'public', 'data')
