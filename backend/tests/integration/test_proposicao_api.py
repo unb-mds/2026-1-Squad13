@@ -41,9 +41,27 @@ def test_buscar_proposicoes_paginacao(http_client):
 def test_buscar_proposicoes_sem_resultados(http_client):
     # Act
     response = http_client.get("/proposicoes?tipo=NONEXISTENT")
-    
+
     # Assert
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 0
     assert data["items"] == []
+
+
+def test_obterProposicaoPorId_idExistente_retorna200(http_client):
+    # O db_session da conftest já persiste a proposição com id="1"
+    response = http_client.get("/proposicoes/1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "1"
+    assert data["tipo"] == "PL"
+
+
+def test_obterProposicaoPorId_idInexistente_retorna404(http_client):
+    # ID não-numérico encerra no service antes de chamar APIs externas
+    response = http_client.get("/proposicoes/nao-existe")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] != ""
