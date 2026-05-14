@@ -95,3 +95,47 @@ def test_senado_adapter_erro_rede(adapter):
         
         # Assert
         assert proposicao is None
+
+def test_senado_adapter_buscar_tramitacoes_sucesso(adapter):
+    mock_dados = {
+        "autuacoes": [
+            {
+                "situacoes": [
+                    {"descricao": "Status 1", "inicio": "2024-05-11T10:00:00"},
+                    {"descricao": "Status 2", "inicio": "2024-05-12T10:00:00"}
+                ]
+            }
+        ]
+    }
+
+    with patch('requests.get') as mock_get:
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_dados
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        tramitacoes = adapter.buscar_tramitacoes(54321)
+
+        assert len(tramitacoes) == 2
+        # Ordenação descendente no adapter: Status 2 deve vir primeiro
+        assert tramitacoes[0].status == "Status 2"
+        assert tramitacoes[1].status == "Status 1"
+
+def test_senado_adapter_buscar_tramitacoes_erro(adapter):
+    with patch('requests.get') as mock_get:
+        mock_get.side_effect = Exception("Erro genérico")
+        
+        tramitacoes = adapter.buscar_tramitacoes(54321)
+        
+        assert tramitacoes == []
+
+def test_senado_adapter_erro_inesperado_buscar_por_id(adapter):
+    with patch('requests.get') as mock_get:
+        # Força um erro ao tentar acessar o JSON
+        mock_response = MagicMock()
+        mock_response.json.side_effect = Exception("Erro ao processar JSON")
+        mock_get.return_value = mock_response
+        
+        proposicao = adapter.buscar_por_id(54321)
+        
+        assert proposicao is None
