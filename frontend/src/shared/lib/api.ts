@@ -167,51 +167,79 @@ export async function obterMetricas(): Promise<MetricasDashboard> {
 }
 
 export async function obterDadosTipo(): Promise<DadosGraficoTipo[]> {
-  await delay(400)
-  return [
-    { tipo: 'PL', tempoMedio: 380, quantidade: 7 },
-    { tipo: 'PEC', tempoMedio: 477, quantidade: 3 },
-    { tipo: 'MP', tempoMedio: 180, quantidade: 1 },
-    { tipo: 'PLP', tempoMedio: 43, quantidade: 1 },
-  ]
+  try {
+    const response = await fetch(`${API_BASE}/dashboard/grafico-tipo`)
+    if (!response.ok) throw new Error('Falha ao buscar dados por tipo')
+    return await response.json()
+  } catch (error) {
+    console.warn('Usando dados mockados por tipo devido a erro na API:', error)
+    await delay(400)
+    return [
+      { tipo: 'PL', tempoMedio: 380, quantidade: 7 },
+      { tipo: 'PEC', tempoMedio: 477, quantidade: 3 },
+      { tipo: 'MP', tempoMedio: 180, quantidade: 1 },
+      { tipo: 'PLP', tempoMedio: 43, quantidade: 1 },
+    ]
+  }
 }
 
 export async function obterDadosComissao(): Promise<DadosGraficoComissao[]> {
-  await delay(400)
-  return [
-    { comissao: 'CCJ', tempoMedio: 680, quantidade: 8 },
-    { comissao: 'CFT', tempoMedio: 510, quantidade: 5 },
-    { comissao: 'CAS', tempoMedio: 390, quantidade: 4 },
-    { comissao: 'CMADS', tempoMedio: 340, quantidade: 3 },
-    { comissao: 'CTASP', tempoMedio: 295, quantidade: 4 },
-    { comissao: 'CDH', tempoMedio: 260, quantidade: 2 },
-  ]
+  try {
+    const response = await fetch(`${API_BASE}/dashboard/grafico-comissao`)
+    if (!response.ok) throw new Error('Falha ao buscar dados por comissão')
+    return await response.json()
+  } catch (error) {
+    console.warn('Usando dados mockados por comissão devido a erro na API:', error)
+    await delay(400)
+    return [
+      { comissao: 'CCJ', tempoMedio: 680, quantidade: 8 },
+      { comissao: 'CFT', tempoMedio: 510, quantidade: 5 },
+      { comissao: 'CAS', tempoMedio: 390, quantidade: 4 },
+      { comissao: 'CMADS', tempoMedio: 340, quantidade: 3 },
+      { comissao: 'CTASP', tempoMedio: 295, quantidade: 4 },
+      { comissao: 'CDH', tempoMedio: 260, quantidade: 2 },
+    ]
+  }
 }
 
 export async function obterDadosStatus(): Promise<DadosGraficoStatus[]> {
-  await delay(300)
-  const total = PROPOSICOES_MOCK.length
-  const contagem: Record<string, number> = {}
-  PROPOSICOES_MOCK.forEach((p) => {
-    contagem[p.status] = (contagem[p.status] ?? 0) + 1
-  })
-  return Object.entries(contagem).map(([status, quantidade]) => ({
-    status,
-    quantidade,
-    percentual: Math.round((quantidade / total) * 100),
-  }))
+  try {
+    const response = await fetch(`${API_BASE}/dashboard/grafico-status`)
+    if (!response.ok) throw new Error('Falha ao buscar dados por status')
+    return await response.json()
+  } catch (error) {
+    console.warn('Usando dados mockados por status devido a erro na API:', error)
+    await delay(300)
+    const total = PROPOSICOES_MOCK.length
+    const contagem: Record<string, number> = {}
+    PROPOSICOES_MOCK.forEach((p) => {
+      contagem[p.status] = (contagem[p.status] ?? 0) + 1
+    })
+    return Object.entries(contagem).map(([status, quantidade]) => ({
+      status,
+      quantidade,
+      percentual: Math.round((quantidade / total) * 100),
+    }))
+  }
 }
 
 // --- Relatórios ---
 export async function obterGargalos(): Promise<GargaloInstitucional[]> {
-  await delay(500)
-  return [
-    { orgao: 'CCJ', tempoMedioMeses: 22, quantidadeProposicoes: 8, taxaAtraso: 62 },
-    { orgao: 'CFT', tempoMedioMeses: 17, quantidadeProposicoes: 5, taxaAtraso: 40 },
-    { orgao: 'CAS', tempoMedioMeses: 13, quantidadeProposicoes: 4, taxaAtraso: 25 },
-    { orgao: 'CMADS', tempoMedioMeses: 11, quantidadeProposicoes: 3, taxaAtraso: 33 },
-    { orgao: 'Plenário Câmara', tempoMedioMeses: 18, quantidadeProposicoes: 6, taxaAtraso: 50 },
-  ]
+  try {
+    const response = await fetch(`${API_BASE}/dashboard/gargalos`)
+    if (!response.ok) throw new Error('Falha ao buscar gargalos da API')
+    return await response.json()
+  } catch (error) {
+    console.warn('Usando gargalos mockados devido a erro na API:', error)
+    await delay(500)
+    return [
+      { orgao: 'CCJ', tempoMedioMeses: 22, quantidadeProposicoes: 8, taxaAtraso: 62 },
+      { orgao: 'CFT', tempoMedioMeses: 17, quantidadeProposicoes: 5, taxaAtraso: 40 },
+      { orgao: 'CAS', tempoMedioMeses: 13, quantidadeProposicoes: 4, taxaAtraso: 25 },
+      { orgao: 'CMADS', tempoMedioMeses: 11, quantidadeProposicoes: 3, taxaAtraso: 33 },
+      { orgao: 'Plenário Câmara', tempoMedioMeses: 18, quantidadeProposicoes: 6, taxaAtraso: 50 },
+    ]
+  }
 }
 
 export async function obterComparacaoTemas(): Promise<ComparacaoTema[]> {
