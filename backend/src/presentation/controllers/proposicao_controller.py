@@ -3,7 +3,9 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
+from application.services.listar_tramitacoes_service import ListarTramitacoesService
 from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+from infrastructure.repositories.sql_tramitacao_repository import SQLTramitacaoRepository
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import get_session
@@ -12,6 +14,18 @@ from sqlmodel import Session
 router = APIRouter()
 
 # --- Schemas ---
+
+class TramitacaoResponse(BaseModel):
+    """Schema para retorno de tramitações com normalização camelCase"""
+    model_config = ConfigDict(from_attributes=True)
+
+    proposicaoId: str = Field(alias="proposicaoId")
+    dataHora: str = Field(alias="dataHora")
+    sequencia: int
+    siglaOrgao: str = Field(alias="siglaOrgao")
+    descricaoTramitacao: str = Field(alias="descricaoTramitacao")
+    despacho: Optional[str] = None
+    status: Optional[str] = None
 
 class ProposicaoResponse(BaseModel):
     """Schema para retorno na API com normalização camelCase"""
@@ -35,6 +49,7 @@ class ProposicaoResponse(BaseModel):
     temPrevisaoIA: bool
     tags: List[str]
     linkOficial: Optional[str] = Field(default=None, alias="linkOficial")
+    codigoNormalizado: Optional[str] = Field(default=None, alias="codigoNormalizado")
     dataEncerramento: Optional[str] = Field(default=None, alias="dataEncerramento")
     previsaoAprovacaoDias: Optional[int] = Field(default=None, alias="previsaoAprovacaoDias")
 
@@ -65,11 +80,46 @@ def _to_response(p) -> dict:
         "temPrevisaoIA": p.tem_previsao_ia or False,
         "tags": p.tags or [],
         "linkOficial": p.link_oficial,
+        "codigoNormalizado": p.codigo_normalizado,
         "dataEncerramento": p.data_encerramento,
         "previsaoAprovacaoDias": p.previsao_aprovacao_dias,
     }
 
+def _to_tramitacao_response(t) -> dict:
+    return {
+        "proposicaoId": t.proposicao_id,
+        "dataHora": t.data_hora,
+        "sequencia": t.sequencia,
+        "siglaOrgao": t.sigla_orgao,
+        "descricaoTramitacao": t.descricao_tramitacao,
+        "despacho": t.despacho,
+        "status": t.status
+    }
+
 # --- Controller ---
+
+@router.get("/proposicoes/{id}/movimentacoes", response_model=List[TramitacaoResponse])
+def listar_movimentacoes(
+    id: str,
+    session: Session = Depends(get_session)
+):
+    tramitacao_repo = SQLTramitacaoRepository(session)
+    proposicao_repo = SQLProposicaoRepository(session)
+    camara_adapter = CamaraAdapter()
+    senado_adapter = SenadoAdapter()
+    
+    service = ListarTramitacoesService(
+        tramitacao_repo,
+        proposicao_repo,
+        camara_adapter,
+        senado_adapter
+    )
+
+    try:
+        movimentacoes = service.executar(id)
+        return [_to_tramitacao_response(t) for t in movimentacoes]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar movimentações: {str(e)}")
 
 @router.get("/proposicoes", response_model=ProposicoesListResponse)
 def buscar_proposicoes(

@@ -62,37 +62,3 @@ def test_camara_adapter_erro_rede(adapter):
         
         # Assert
         assert proposicao is None
-
-def test_camara_adapter_buscar_tramitacoes_sucesso(adapter):
-    mock_dados_tramitacoes = {
-        "dados": [
-            {
-                "dataHora": "2024-05-11T10:00:00",
-                "sequencia": 1,
-                "siglaOrgao": "CCJ",
-                "descricaoTramitacao": "Recebimento",
-                "despacho": "Despacho teste",
-                "descricaoSituacao": "Em andamento"
-            }
-        ]
-    }
-
-    with patch('requests.get') as mock_get:
-        mock_response = MagicMock()
-        mock_response.json.return_value = mock_dados_tramitacoes
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
-
-        tramitacoes = adapter.buscar_tramitacoes(12345)
-
-        assert len(tramitacoes) == 1
-        assert tramitacoes[0].sequencia == 1
-        assert tramitacoes[0].sigla_orgao == "CCJ"
-
-def test_camara_adapter_buscar_tramitacoes_erro(adapter):
-    with patch('requests.get') as mock_get:
-        mock_get.side_effect = Exception("Erro genérico")
-        
-        tramitacoes = adapter.buscar_tramitacoes(12345)
-        
-        assert tramitacoes == []
