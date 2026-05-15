@@ -57,6 +57,24 @@ class CamaraAdapter:
             print(f"Erro ao processar dados da Câmara para ID {id_proposicao}: {e}")
             return None
 
+    def listar_recentes(self, tipo: str, quantidade: int = 10) -> List[int]:
+        """Busca uma lista de IDs das proposições mais recentes de um determinado tipo."""
+        url = f"{self.base_url}/proposicoes"
+        params = {
+            "siglaTipo": tipo,
+            "ordem": "DESC",
+            "ordenarPor": "ano",
+            "itens": quantidade
+        }
+        try:
+            resp = requests.get(url, params=params, timeout=10)
+            resp.raise_for_status()
+            dados = resp.json()["dados"]
+            return [d["id"] for d in dados]
+        except Exception as e:
+            print(f"Erro ao listar proposições recentes na Câmara: {e}")
+            return []
+
     def buscar_tramitacoes(self, id_proposicao: int) -> List[Tramitacao]:
         """Busca as tramitações de uma proposição na Câmara."""
         url = f"{self.base_url}/proposicoes/{id_proposicao}/tramitacoes"

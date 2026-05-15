@@ -20,6 +20,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     temPrevisaoIA: true,
     previsaoAprovacaoDias: 180,
     linkOficial: 'https://www.camara.leg.br',
+    codigoNormalizado: 'PL-1234-2022',
     tags: ['agricultura', 'sustentabilidade', 'fiscal'],
   },
   {
@@ -41,6 +42,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     atrasoCritico: true,
     temPrevisaoIA: false,
     linkOficial: 'https://www.senado.leg.br',
+    codigoNormalizado: 'PEC-45-2023',
     tags: ['tributário', 'reforma', 'impostos'],
   },
   {
@@ -62,6 +64,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     atrasoCritico: true,
     temPrevisaoIA: false,
     linkOficial: 'https://www.camara.leg.br',
+    codigoNormalizado: 'PL-789-2021',
     tags: ['trabalho', 'home office', 'CLT'],
   },
   {
@@ -83,6 +86,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     temPrevisaoIA: true,
     previsaoAprovacaoDias: 90,
     linkOficial: 'https://www.camara.leg.br',
+    codigoNormalizado: 'MP-1150-2023',
     tags: ['desastres', 'municípios', 'emergência'],
   },
   {
@@ -104,6 +108,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     atrasoCritico: true,
     temPrevisaoIA: false,
     linkOficial: 'https://www.camara.leg.br',
+    codigoNormalizado: 'PEC-32-2020',
     tags: ['reforma administrativa', 'servidores', 'gestão pública'],
   },
   {
@@ -125,6 +130,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     temPrevisaoIA: true,
     previsaoAprovacaoDias: 365,
     linkOficial: 'https://www.senado.leg.br',
+    codigoNormalizado: 'PL-2630-2020',
     tags: ['internet', 'fake news', 'redes sociais', 'liberdade de expressão'],
   },
   {
@@ -145,6 +151,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     atrasoCritico: true,
     temPrevisaoIA: false,
     linkOficial: 'https://www.camara.leg.br',
+    codigoNormalizado: 'PL-3515-2021',
     tags: ['LGPD', 'privacidade', 'dados pessoais', 'biometria'],
   },
   {
@@ -166,6 +173,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     temPrevisaoIA: true,
     previsaoAprovacaoDias: 120,
     linkOficial: 'https://www.camara.leg.br',
+    codigoNormalizado: 'PLP-68-2024',
     tags: ['tributário', 'IBS', 'CBS', 'reforma tributária'],
   },
   {
@@ -187,6 +195,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     temPrevisaoIA: true,
     previsaoAprovacaoDias: 200,
     linkOficial: 'https://www.camara.leg.br',
+    codigoNormalizado: 'PL-572-2022',
     tags: ['educação', 'finanças', 'escola'],
   },
   {
@@ -208,6 +217,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     atrasoCritico: true,
     temPrevisaoIA: false,
     linkOficial: 'https://www.camara.leg.br',
+    codigoNormalizado: 'PEC-6-2019',
     tags: ['previdência', 'INSS', 'aposentadoria', 'reforma'],
   },
   {
@@ -229,6 +239,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     atrasoCritico: false,
     temPrevisaoIA: false,
     linkOficial: 'https://www.camara.leg.br',
+    codigoNormalizado: 'PL-4.173-2023',
     tags: ['tributário', 'investimentos', 'exterior', 'IR'],
   },
   {
@@ -250,6 +261,7 @@ export const PROPOSICOES_MOCK: Proposicao[] = [
     temPrevisaoIA: true,
     previsaoAprovacaoDias: 240,
     linkOficial: 'https://www.senado.leg.br',
+    codigoNormalizado: 'PL-3.305-2023',
     tags: ['inteligência artificial', 'tecnologia', 'regulação', 'inovação'],
   },
 ]

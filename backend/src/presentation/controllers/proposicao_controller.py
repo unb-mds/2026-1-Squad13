@@ -49,6 +49,7 @@ class ProposicaoResponse(BaseModel):
     temPrevisaoIA: bool
     tags: List[str]
     linkOficial: Optional[str] = Field(default=None, alias="linkOficial")
+    codigoNormalizado: Optional[str] = Field(default=None, alias="codigoNormalizado")
     dataEncerramento: Optional[str] = Field(default=None, alias="dataEncerramento")
     previsaoAprovacaoDias: Optional[int] = Field(default=None, alias="previsaoAprovacaoDias")
 
@@ -79,6 +80,7 @@ def _to_response(p) -> dict:
         "temPrevisaoIA": p.tem_previsao_ia or False,
         "tags": p.tags or [],
         "linkOficial": p.link_oficial,
+        "codigoNormalizado": p.codigo_normalizado,
         "dataEncerramento": p.data_encerramento,
         "previsaoAprovacaoDias": p.previsao_aprovacao_dias,
     }
