@@ -164,7 +164,6 @@ class SenadoAdapter:
         except Exception as e:
             print(f"Erro ao buscar tramitações do Senado para ID {id_materia}: {e}")
             return []
-
     def _processar_dados_processo(self, dados: dict, id_materia: str) -> Proposicao:
         """Processa a estrutura flat retornada pelo endpoint /processo."""
         identificacao = dados.get("identificacao", "")
