@@ -1,14 +1,15 @@
-export const TIPOS_PROPOSICAO = ['PL', 'PEC', 'PDL', 'MP', 'PLP'] as const
+export const TIPOS_PROPOSICAO = ['PL', 'PEC'] as const
 
 export const STATUS_PROPOSICAO = [
   'Em tramitação',
   'Aprovada',
-  'Rejeitada',
-  'Arquivada',
-  'Vetada',
-  'Sancionada',
-  'Aguardando votação',
-  'Em análise',
+  'Relatoria',
+  'Norma Jurídica',
+  'Aguardando',
+  'Pauta',
+  'Redação Final',
+  'Prejudicado',
+  'Retirada',
 ] as const
 
 export const ORGAOS = [

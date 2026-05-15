@@ -21,7 +21,7 @@ def test_senado_adapter_normalizacao_sucesso(adapter):
         "autuacoes": [
             {
                 "situacoes": [
-                    {"descricao": "Em tramitação"}
+                    {"descricao": "Em tramitação", "inicio": "2023-01-01"}
                 ]
             }
         ]
