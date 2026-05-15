@@ -61,7 +61,11 @@ fi
 echo -e "${YELLOW}🗄️  Inicializando tabelas do banco de dados...${NC}"
 docker compose exec -T backend uv run python src/init_db.py
 
-# 6. Verificar status
+# 6. Popular o Banco com Dados Reais
+echo -e "${YELLOW}🌱 Populando o banco com dados reais da Câmara e do Senado (Seed)...${NC}"
+docker compose exec -T backend uv run python src/seed.py
+
+# 7. Verificar status
 echo -e "\n${BLUE}📊 Status dos Containers:${NC}"
 docker compose ps
 
