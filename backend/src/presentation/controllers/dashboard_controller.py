@@ -39,6 +39,12 @@ class GargaloInstitucionalResponse(BaseModel):
     quantidadeProposicoes: int
     taxaAtraso: int
 
+class ComparacaoTemaResponse(BaseModel):
+    tema: str
+    tempoMedioDias: int
+    taxaAprovacao: int
+    velocidade: str
+
 def get_dashboard_service(session: Session = Depends(get_session)) -> DashboardService:
     repository = SQLProposicaoRepository(session)
     return DashboardService(repository)
@@ -62,3 +68,7 @@ def obter_dados_status(service: DashboardService = Depends(get_dashboard_service
 @router.get("/dashboard/gargalos", response_model=List[GargaloInstitucionalResponse])
 def obter_gargalos(service: DashboardService = Depends(get_dashboard_service)):
     return service.obter_gargalos()
+
+@router.get("/dashboard/comparacao-temas", response_model=List[ComparacaoTemaResponse])
+def obter_comparacao_temas(service: DashboardService = Depends(get_dashboard_service)):
+    return service.obter_comparacao_temas()

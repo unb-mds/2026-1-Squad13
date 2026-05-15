@@ -173,3 +173,48 @@ class DashboardService:
             })
         
         return sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
+
+    def obter_comparacao_temas(self) -> List[Dict]:
+        todas = self.repository.filtrar()
+        temas: Dict[str, Dict] = {}
+        
+        for p in todas:
+            if not p.tags:
+                continue
+                
+            for tag in p.tags:
+                tag_formatada = tag.capitalize()
+                if tag_formatada not in temas:
+                    temas[tag_formatada] = {
+                        "tema": tag_formatada,
+                        "tempos": [],
+                        "total": 0,
+                        "aprovadas": 0
+                    }
+                
+                temas[tag_formatada]["total"] += 1
+                if p.tempo_total_dias is not None:
+                    temas[tag_formatada]["tempos"].append(p.tempo_total_dias)
+                
+                if self._agrupar_status(p.status) == "Aprovada/Sancionada":
+                    temas[tag_formatada]["aprovadas"] += 1
+        
+        resultado = []
+        for info in temas.values():
+            tempo_medio = sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
+            taxa_aprovacao = (info["aprovadas"] / info["total"] * 100) if info["total"] else 0
+            
+            velocidade = "medio"
+            if tempo_medio < 300:
+                velocidade = "rapido"
+            elif tempo_medio > 600:
+                velocidade = "lento"
+                
+            resultado.append({
+                "tema": info["tema"],
+                "tempoMedioDias": int(tempo_medio),
+                "taxaAprovacao": round(taxa_aprovacao),
+                "velocidade": velocidade
+            })
+            
+        return sorted(resultado, key=lambda x: x["tempoMedioDias"])
