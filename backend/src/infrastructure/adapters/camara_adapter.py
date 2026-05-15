@@ -94,6 +94,10 @@ class CamaraAdapter:
                     despacho=d.get("despacho", ""),
                     status=d.get("descricaoSituacao", "")
                 ))
+            
+            for t in tramitacoes:
+                t.normalizar()
+                
             return tramitacoes
         except Exception as e:
             print(f"Erro ao buscar tramitações da Câmara para ID {id_proposicao}: {e}")
