@@ -1,21 +1,27 @@
 from typing import List
 from domain.entities.tramitacao import Tramitacao
-from infrastructure.repositories.sql_tramitacao_repository import SQLTramitacaoRepository
-from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+from infrastructure.repositories.sql_tramitacao_repository import (
+    SQLTramitacaoRepository,
+)
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
+
 
 class ListarTramitacoesService:
     """
     Serviço para listar as tramitações de uma proposição.
     Gerencia o cache no banco de dados.
     """
+
     def __init__(
         self,
         tramitacao_repository: SQLTramitacaoRepository,
         proposicao_repository: SQLProposicaoRepository,
         camara_adapter: CamaraAdapter,
-        senado_adapter: SenadoAdapter
+        senado_adapter: SenadoAdapter,
     ):
         self.tramitacao_repository = tramitacao_repository
         self.proposicao_repository = proposicao_repository
@@ -44,13 +50,13 @@ class ListarTramitacoesService:
 
         # 2. Se não encontrou, precisa saber se é da Câmara ou Senado
         proposicao = self.proposicao_repository.buscar_por_id(real_id)
-        
-        # Se não temos a proposição no banco, não sabemos qual adapter usar 
+
+        # Se não temos a proposição no banco, não sabemos qual adapter usar
         if not proposicao:
             # Fallback: tentar descobrir pela origem se o ID for numérico
             if not real_id.isdigit():
                 return []
-            
+
             # Tenta na Câmara primeiro
             tramitacoes = self.camara_adapter.buscar_tramitacoes(int(real_id))
             if not tramitacoes:

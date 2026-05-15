@@ -3,12 +3,14 @@ from typing import Optional, List
 from sqlalchemy import Column, JSON
 from datetime import datetime, date
 
+
 class Proposicao(SQLModel, table=True):
     """
     Entidade de Domínio e Modelo de Banco de Dados.
     Representa uma Proposição Legislativa (PL, PEC, etc).
     Combina a estrutura robusta da 'main' com a persistência da 'develop'.
     """
+
     id: Optional[str] = Field(default=None, primary_key=True)
     tipo: str
     numero: str
@@ -28,7 +30,7 @@ class Proposicao(SQLModel, table=True):
     link_oficial: Optional[str] = None
     data_encerramento: Optional[str] = None
     previsao_aprovacao_dias: Optional[int] = None
-    
+
     # Armazenar lista como JSON no Postgres
     tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
 
@@ -39,7 +41,7 @@ class Proposicao(SQLModel, table=True):
             return
 
         raw = self.status.upper()
-        
+
         # Mapeamento de termos prioritários (conclusão)
         if "NORMA JURÍDICA" in raw:
             self.status = "Concluída (Lei)"
@@ -50,13 +52,18 @@ class Proposicao(SQLModel, table=True):
         if "VETAD" in raw:
             self.status = "Vetada"
             return
-        if "REJEITAD" in raw or "ARQUIVAD" in raw or "PREJUDICAD" in raw or "RETIRAD" in raw:
+        if (
+            "REJEITAD" in raw
+            or "ARQUIVAD" in raw
+            or "PREJUDICAD" in raw
+            or "RETIRAD" in raw
+        ):
             self.status = "Arquivada"
             return
         if "APROVAD" in raw:
             self.status = "Aprovada"
             return
-            
+
         # Status de tramitação ativa
         if "PAUTA" in raw:
             self.status = "Em Pauta"
@@ -67,7 +74,12 @@ class Proposicao(SQLModel, table=True):
         if "AGUARDANDO" in raw:
             self.status = "Aguardando"
             return
-        if "RECEBIMENTO" in raw or "ENCAMINHAD" in raw or "DESPACHO" in raw or "DISTRIBUIÇÃO" in raw:
+        if (
+            "RECEBIMENTO" in raw
+            or "ENCAMINHAD" in raw
+            or "DESPACHO" in raw
+            or "DISTRIBUIÇÃO" in raw
+        ):
             self.status = "Em Tramitação"
             return
 
@@ -85,8 +97,10 @@ class Proposicao(SQLModel, table=True):
             # Câmara: 2020-02-04T13:26
             # Senado: 2021-09-30
             fmt = "%Y-%m-%d"
-            data_apresentacao = datetime.strptime(self.data_apresentacao[:10], fmt).date()
-            
+            data_apresentacao = datetime.strptime(
+                self.data_apresentacao[:10], fmt
+            ).date()
+
             if self.data_encerramento:
                 data_fim = datetime.strptime(self.data_encerramento[:10], fmt).date()
             else:

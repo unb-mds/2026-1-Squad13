@@ -3,31 +3,27 @@ import requests
 from unittest.mock import MagicMock, patch
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 
+
 @pytest.fixture
 def adapter():
     return SenadoAdapter()
+
 
 def test_senado_adapter_normalizacao_sucesso(adapter):
     # Mock da resposta da API do Senado
     mock_dados = {
         "identificacao": "PL 456/2023",
-        "autoriaIniciativa": [
-            {"autor": "Senador Exemplo"}
-        ],
+        "autoriaIniciativa": [{"autor": "Senador Exemplo"}],
         "documento": {
             "ementa": "Ementa de teste Senado",
-            "dataApresentacao": "2023-01-01"
+            "dataApresentacao": "2023-01-01",
         },
         "autuacoes": [
-            {
-                "situacoes": [
-                    {"descricao": "Em tramitação", "inicio": "2023-01-01"}
-                ]
-            }
-        ]
+            {"situacoes": [{"descricao": "Em tramitação", "inicio": "2023-01-01"}]}
+        ],
     }
 
-    with patch('requests.get') as mock_get:
+    with patch("requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_dados
         mock_response.raise_for_status.return_value = None
@@ -44,7 +40,10 @@ def test_senado_adapter_normalizacao_sucesso(adapter):
         assert proposicao.autor == "Senador Exemplo"
         assert proposicao.status == "Em tramitação"
         assert proposicao.data_apresentacao == "2023-01-01"
-        assert proposicao.data_ultima_movimentacao == "2023-01-01" # No mock, inicio is missing but fallback should work if I add it
+        assert (
+            proposicao.data_ultima_movimentacao == "2023-01-01"
+        )  # No mock, inicio is missing but fallback should work if I add it
+
 
 def test_senado_adapter_data_ultima_movimentacao_sucesso(adapter):
     mock_dados = {
@@ -54,13 +53,13 @@ def test_senado_adapter_data_ultima_movimentacao_sucesso(adapter):
             {
                 "situacoes": [
                     {"descricao": "Status Antigo", "inicio": "2023-01-01"},
-                    {"descricao": "Status Novo", "inicio": "2023-02-01"}
+                    {"descricao": "Status Novo", "inicio": "2023-02-01"},
                 ]
             }
-        ]
+        ],
     }
 
-    with patch('requests.get') as mock_get:
+    with patch("requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_dados
         mock_get.return_value = mock_response
@@ -70,14 +69,15 @@ def test_senado_adapter_data_ultima_movimentacao_sucesso(adapter):
         assert proposicao.status == "Status Novo"
         assert proposicao.data_ultima_movimentacao == "2023-02-01"
 
+
 def test_senado_adapter_fallback_data_ultima_movimentacao(adapter):
     mock_dados = {
         "identificacao": "PL 456/2023",
         "documento": {"dataApresentacao": "2023-01-01"},
-        "autuacoes": []
+        "autuacoes": [],
     }
 
-    with patch('requests.get') as mock_get:
+    with patch("requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_dados
         mock_get.return_value = mock_response
@@ -86,12 +86,13 @@ def test_senado_adapter_fallback_data_ultima_movimentacao(adapter):
 
         assert proposicao.data_ultima_movimentacao == "2023-01-01"
 
+
 def test_senado_adapter_erro_rede(adapter):
-    with patch('requests.get') as mock_get:
+    with patch("requests.get") as mock_get:
         mock_get.side_effect = requests.exceptions.RequestException("Erro de conexão")
-        
+
         # Act
         proposicao = adapter.buscar_por_id(54321)
-        
+
         # Assert
         assert proposicao is None

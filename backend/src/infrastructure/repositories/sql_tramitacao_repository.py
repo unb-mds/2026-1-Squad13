@@ -2,10 +2,12 @@ from typing import List
 from sqlmodel import Session, select
 from domain.entities.tramitacao import Tramitacao
 
+
 class SQLTramitacaoRepository:
     """
     Repositório para persistência de tramitações.
     """
+
     def __init__(self, session: Session):
         self.session = session
 

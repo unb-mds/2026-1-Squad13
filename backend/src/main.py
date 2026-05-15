@@ -1,10 +1,15 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from presentation.controllers import proposicao_controller, dashboard_controller, auth_controller
+from presentation.controllers import (
+    proposicao_controller,
+    dashboard_controller,
+    auth_controller,
+)
 from infrastructure.database import get_session
 from sqlmodel import Session, text
 from src import init_db
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,6 +23,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown: executado quando a aplicação encerra
     print("👋 Backend Monitor Legislativo encerrado.")
+
 
 app = FastAPI(title="Monitor Legislativo API", lifespan=lifespan)
 
@@ -35,6 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 def root():
     return {"message": "API rodando"}
@@ -48,6 +55,7 @@ def health(session: Session = Depends(get_session)):
         return {"status": "ok", "database": "connected"}
     except Exception:
         return {"status": "error", "database": "disconnected"}
+
 
 # Incluindo as rotas da camada de apresentação
 app.include_router(auth_controller.router)
