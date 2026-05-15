@@ -4,11 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from presentation.controllers import proposicao_controller, dashboard_controller, auth_controller
 from infrastructure.database import get_session
 from sqlmodel import Session, text
+from src import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: executado quando a aplicação inicia
-    print("🚀 Backend Monitor Legislativo iniciado com sucesso!")
+    print("🚀 Iniciando e verificando banco de dados...")
+    try:
+        init_db.run()
+        print("✅ Banco de dados pronto!")
+    except Exception as e:
+        print(f"❌ Erro ao inicializar banco: {e}")
     yield
     # Shutdown: executado quando a aplicação encerra
     print("👋 Backend Monitor Legislativo encerrado.")

@@ -22,7 +22,23 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 2. Testes Unitários e Integração
+# 2. Check de Formatação
+echo -e "${YELLOW}🎨 Verificando formatação (Ruff)...${NC}"
+uv run ruff format --check .
+if [ $? -ne 0 ]; then
+    echo -e "${YELLOW}⚠️ O código não está formatado. Rode 'uv run ruff format .' para corrigir.${NC}"
+    # Não vamos dar exit 1 aqui ainda para não bloquear o dev, mas avisamos
+fi
+
+# 3. Check de Compilação (Igual ao CI)
+echo -e "${YELLOW}⚙️ Verificando compilação de bytes...${NC}"
+uv run python -m py_compile src/main.py
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Erro crítico de sintaxe/compilação no Backend.${NC}"
+    exit 1
+fi
+
+# 4. Testes Unitários e Integração
 echo -e "${YELLOW}🧪 Rodando Pytest...${NC}"
 uv run pytest
 if [ $? -ne 0 ]; then
@@ -59,6 +75,14 @@ echo -e "${YELLOW}🧪 Rodando Vitest...${NC}"
 npm run test -- --run
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Falha nos testes do Frontend.${NC}"
+    exit 1
+fi
+
+# 4. Build (Check final de produção)
+echo -e "${YELLOW}🏗️ Rodando Build de Produção...${NC}"
+npm run build
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Falha no build do Frontend.${NC}"
     exit 1
 fi
 cd ..
