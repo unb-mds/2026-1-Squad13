@@ -1,7 +1,7 @@
 from sqlmodel import text
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import init_db, engine, get_session
+from infrastructure.database import init_db, get_session
 from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
 from init_db import seed_demo_user
 
