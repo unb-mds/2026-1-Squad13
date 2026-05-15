@@ -1,8 +1,28 @@
+import { useState, useEffect } from 'react'
 import { BarChart3, AlertTriangle, TrendingUp, FileDown } from 'lucide-react'
 import { TabelaGargalos, ComparacaoTemas, BotaoExportar } from '@/features/relatorios/RelatorioComponents'
 import { Card, CardBody } from '@/shared/ui'
+import { obterGargalos, obterComparacaoTemas } from '@/shared/lib/api'
+import type { GargaloInstitucional, ComparacaoTema } from '@/shared/types'
 
 export function RelatoriosPage() {
+  const [gargalos, setGargalos] = useState<GargaloInstitucional[]>([])
+  const [temas, setTemas] = useState<ComparacaoTema[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([obterGargalos(), obterComparacaoTemas()])
+      .then(([g, t]) => {
+        setGargalos(g)
+        setTemas(t)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const principalGargalo = gargalos[0]
+  const maisRapido = [...temas].sort((a, b) => a.tempoMedioDias - b.tempoMedioDias)[0]
+  const maisTravado = [...temas].sort((a, b) => b.tempoMedioDias - a.tempoMedioDias)[0]
+
   return (
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
@@ -23,8 +43,12 @@ export function RelatoriosPage() {
             </div>
             <div>
               <p className="text-xs text-ink-400 font-medium uppercase tracking-wider">Principal gargalo</p>
-              <p className="text-lg font-display font-700 text-white mt-0.5">CCJ</p>
-              <p className="text-xs text-rose-400">22 meses em média · 62% de atraso</p>
+              <p className="text-lg font-display font-700 text-white mt-0.5">
+                {loading ? '...' : principalGargalo?.orgao || 'N/A'}
+              </p>
+              <p className="text-xs text-rose-400">
+                {loading ? 'Carregando...' : principalGargalo ? `${principalGargalo.tempoMedioMeses} meses em média · ${principalGargalo.taxaAtraso}% de atraso` : 'Sem dados'}
+              </p>
             </div>
           </CardBody>
         </Card>
@@ -36,8 +60,12 @@ export function RelatoriosPage() {
             </div>
             <div>
               <p className="text-xs text-ink-400 font-medium uppercase tracking-wider">Tema mais rápido</p>
-              <p className="text-lg font-display font-700 text-white mt-0.5">Tributário</p>
-              <p className="text-xs text-volt-400">215 dias · 78% de aprovação</p>
+              <p className="text-lg font-display font-700 text-white mt-0.5">
+                {loading ? '...' : maisRapido?.tema || 'N/A'}
+              </p>
+              <p className="text-xs text-volt-400">
+                {loading ? 'Carregando...' : maisRapido ? `${maisRapido.tempoMedioDias} dias · ${maisRapido.taxaAprovacao}% de aprovação` : 'Sem dados'}
+              </p>
             </div>
           </CardBody>
         </Card>
@@ -49,8 +77,12 @@ export function RelatoriosPage() {
             </div>
             <div>
               <p className="text-xs text-ink-400 font-medium uppercase tracking-wider">Tema mais travado</p>
-              <p className="text-lg font-display font-700 text-white mt-0.5">Internet & Mídia</p>
-              <p className="text-xs text-amber-400">1322 dias · 12% de aprovação</p>
+              <p className="text-lg font-display font-700 text-white mt-0.5">
+                {loading ? '...' : maisTravado?.tema || 'N/A'}
+              </p>
+              <p className="text-xs text-amber-400">
+                {loading ? 'Carregando...' : maisTravado ? `${maisTravado.tempoMedioDias} dias · ${maisTravado.taxaAprovacao}% de aprovação` : 'Sem dados'}
+              </p>
             </div>
           </CardBody>
         </Card>
