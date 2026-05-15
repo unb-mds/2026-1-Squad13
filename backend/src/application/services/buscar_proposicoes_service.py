@@ -15,8 +15,7 @@ class BuscarProposicoesService:
         itens_por_pagina: int = 10
     ) -> dict:
         
-        # Regra de negócio legada da develop: pelo menos um filtro é obrigatório
-        # (Ajustado para o novo formato de dicionário de filtros)
+        # Regra de negócio: pelo menos um filtro é obrigatório
         valores_filtros = [filtros.get(k) for k in filtros]
         if not any(valor is not None and str(valor).strip() != "" for valor in valores_filtros):
             raise ValueError("Preencha pelo menos um filtro para realizar a busca.")

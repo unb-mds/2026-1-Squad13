@@ -20,6 +20,15 @@ class SQLProposicaoRepository:
     def buscar_por_id(self, id: str) -> Optional[Proposicao]:
         return self.session.get(Proposicao, id)
 
+    def buscar_por_codigo(self, tipo: str, numero: str, ano: int) -> Optional[Proposicao]:
+        """Busca uma proposição pelo conjunto único Tipo, Número e Ano."""
+        statement = select(Proposicao).where(
+            func.lower(Proposicao.tipo) == tipo.lower(),
+            Proposicao.numero == str(numero),
+            Proposicao.ano == ano
+        )
+        return self.session.exec(statement).first()
+
     def filtrar(
         self,
         tipo: Optional[str] = None,
@@ -38,19 +47,19 @@ class SQLProposicaoRepository:
         statement = select(Proposicao)
 
         if tipo:
-            statement = statement.where(Proposicao.tipo == tipo)
+            statement = statement.where(func.lower(Proposicao.tipo) == tipo.lower())
         if numero:
             statement = statement.where(Proposicao.numero == str(numero))
         if ano:
             statement = statement.where(Proposicao.ano == ano)
         if autor:
-            statement = statement.where(Proposicao.autor.contains(autor))
+            statement = statement.where(func.lower(Proposicao.autor).contains(autor.lower()))
         if uf_autor:
-            statement = statement.where(Proposicao.uf_autor == uf_autor)
+            statement = statement.where(func.lower(Proposicao.uf_autor) == uf_autor.lower())
         if status:
-            statement = statement.where(Proposicao.status == status)
+            statement = statement.where(func.lower(Proposicao.status) == status.lower())
         if orgao_origem:
-            statement = statement.where(Proposicao.orgao_origem == orgao_origem)
+            statement = statement.where(func.lower(Proposicao.orgao_origem) == orgao_origem.lower())
         if data_inicio:
             statement = statement.where(Proposicao.data_apresentacao >= data_inicio)
         if data_fim:
@@ -89,19 +98,19 @@ class SQLProposicaoRepository:
         statement = select(func.count()).select_from(Proposicao)
 
         if tipo:
-            statement = statement.where(Proposicao.tipo == tipo)
+            statement = statement.where(func.lower(Proposicao.tipo) == tipo.lower())
         if numero:
             statement = statement.where(Proposicao.numero == str(numero))
         if ano:
             statement = statement.where(Proposicao.ano == ano)
         if autor:
-            statement = statement.where(Proposicao.autor.contains(autor))
+            statement = statement.where(func.lower(Proposicao.autor).contains(autor.lower()))
         if uf_autor:
-            statement = statement.where(Proposicao.uf_autor == uf_autor)
+            statement = statement.where(func.lower(Proposicao.uf_autor) == uf_autor.lower())
         if status:
-            statement = statement.where(Proposicao.status == status)
+            statement = statement.where(func.lower(Proposicao.status) == status.lower())
         if orgao_origem:
-            statement = statement.where(Proposicao.orgao_origem == orgao_origem)
+            statement = statement.where(func.lower(Proposicao.orgao_origem) == orgao_origem.lower())
         if data_inicio:
             statement = statement.where(Proposicao.data_apresentacao >= data_inicio)
         if data_fim:

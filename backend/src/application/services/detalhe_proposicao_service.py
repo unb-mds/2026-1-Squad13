@@ -19,22 +19,36 @@ class DetalheProposicaoService:
         self.senado_adapter = senado_adapter
 
     def executar(self, id_proposicao: str) -> Proposicao:
-        # 1. Tenta buscar no banco local
+        # 1. Tenta identificar se é um ID numérico ou um Código Canônico (Slug)
+        # Formato esperado do Slug: PL-123-2023
+        if "-" in id_proposicao:
+            partes = id_proposicao.split("-")
+            if len(partes) == 3:
+                tipo, numero, ano_str = partes
+                try:
+                    ano = int(ano_str)
+                    proposicao = self.repository.buscar_por_codigo(tipo, numero, ano)
+                    if proposicao:
+                        return proposicao
+                except ValueError:
+                    pass
+
+        # 2. Tenta buscar no banco local por ID (ID da Câmara/Senado que usamos como PK)
         proposicao = self.repository.buscar_por_id(id_proposicao)
         if proposicao:
             return proposicao
 
-        # 2. Se não encontrou no banco, tenta nas APIs externas
-        # Tenta converter o ID para int para os adapters
+        # 3. Se não encontrou no banco, tenta nas APIs externas (apenas se o ID for numérico)
         try:
             id_int = int(id_proposicao)
         except ValueError:
-            raise ValueError(f"ID inválido: {id_proposicao}")
+            raise ValueError(f"Proposição não encontrada: {id_proposicao}")
 
         # Tenta na Câmara
         proposicao = self.camara_adapter.buscar_por_id(id_int)
         if proposicao:
             proposicao.atualizar_metricas()
+            proposicao.normalizar_campo_status()
             # Salva no banco para cache
             return self.repository.salvar(proposicao)
 
@@ -42,6 +56,7 @@ class DetalheProposicaoService:
         proposicao = self.senado_adapter.buscar_por_id(id_int)
         if proposicao:
             proposicao.atualizar_metricas()
+            proposicao.normalizar_campo_status()
             # Salva no banco para cache
             return self.repository.salvar(proposicao)
 

@@ -123,28 +123,85 @@ export async function obterProposicao(id: string): Promise<Proposicao | null> {
   try {
     const response = await fetch(`${API_BASE}/proposicoes/${id}`)
 
-    if (response.status === 404) return null
-
     if (!response.ok) {
-      console.warn(`API falhou para /proposicoes/${id}, usando dados mockados.`)
-      return PROPOSICOES_MOCK.find((p) => p.id === id) ?? null
+      console.warn(`API falhou para /proposicoes/${id} (status: ${response.status}), tentando dados mockados.`)
+      return PROPOSICOES_MOCK.find((p) => 
+        p.id === id || 
+        `${p.tipo}-${p.numero}-${p.ano}` === id
+      ) ?? null
     }
 
     return await response.json()
   } catch (error) {
     console.warn('Erro ao conectar na API, usando dados mockados:', error)
-    return PROPOSICOES_MOCK.find((p) => p.id === id) ?? null
+    return PROPOSICOES_MOCK.find((p) => 
+      p.id === id || 
+      `${p.tipo}-${p.numero}-${p.ano}` === id
+    ) ?? null
   }
 }
 
 export async function obterMovimentacoes(proposicaoId: string): Promise<MovimentacaoTramitacao[]> {
-  await delay(300)
-  const proposicao = PROPOSICOES_MOCK.find((p) => p.id === proposicaoId)
-  if (!proposicao) return []
-  return getMovimentacoes(proposicaoId, proposicao)
+  try {
+    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes`)
+
+    if (!response.ok) {
+      console.warn(`API falhou para movimentações da proposição ${proposicaoId}, usando dados mockados.`)
+      const proposicao = PROPOSICOES_MOCK.find((p) => 
+        p.id === proposicaoId || 
+        `${p.tipo}-${p.numero}-${p.ano}` === proposicaoId
+      )
+      if (!proposicao) return []
+      return getMovimentacoes(proposicao.id, proposicao)
+    }
+
+    const rawData = await response.json()
+    // Normalização das propriedades do Backend para a interface do Frontend
+    return (rawData as Array<{
+      sequencia?: number;
+      proposicaoId: string;
+      dataHora?: string;
+      siglaOrgao?: string;
+      descricaoTramitacao?: string;
+    }>).map((d, index) => ({
+      id: d.sequencia ? String(d.sequencia) : String(index),
+      proposicaoId: d.proposicaoId,
+      data: d.dataHora || new Date().toISOString(),
+      orgao: d.siglaOrgao || 'N/A',
+      descricao: d.descricaoTramitacao || 'Tramitação registrada',
+      responsavel: undefined,
+      diasNaEtapa: 0,
+      temAtraso: false,
+    }))
+  } catch (error) {
+    console.warn('Erro ao conectar na API de movimentações, usando dados mockados:', error)
+    const proposicao = PROPOSICOES_MOCK.find((p) => 
+      p.id === proposicaoId || 
+      `${p.tipo}-${p.numero}-${p.ano}` === proposicaoId
+    )
+    if (!proposicao) return []
+    return getMovimentacoes(proposicao.id, proposicao)
+  }
 }
 
 // --- Dashboard ---
+function agruparStatus(statusRaw: string): string {
+  const status = statusRaw.toLowerCase()
+  if (
+    ['aprovada', 'sancionada', 'promulgado', 'norma jurídica', 'enviado à sanção'].some((s) =>
+      status.includes(s)
+    )
+  )
+    return 'Aprovada/Sancionada'
+  if (
+    ['rejeitada', 'arquivada', 'retirada', 'prejudicada', 'indeferida', 'devolvida'].some((s) =>
+      status.includes(s)
+    )
+  )
+    return 'Rejeitada/Arquivada'
+  return 'Em tramitação'
+}
+
 export async function obterMetricas(): Promise<MetricasDashboard> {
   try {
     const response = await fetch(`${API_BASE}/dashboard/metricas`)
@@ -153,15 +210,20 @@ export async function obterMetricas(): Promise<MetricasDashboard> {
   } catch (error) {
     console.warn('Usando métricas mockadas devido a erro na API:', error)
     await delay(600)
+    const total = PROPOSICOES_MOCK.length
+    const aprovadas = PROPOSICOES_MOCK.filter((p) => agruparStatus(p.status) === 'Aprovada/Sancionada').length
+    const rejeitadas = PROPOSICOES_MOCK.filter((p) => agruparStatus(p.status) === 'Rejeitada/Arquivada').length
+    const emTramitacao = PROPOSICOES_MOCK.filter((p) => agruparStatus(p.status) === 'Em tramitação').length
+
     return {
       tempoMedioTramitacao: 412,
-      totalProposicoes: PROPOSICOES_MOCK.length,
+      totalProposicoes: total,
       proposicoesComAtraso: PROPOSICOES_MOCK.filter((p) => p.temAtraso).length,
       comissaoMaiorTempo: 'CCJ',
       comissaoMaiorTempoMedia: 680,
-      totalAprovadas: PROPOSICOES_MOCK.filter((p) => p.status === 'Aprovada' || p.status === 'Sancionada').length,
-      totalEmTramitacao: PROPOSICOES_MOCK.filter((p) => p.status === 'Em tramitação' || p.status === 'Em análise' || p.status === 'Aguardando votação').length,
-      totalRejeitadas: PROPOSICOES_MOCK.filter((p) => p.status === 'Rejeitada' || p.status === 'Arquivada').length,
+      totalAprovadas: aprovadas,
+      totalEmTramitacao: emTramitacao,
+      totalRejeitadas: rejeitadas,
     }
   }
 }
@@ -212,14 +274,19 @@ export async function obterDadosStatus(): Promise<DadosGraficoStatus[]> {
     await delay(300)
     const total = PROPOSICOES_MOCK.length
     const contagem: Record<string, number> = {}
+    
     PROPOSICOES_MOCK.forEach((p) => {
-      contagem[p.status] = (contagem[p.status] ?? 0) + 1
+      const statusAgrupado = agruparStatus(p.status)
+      contagem[statusAgrupado] = (contagem[statusAgrupado] ?? 0) + 1
     })
-    return Object.entries(contagem).map(([status, quantidade]) => ({
-      status,
-      quantidade,
-      percentual: Math.round((quantidade / total) * 100),
-    }))
+
+    return Object.entries(contagem)
+      .map(([status, quantidade]) => ({
+        status,
+        quantidade,
+        percentual: Math.round((quantidade / total) * 100),
+      }))
+      .sort((a, b) => b.quantidade - a.quantidade)
   }
 }
 
