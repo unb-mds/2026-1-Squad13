@@ -92,3 +92,44 @@ def test_contar_sem_resultados(session: Session):
     repo = SQLProposicaoRepository(session)
     total = repo.contar(status="Inexistente")
     assert total == 0
+
+def test_filtrar_todos_campos(session: Session):
+    repo = SQLProposicaoRepository(session)
+    # Adiciona proposição completa
+    p = Proposicao(
+        id="full", tipo="PL", numero="123", ano=2024, autor="Autor X", uf_autor="RR",
+        status="Status X", orgao_origem="Origem X", ementa="Ementa X",
+        data_apresentacao="2024-05-14", data_ultima_movimentacao="2024-05-14",
+        orgao_atual="Orgao X", tags=[]
+    )
+    session.add(p)
+    session.commit()
+    
+    # Testa cada filtro individualmente para garantir cobertura em filtrar() e contar()
+    assert len(repo.filtrar(tipo="PL")) >= 1
+    assert repo.contar(tipo="PL") >= 1
+    
+    assert len(repo.filtrar(numero=123)) == 1
+    assert repo.contar(numero=123) == 1
+    
+    assert len(repo.filtrar(ano=2024)) >= 1
+    assert repo.contar(ano=2024) >= 1
+    
+    assert len(repo.filtrar(autor="Autor X")) == 1
+    assert repo.contar(autor="Autor X") == 1
+    
+    assert len(repo.filtrar(uf_autor="RR")) == 1
+    assert repo.contar(uf_autor="RR") == 1
+    
+    assert len(repo.filtrar(orgao_origem="Origem X")) == 1
+    assert repo.contar(orgao_origem="Origem X") == 1
+    
+    assert len(repo.filtrar(data_fim="2024-05-14")) >= 1
+    assert repo.contar(data_fim="2024-05-14") >= 1
+    
+    assert len(repo.filtrar(busca="123")) == 1 # Busca por número
+    assert len(repo.filtrar(busca="Autor X")) == 1 # Busca por autor
+    
+    # Cobertura adicional para o método contar()
+    assert repo.contar(data_inicio="2024-05-01") >= 1
+    assert repo.contar(busca="Ementa X") == 1

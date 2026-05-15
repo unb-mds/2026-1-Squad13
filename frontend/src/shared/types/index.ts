@@ -25,6 +25,7 @@ export interface Proposicao {
   dataUltimaMovimentacao: string
   dataEncerramento?: string
   linkOficial?: string
+  codigoNormalizado?: string
   tempoTotalDias: number
   temAtraso: boolean
   atrasoCritico: boolean
