@@ -9,6 +9,13 @@ class SQLTramitacaoRepository:
     def __init__(self, session: Session):
         self.session = session
 
+    def salvar(self, tramitacao: Tramitacao) -> Tramitacao:
+        """Salva uma tramitação no banco."""
+        self.session.add(tramitacao)
+        self.session.commit()
+        self.session.refresh(tramitacao)
+        return tramitacao
+
     def salvar_lote(self, tramitacoes: List[Tramitacao]) -> List[Tramitacao]:
         """Salva uma lista de tramitações no banco."""
         for t in tramitacoes:

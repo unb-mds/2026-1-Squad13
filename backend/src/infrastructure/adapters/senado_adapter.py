@@ -113,10 +113,12 @@ class SenadoAdapter:
 
     def listar_recentes(self, tipo: str, quantidade: int = 10) -> List[int]:
         """Busca uma lista de IDs das matérias mais recentes de um determinado tipo no Senado."""
-        url = f"{self.base_url}/materia/pesquisa/lista"
+        # O endpoint antigo /materia/pesquisa/lista foi desativado em 2026-02-01.
+        # Usamos agora o novo endpoint /processo.
+        url = f"{self.base_url}/processo"
         params = {
             "sigla": tipo,
-            "sort": "desc"
+            "ano": 2026 # Tenta o ano atual primeiro
         }
         headers = {"Accept": "application/json"}
         try:
@@ -124,19 +126,51 @@ class SenadoAdapter:
             resp.raise_for_status()
             dados = resp.json()
             
-            materias = dados.get("ListaMaterias", {}).get("Materia", [])
-            if not isinstance(materias, list):
-                materias = [materias] if materias else []
+            if not isinstance(dados, list):
+                dados = [dados] if dados else []
+            
+            # Se não vier nada de 2026, tenta 2025
+            if not dados:
+                params["ano"] = 2025
+                resp = requests.get(url, params=params, headers=headers, timeout=10)
+                if resp.status_code == 200:
+                    dados = resp.json()
+                    if not isinstance(dados, list):
+                        dados = [dados] if dados else []
+
+            ids = []
+            for m in dados:
+                if "codigoMateria" in m:
+                    ids.append(int(m["codigoMateria"]))
+                elif "id" in m: # id as fallback if it's the materia id
+                    ids.append(int(m["id"]))
                 
-            return [int(m["CodigoMateria"]) for m in materias[:quantidade]]
+                if len(ids) >= quantidade:
+                    break
+            return ids
         except Exception as e:
             print(f"Erro ao listar matérias recentes no Senado: {e}")
             return []
 
     def buscar_tramitacoes(self, id_materia: int) -> List[Tramitacao]:
         """Busca as tramitações de uma proposição no Senado."""
-        url = f"{self.base_url}/processo/{id_materia}?v=1"
         headers = {"Accept": "application/json"}
+        
+        # Tenta primeiro descobrir o id do processo se for id de materia
+        id_processo = id_materia
+        try:
+            url_mat = f"{self.base_url}/materia/{id_materia}"
+            resp_mat = requests.get(url_mat, headers=headers, timeout=5)
+            if resp_mat.status_code == 200:
+                dados_mat = resp_mat.json()
+                if "DetalheMateria" in dados_mat and "Materia" in dados_mat["DetalheMateria"]:
+                    id_proc = dados_mat["DetalheMateria"]["Materia"].get("IdentificacaoMateria", {}).get("IdentificacaoProcesso")
+                    if id_proc:
+                        id_processo = id_proc
+        except Exception:
+            pass
+
+        url = f"{self.base_url}/processo/{id_processo}?v=1"
         try:
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
@@ -152,17 +186,20 @@ class SenadoAdapter:
                         proposicao_id=str(id_materia),
                         data_hora=s.get("inicio", ""),
                         sequencia=seq,
-                        sigla_orgao="Senado",
+                        sigla_orgao=s.get("colegiado", {}).get("sigla") or "Senado",
                         descricao_tramitacao=s.get("descricao", ""),
                         status=s.get("descricao", "")
                     ))
                     seq += 1
             
+            for t in tramitacoes:
+                t.normalizar()
+                
             # Ordenar por data descendente para ser consistente com o padrão
-            tramitacoes.sort(key=lambda x: x.data_hora, reverse=True)
+            tramitacoes.sort(key=lambda x: (x.data_hora, x.sequencia), reverse=True)
             return tramitacoes
         except Exception as e:
-            print(f"Erro ao buscar tramitações do Senado para ID {id_materia}: {e}")
+            print(f"Erro ao buscar tramitações do Senado para ID {id_materia} (Processo {id_processo}): {e}")
             return []
     def _processar_dados_processo(self, dados: dict, id_materia: str) -> Proposicao:
         """Processa a estrutura flat retornada pelo endpoint /processo."""
