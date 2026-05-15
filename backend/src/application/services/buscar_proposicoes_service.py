@@ -15,6 +15,11 @@ class BuscarProposicoesService:
         itens_por_pagina: int = 10
     ) -> dict:
         
+        # Regra de negócio: pelo menos um filtro é obrigatório
+        valores_filtros = [filtros.get(k) for k in filtros]
+        if not any(valor is not None and str(valor).strip() != "" for valor in valores_filtros):
+            raise ValueError("Preencha pelo menos um filtro para realizar a busca.")
+
         filtros_repositorio = {
             "tipo": filtros.get("tipo"),
             "numero": filtros.get("numero"),

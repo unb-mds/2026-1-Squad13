@@ -28,7 +28,7 @@ export function PainelFiltros({ filtros, onChange }: FiltrosProps) {
     if (debouncedBusca !== filtros.busca) {
       onChange({ ...filtros, busca: debouncedBusca })
     }
-  }, [debouncedBusca])
+  }, [debouncedBusca, filtros, onChange])
 
   // Sincroniza estado local quando filtros são resetados externamente
   useEffect(() => {
