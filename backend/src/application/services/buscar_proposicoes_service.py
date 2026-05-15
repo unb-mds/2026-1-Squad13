@@ -1,20 +1,19 @@
 from infrastructure.repositories.proposicao_repository import ProposicaoRepository
 
+
 class BuscarProposicoesService:
     """
     Serviço de Aplicação que orquestra a busca de proposições.
     Integra a lógica de filtros e paginação da 'main' com o repositório da 'develop'.
     """
+
     def __init__(self, repository: ProposicaoRepository):
         self.repository = repository
 
     def executar(
-        self,
-        filtros: dict,
-        pagina: int = 1,
-        itens_por_pagina: int = 10
+        self, filtros: dict, pagina: int = 1, itens_por_pagina: int = 10
     ) -> dict:
-        
+
         filtros_repositorio = {
             "tipo": filtros.get("tipo"),
             "numero": filtros.get("numero"),
@@ -37,7 +36,11 @@ class BuscarProposicoesService:
             offset=inicio,
         )
 
-        total_paginas = (total + itens_por_pagina - 1) // itens_por_pagina if itens_por_pagina > 0 else 0
+        total_paginas = (
+            (total + itens_por_pagina - 1) // itens_por_pagina
+            if itens_por_pagina > 0
+            else 0
+        )
 
         return {
             "items": items,

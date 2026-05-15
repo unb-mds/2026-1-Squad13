@@ -10,9 +10,11 @@ from domain.entities.tramitacao import Tramitacao  # noqa: F401
 # echo=True faz com que o SQLModel imprima os comandos SQL no console (útil para aprender)
 engine = create_engine(settings.database_url, echo=True)
 
+
 def init_db():
     """Cria as tabelas no banco de dados se elas não existirem"""
     SQLModel.metadata.create_all(engine)
+
 
 def get_session():
     """

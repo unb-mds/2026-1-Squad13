@@ -1,6 +1,7 @@
 import pytest
 from domain.entities.proposicao import Proposicao
 
+
 @pytest.fixture
 def proposicao_exemplo():
     """Entidade válida reutilizável em qualquer teste."""
@@ -16,8 +17,9 @@ def proposicao_exemplo():
         data_apresentacao="2024-01-01",
         data_ultima_movimentacao="2024-01-01",
         orgao_atual="CCJ",
-        tags=[]
+        tags=[],
     )
+
 
 @pytest.fixture
 def lista_proposicoes(proposicao_exemplo):
@@ -36,7 +38,7 @@ def lista_proposicoes(proposicao_exemplo):
             data_apresentacao="2023-01-01",
             data_ultima_movimentacao="2023-12-01",
             orgao_atual="Plenário",
-            tags=[]
+            tags=[],
         ),
         Proposicao(
             id="12347",
@@ -50,6 +52,6 @@ def lista_proposicoes(proposicao_exemplo):
             data_apresentacao="2024-02-01",
             data_ultima_movimentacao="2024-02-01",
             orgao_atual="Mesa",
-            tags=[]
+            tags=[],
         ),
     ]

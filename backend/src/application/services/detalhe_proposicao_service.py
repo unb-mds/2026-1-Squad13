@@ -3,16 +3,18 @@ from infrastructure.repositories.proposicao_repository import ProposicaoReposito
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 
+
 class DetalheProposicaoService:
     """
     Serviço que busca os detalhes de uma proposição.
     Prioriza o banco de dados local e recorre às APIs externas se necessário.
     """
+
     def __init__(
         self,
         repository: ProposicaoRepository,
         camara_adapter: CamaraAdapter,
-        senado_adapter: SenadoAdapter
+        senado_adapter: SenadoAdapter,
     ):
         self.repository = repository
         self.camara_adapter = camara_adapter
@@ -60,4 +62,6 @@ class DetalheProposicaoService:
             # Salva no banco para cache
             return self.repository.salvar(proposicao)
 
-        raise ValueError(f"Proposição com ID {id_proposicao} não encontrada em nenhuma fonte.")
+        raise ValueError(
+            f"Proposição com ID {id_proposicao} não encontrada em nenhuma fonte."
+        )

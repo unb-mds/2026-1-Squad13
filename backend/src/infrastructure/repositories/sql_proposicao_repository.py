@@ -3,10 +3,12 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 from domain.entities.proposicao import Proposicao
 
+
 class SQLProposicaoRepository:
     """
     Implementação do repositório utilizando SQLModel e PostgreSQL.
     """
+
     def __init__(self, session: Session):
         self.session = session
 
@@ -20,12 +22,14 @@ class SQLProposicaoRepository:
     def buscar_por_id(self, id: str) -> Optional[Proposicao]:
         return self.session.get(Proposicao, id)
 
-    def buscar_por_codigo(self, tipo: str, numero: str, ano: int) -> Optional[Proposicao]:
+    def buscar_por_codigo(
+        self, tipo: str, numero: str, ano: int
+    ) -> Optional[Proposicao]:
         """Busca uma proposição pelo conjunto único Tipo, Número e Ano."""
         statement = select(Proposicao).where(
             func.lower(Proposicao.tipo) == tipo.lower(),
             Proposicao.numero == str(numero),
-            Proposicao.ano == ano
+            Proposicao.ano == ano,
         )
         return self.session.exec(statement).first()
 
@@ -53,13 +57,19 @@ class SQLProposicaoRepository:
         if ano:
             statement = statement.where(Proposicao.ano == ano)
         if autor:
-            statement = statement.where(func.lower(Proposicao.autor).contains(autor.lower()))
+            statement = statement.where(
+                func.lower(Proposicao.autor).contains(autor.lower())
+            )
         if uf_autor:
-            statement = statement.where(func.lower(Proposicao.uf_autor) == uf_autor.lower())
+            statement = statement.where(
+                func.lower(Proposicao.uf_autor) == uf_autor.lower()
+            )
         if status:
             statement = statement.where(func.lower(Proposicao.status) == status.lower())
         if orgao_origem:
-            statement = statement.where(func.lower(Proposicao.orgao_origem) == orgao_origem.lower())
+            statement = statement.where(
+                func.lower(Proposicao.orgao_origem) == orgao_origem.lower()
+            )
         if data_inicio:
             statement = statement.where(Proposicao.data_apresentacao >= data_inicio)
         if data_fim:
@@ -68,9 +78,9 @@ class SQLProposicaoRepository:
         if busca:
             termo = f"%{busca}%"
             statement = statement.where(
-                (Proposicao.ementa.ilike(termo)) |
-                (Proposicao.numero.ilike(termo)) |
-                (Proposicao.autor.ilike(termo))
+                (Proposicao.ementa.ilike(termo))
+                | (Proposicao.numero.ilike(termo))
+                | (Proposicao.autor.ilike(termo))
             )
 
         statement = statement.order_by(Proposicao.id)
@@ -104,13 +114,19 @@ class SQLProposicaoRepository:
         if ano:
             statement = statement.where(Proposicao.ano == ano)
         if autor:
-            statement = statement.where(func.lower(Proposicao.autor).contains(autor.lower()))
+            statement = statement.where(
+                func.lower(Proposicao.autor).contains(autor.lower())
+            )
         if uf_autor:
-            statement = statement.where(func.lower(Proposicao.uf_autor) == uf_autor.lower())
+            statement = statement.where(
+                func.lower(Proposicao.uf_autor) == uf_autor.lower()
+            )
         if status:
             statement = statement.where(func.lower(Proposicao.status) == status.lower())
         if orgao_origem:
-            statement = statement.where(func.lower(Proposicao.orgao_origem) == orgao_origem.lower())
+            statement = statement.where(
+                func.lower(Proposicao.orgao_origem) == orgao_origem.lower()
+            )
         if data_inicio:
             statement = statement.where(Proposicao.data_apresentacao >= data_inicio)
         if data_fim:
@@ -119,9 +135,9 @@ class SQLProposicaoRepository:
         if busca:
             termo = f"%{busca}%"
             statement = statement.where(
-                (Proposicao.ementa.ilike(termo)) |
-                (Proposicao.numero.ilike(termo)) |
-                (Proposicao.autor.ilike(termo))
+                (Proposicao.ementa.ilike(termo))
+                | (Proposicao.numero.ilike(termo))
+                | (Proposicao.autor.ilike(termo))
             )
 
         return self.session.exec(statement).one()

@@ -1,11 +1,12 @@
 from fastapi.testclient import TestClient
 
+
 def test_register_and_login_flow(http_client: TestClient):
     # 1. Registrar um novo usuário
     register_data = {
         "nome": "Usuário Teste",
         "email": "teste@exemplo.com",
-        "password": "senha_segura_123"
+        "password": "senha_segura_123",
     }
     response = http_client.post("/auth/register", json=register_data)
     assert response.status_code == 201
@@ -22,7 +23,7 @@ def test_register_and_login_flow(http_client: TestClient):
     # 3. Fazer login
     login_data = {
         "email": register_data["email"],
-        "password": register_data["password"]
+        "password": register_data["password"],
     }
     response = http_client.post("/auth/login", json=login_data)
     assert response.status_code == 200

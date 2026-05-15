@@ -2,10 +2,12 @@ from typing import Optional
 from sqlmodel import Session, select
 from domain.entities.user import User
 
+
 class SQLUserRepository:
     """
     Implementação do repositório de usuários utilizando SQLModel e PostgreSQL.
     """
+
     def __init__(self, session: Session):
         self.session = session
 

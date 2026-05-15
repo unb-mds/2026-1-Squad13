@@ -4,8 +4,12 @@ from pydantic import BaseModel, ConfigDict, Field
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
 from application.services.listar_tramitacoes_service import ListarTramitacoesService
-from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
-from infrastructure.repositories.sql_tramitacao_repository import SQLTramitacaoRepository
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
+from infrastructure.repositories.sql_tramitacao_repository import (
+    SQLTramitacaoRepository,
+)
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import get_session
@@ -15,8 +19,10 @@ router = APIRouter()
 
 # --- Schemas ---
 
+
 class TramitacaoResponse(BaseModel):
     """Schema para retorno de tramitações com normalização camelCase"""
+
     model_config = ConfigDict(from_attributes=True)
 
     proposicaoId: str = Field(alias="proposicaoId")
@@ -27,8 +33,10 @@ class TramitacaoResponse(BaseModel):
     despacho: Optional[str] = None
     status: Optional[str] = None
 
+
 class ProposicaoResponse(BaseModel):
     """Schema para retorno na API com normalização camelCase"""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -51,13 +59,17 @@ class ProposicaoResponse(BaseModel):
     linkOficial: Optional[str] = Field(default=None, alias="linkOficial")
     codigoNormalizado: Optional[str] = Field(default=None, alias="codigoNormalizado")
     dataEncerramento: Optional[str] = Field(default=None, alias="dataEncerramento")
-    previsaoAprovacaoDias: Optional[int] = Field(default=None, alias="previsaoAprovacaoDias")
+    previsaoAprovacaoDias: Optional[int] = Field(
+        default=None, alias="previsaoAprovacaoDias"
+    )
+
 
 class ProposicoesListResponse(BaseModel):
     items: List[ProposicaoResponse]
     total: int
     pagina: int
     totalPaginas: int = Field(alias="totalPaginas")
+
 
 # --- Helper to map snake_case to camelCase for response ---
 def _to_response(p) -> dict:
@@ -85,6 +97,7 @@ def _to_response(p) -> dict:
         "previsaoAprovacaoDias": p.previsao_aprovacao_dias,
     }
 
+
 def _to_tramitacao_response(t) -> dict:
     return {
         "proposicaoId": t.proposicao_id,
@@ -93,33 +106,32 @@ def _to_tramitacao_response(t) -> dict:
         "siglaOrgao": t.sigla_orgao,
         "descricaoTramitacao": t.descricao_tramitacao,
         "despacho": t.despacho,
-        "status": t.status
+        "status": t.status,
     }
+
 
 # --- Controller ---
 
+
 @router.get("/proposicoes/{id}/movimentacoes", response_model=List[TramitacaoResponse])
-def listar_movimentacoes(
-    id: str,
-    session: Session = Depends(get_session)
-):
+def listar_movimentacoes(id: str, session: Session = Depends(get_session)):
     tramitacao_repo = SQLTramitacaoRepository(session)
     proposicao_repo = SQLProposicaoRepository(session)
     camara_adapter = CamaraAdapter()
     senado_adapter = SenadoAdapter()
-    
+
     service = ListarTramitacoesService(
-        tramitacao_repo,
-        proposicao_repo,
-        camara_adapter,
-        senado_adapter
+        tramitacao_repo, proposicao_repo, camara_adapter, senado_adapter
     )
 
     try:
         movimentacoes = service.executar(id)
         return [_to_tramitacao_response(t) for t in movimentacoes]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar movimentações: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao buscar movimentações: {str(e)}"
+        )
+
 
 @router.get("/proposicoes", response_model=ProposicoesListResponse)
 def buscar_proposicoes(
@@ -131,7 +143,7 @@ def buscar_proposicoes(
     data_fim: Optional[str] = Query(default=None, alias="dataFim"),
     pagina: int = Query(default=1, ge=1),
     itens_por_pagina: int = Query(default=10, ge=1, le=100),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ):
     repository = SQLProposicaoRepository(session)
     service = BuscarProposicoesService(repository)
@@ -142,31 +154,26 @@ def buscar_proposicoes(
         "status": status,
         "orgao_origem": orgao_origem,
         "data_inicio": data_inicio,
-        "data_fim": data_fim
+        "data_fim": data_fim,
     }
 
     try:
         resultado = service.executar(
-            filtros=filtros,
-            pagina=pagina,
-            itens_por_pagina=itens_por_pagina
+            filtros=filtros, pagina=pagina, itens_por_pagina=itens_por_pagina
         )
 
         return {
             "items": [_to_response(p) for p in resultado["items"]],
             "total": resultado["total"],
             "pagina": resultado["pagina"],
-            "totalPaginas": resultado["total_paginas"]
+            "totalPaginas": resultado["total_paginas"],
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/proposicoes/{id}", response_model=ProposicaoResponse)
-def obter_detalhe_proposicao(
-    id: str,
-    session: Session = Depends(get_session)
-):
+def obter_detalhe_proposicao(id: str, session: Session = Depends(get_session)):
     repository = SQLProposicaoRepository(session)
     camara_adapter = CamaraAdapter()
     senado_adapter = SenadoAdapter()

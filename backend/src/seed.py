@@ -2,7 +2,9 @@ from sqlmodel import text
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import init_db, get_session
-from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 from init_db import seed_demo_user
 
 
@@ -14,7 +16,11 @@ def run() -> None:
     print("Limpando dados fora de escopo (apenas PL e PEC são permitidos)...")
     with next(get_session()) as session:
         # Deletar tramitações de proposições que não são PL ou PEC
-        session.exec(text("DELETE FROM tramitacao WHERE proposicao_id IN (SELECT id FROM proposicao WHERE tipo NOT IN ('PL', 'PEC'))"))
+        session.exec(
+            text(
+                "DELETE FROM tramitacao WHERE proposicao_id IN (SELECT id FROM proposicao WHERE tipo NOT IN ('PL', 'PEC'))"
+            )
+        )
         # Deletar proposições que não são PL ou PEC
         session.exec(text("DELETE FROM proposicao WHERE tipo NOT IN ('PL', 'PEC')"))
         session.commit()
@@ -60,16 +66,28 @@ def run() -> None:
         for p in proposicoes:
             # Gerar ementa resumida se não houver
             if not p.ementa_resumida and p.ementa:
-                p.ementa_resumida = p.ementa[:100] + "..." if len(p.ementa) > 100 else p.ementa
+                p.ementa_resumida = (
+                    p.ementa[:100] + "..." if len(p.ementa) > 100 else p.ementa
+                )
 
             # Gerar tags simples baseadas no conteúdo (Exemplo)
-            if not p.tags or any(t.lower() in ['pl', 'pec'] for t in p.tags):
+            if not p.tags or any(t.lower() in ["pl", "pec"] for t in p.tags):
                 tags = []
-                palavras_chave = ["saúde", "educação", "economia", "tributo", "indígena", "mulher", "segurança", "trabalho", "ambiente"]
+                palavras_chave = [
+                    "saúde",
+                    "educação",
+                    "economia",
+                    "tributo",
+                    "indígena",
+                    "mulher",
+                    "segurança",
+                    "trabalho",
+                    "ambiente",
+                ]
                 for palavra in palavras_chave:
                     if palavra in p.ementa.lower():
                         tags.append(palavra)
-                
+
                 # Se não achou nenhuma palavra chave, coloca uma tag genérica útil ou deixa vazio
                 p.tags = tags[:3]
 

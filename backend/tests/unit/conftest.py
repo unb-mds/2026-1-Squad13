@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 
+
 @pytest.fixture
 def mock_repositorio(lista_proposicoes):
     """
@@ -12,6 +13,7 @@ def mock_repositorio(lista_proposicoes):
     repo.filtrar.return_value = lista_proposicoes
     repo.contar.return_value = len(lista_proposicoes)
     return repo
+
 
 @pytest.fixture
 def service(mock_repositorio):

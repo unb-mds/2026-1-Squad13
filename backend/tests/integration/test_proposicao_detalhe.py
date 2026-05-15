@@ -59,7 +59,10 @@ def test_obterDetalheProposicao_adaptadorCamara_retorna200(http_client: TestClie
 
 
 def test_obterDetalheProposicao_slug_retorna200(http_client: TestClient, db_session):
-    from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+    from infrastructure.repositories.sql_proposicao_repository import (
+        SQLProposicaoRepository,
+    )
+
     repo = SQLProposicaoRepository(db_session)
     proposicao = _proposicao_camara()
     repo.salvar(proposicao)
@@ -74,12 +77,15 @@ def test_obterDetalheProposicao_slug_retorna200(http_client: TestClient, db_sess
 
 def test_obterDetalheProposicao_adaptadorSenado_retorna200(http_client: TestClient):
     proposicao = _proposicao_senado()
-    with patch(
-        "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
-        return_value=None,
-    ), patch(
-        "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_por_id",
-        return_value=proposicao,
+    with (
+        patch(
+            "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
+            return_value=None,
+        ),
+        patch(
+            "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_por_id",
+            return_value=proposicao,
+        ),
     ):
         response = http_client.get("/proposicoes/8147067")
 
@@ -92,13 +98,18 @@ def test_obterDetalheProposicao_adaptadorSenado_retorna200(http_client: TestClie
     assert dados["tempoTotalDias"] > 0
 
 
-def test_obterDetalheProposicao_nenhumAdaptadorEncontra_retorna404(http_client: TestClient):
-    with patch(
-        "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
-        return_value=None,
-    ), patch(
-        "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_por_id",
-        return_value=None,
+def test_obterDetalheProposicao_nenhumAdaptadorEncontra_retorna404(
+    http_client: TestClient,
+):
+    with (
+        patch(
+            "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
+            return_value=None,
+        ),
+        patch(
+            "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_por_id",
+            return_value=None,
+        ),
     ):
         response = http_client.get("/proposicoes/999999")
 

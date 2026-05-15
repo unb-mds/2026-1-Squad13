@@ -3,11 +3,13 @@ from typing import Optional, List
 from domain.entities.proposicao import Proposicao
 from domain.entities.tramitacao import Tramitacao
 
+
 class SenadoAdapter:
     """
     Adaptador para a API de Dados Abertos do Senado Federal.
     Documentação: https://legis.senado.leg.br/dadosabertos/docs/
     """
+
     def __init__(self):
         self.base_url = "https://legis.senado.leg.br/dadosabertos"
 
@@ -27,46 +29,74 @@ class SenadoAdapter:
                 # Se não encontrou em materia/, tenta em processo/ (pode ser um idProcesso)
                 url = f"{self.base_url}/processo/{id_materia}?v=1"
                 resp = requests.get(url, headers=headers, timeout=10)
-            
+
             resp.raise_for_status()
             dados_brutos = resp.json()
-            
+
             # Normaliza a estrutura: a API de matéria vem aninhada em DetalheMateria/Materia,
             # a de processo vem flat no topo.
-            if "DetalheMateria" in dados_brutos and "Materia" in dados_brutos["DetalheMateria"]:
+            if (
+                "DetalheMateria" in dados_brutos
+                and "Materia" in dados_brutos["DetalheMateria"]
+            ):
                 dados = dados_brutos["DetalheMateria"]["Materia"]
                 identificacao_obj = dados.get("IdentificacaoMateria", {})
-                identificacao = identificacao_obj.get("DescricaoIdentificacaoMateria", "")
-                
+                identificacao = identificacao_obj.get(
+                    "DescricaoIdentificacaoMateria", ""
+                )
+
                 # Se tiver IdentificacaoProcesso, chama a API de processo para dados mais ricos (status real)
                 id_processo = identificacao_obj.get("IdentificacaoProcesso")
                 if id_processo:
                     try:
-                        resp_proc = requests.get(f"{self.base_url}/processo/{id_processo}?v=1", headers=headers, timeout=5)
+                        resp_proc = requests.get(
+                            f"{self.base_url}/processo/{id_processo}?v=1",
+                            headers=headers,
+                            timeout=5,
+                        )
                         if resp_proc.status_code == 200:
                             # Recorre à estrutura flat do processo
                             dados_proc = resp_proc.json()
-                            return self._processar_dados_processo(dados_proc, str(id_materia))
+                            return self._processar_dados_processo(
+                                dados_proc, str(id_materia)
+                            )
                     except Exception:
-                        pass # Fallback para o que já temos se falhar
-                
-                ementa = dados.get("DadosBasicosMateria", {}).get("EmentaMateria", "Sem ementa")
-                data_apresentacao = dados.get("DadosBasicosMateria", {}).get("DataApresentacao", "")
-                autor_nome = dados.get("DadosBasicosMateria", {}).get("Autor", "Não informado")
+                        pass  # Fallback para o que já temos se falhar
+
+                ementa = dados.get("DadosBasicosMateria", {}).get(
+                    "EmentaMateria", "Sem ementa"
+                )
+                data_apresentacao = dados.get("DadosBasicosMateria", {}).get(
+                    "DataApresentacao", ""
+                )
+                autor_nome = dados.get("DadosBasicosMateria", {}).get(
+                    "Autor", "Não informado"
+                )
                 # No DetalheMateria, a situação fica em SituacaoAtual
-                situacao_atual_obj = dados.get("SituacaoAtual", {}).get("Autuacoes", {}).get("Autuacao", {})
-                if isinstance(situacao_atual_obj, list): 
-                    situacao_atual_obj = situacao_atual_obj[0] if situacao_atual_obj else {}
+                situacao_atual_obj = (
+                    dados.get("SituacaoAtual", {})
+                    .get("Autuacoes", {})
+                    .get("Autuacao", {})
+                )
+                if isinstance(situacao_atual_obj, list):
+                    situacao_atual_obj = (
+                        situacao_atual_obj[0] if situacao_atual_obj else {}
+                    )
                 situacao = situacao_atual_obj.get("Situacao", {})
                 status_atual = situacao.get("DescricaoSituacao", "Sem status")
                 data_ultima_movimentacao = situacao.get("DataSituacao", "")
-            elif "DetalheMateria" in dados_brutos and "Materia" not in dados_brutos["DetalheMateria"]:
-                # Pode ser um idProcesso passado para o endpoint de materia, 
+            elif (
+                "DetalheMateria" in dados_brutos
+                and "Materia" not in dados_brutos["DetalheMateria"]
+            ):
+                # Pode ser um idProcesso passado para o endpoint de materia,
                 # ou simplesmente não encontrado. Tenta endpoint de processo.
                 url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
                 resp_proc = requests.get(url_proc, headers=headers, timeout=10)
                 if resp_proc.status_code == 200:
-                    return self._processar_dados_processo(resp_proc.json(), str(id_materia))
+                    return self._processar_dados_processo(
+                        resp_proc.json(), str(id_materia)
+                    )
                 return None
             else:
                 return self._processar_dados_processo(dados_brutos, str(id_materia))
@@ -86,7 +116,7 @@ class SenadoAdapter:
             # Fallback para data de apresentação se última movimentação estiver vazia
             if not data_ultima_movimentacao:
                 data_ultima_movimentacao = data_apresentacao
-            
+
             return Proposicao(
                 id=str(id_materia),
                 tipo=tipo,
@@ -101,14 +131,16 @@ class SenadoAdapter:
                 data_ultima_movimentacao=data_ultima_movimentacao,
                 orgao_atual="Senado Federal",
                 link_oficial=f"https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id={id_materia}",
-                tags=[]
+                tags=[],
             )
 
         except requests.exceptions.RequestException as e:
             print(f"Erro de rede ao buscar matéria {id_materia} no Senado: {e}")
             return None
         except Exception as e:
-            print(f"Erro inesperado ao processar dados do Senado para ID {id_materia}: {e}")
+            print(
+                f"Erro inesperado ao processar dados do Senado para ID {id_materia}: {e}"
+            )
             return None
 
     def listar_recentes(self, tipo: str, quantidade: int = 10) -> List[int]:
@@ -118,17 +150,17 @@ class SenadoAdapter:
         url = f"{self.base_url}/processo"
         params = {
             "sigla": tipo,
-            "ano": 2026 # Tenta o ano atual primeiro
+            "ano": 2026,  # Tenta o ano atual primeiro
         }
         headers = {"Accept": "application/json"}
         try:
             resp = requests.get(url, params=params, headers=headers, timeout=10)
             resp.raise_for_status()
             dados = resp.json()
-            
+
             if not isinstance(dados, list):
                 dados = [dados] if dados else []
-            
+
             # Se não vier nada de 2026, tenta 2025
             if not dados:
                 params["ano"] = 2025
@@ -142,9 +174,9 @@ class SenadoAdapter:
             for m in dados:
                 if "codigoMateria" in m:
                     ids.append(int(m["codigoMateria"]))
-                elif "id" in m: # id as fallback if it's the materia id
+                elif "id" in m:  # id as fallback if it's the materia id
                     ids.append(int(m["id"]))
-                
+
                 if len(ids) >= quantidade:
                     break
             return ids
@@ -155,7 +187,7 @@ class SenadoAdapter:
     def buscar_tramitacoes(self, id_materia: int) -> List[Tramitacao]:
         """Busca as tramitações de uma proposição no Senado."""
         headers = {"Accept": "application/json"}
-        
+
         # Tenta primeiro descobrir o id do processo se for id de materia
         id_processo = id_materia
         try:
@@ -163,8 +195,15 @@ class SenadoAdapter:
             resp_mat = requests.get(url_mat, headers=headers, timeout=5)
             if resp_mat.status_code == 200:
                 dados_mat = resp_mat.json()
-                if "DetalheMateria" in dados_mat and "Materia" in dados_mat["DetalheMateria"]:
-                    id_proc = dados_mat["DetalheMateria"]["Materia"].get("IdentificacaoMateria", {}).get("IdentificacaoProcesso")
+                if (
+                    "DetalheMateria" in dados_mat
+                    and "Materia" in dados_mat["DetalheMateria"]
+                ):
+                    id_proc = (
+                        dados_mat["DetalheMateria"]["Materia"]
+                        .get("IdentificacaoMateria", {})
+                        .get("IdentificacaoProcesso")
+                    )
                     if id_proc:
                         id_processo = id_proc
         except Exception:
@@ -177,51 +216,60 @@ class SenadoAdapter:
             dados = resp.json()
 
             tramitacoes = []
-            autuacoes = dados.get('autuacoes', [])
+            autuacoes = dados.get("autuacoes", [])
             seq = 1
             if autuacoes:
-                situacoes = autuacoes[0].get('situacoes', [])
+                situacoes = autuacoes[0].get("situacoes", [])
                 for s in situacoes:
-                    tramitacoes.append(Tramitacao(
-                        proposicao_id=str(id_materia),
-                        data_hora=s.get("inicio", ""),
-                        sequencia=seq,
-                        sigla_orgao=s.get("colegiado", {}).get("sigla") or "Senado",
-                        descricao_tramitacao=s.get("descricao", ""),
-                        status=s.get("descricao", "")
-                    ))
+                    tramitacoes.append(
+                        Tramitacao(
+                            proposicao_id=str(id_materia),
+                            data_hora=s.get("inicio", ""),
+                            sequencia=seq,
+                            sigla_orgao=s.get("colegiado", {}).get("sigla") or "Senado",
+                            descricao_tramitacao=s.get("descricao", ""),
+                            status=s.get("descricao", ""),
+                        )
+                    )
                     seq += 1
-            
+
             for t in tramitacoes:
                 t.normalizar()
-                
+
             # Ordenar por data descendente para ser consistente com o padrão
             tramitacoes.sort(key=lambda x: (x.data_hora, x.sequencia), reverse=True)
             return tramitacoes
         except Exception as e:
-            print(f"Erro ao buscar tramitações do Senado para ID {id_materia} (Processo {id_processo}): {e}")
+            print(
+                f"Erro ao buscar tramitações do Senado para ID {id_materia} (Processo {id_processo}): {e}"
+            )
             return []
+
     def _processar_dados_processo(self, dados: dict, id_materia: str) -> Proposicao:
         """Processa a estrutura flat retornada pelo endpoint /processo."""
         identificacao = dados.get("identificacao", "")
-        ementa = dados.get("conteudo", {}).get("ementa") or dados.get("documento", {}).get("ementa", "Sem ementa")
+        ementa = dados.get("conteudo", {}).get("ementa") or dados.get(
+            "documento", {}
+        ).get("ementa", "Sem ementa")
         data_apresentacao = dados.get("documento", {}).get("dataApresentacao", "")
         autoria = dados.get("autoriaIniciativa", [])
-        autor_nome = autoria[0].get("autor", "Não informado") if autoria else "Não informado"
-        
+        autor_nome = (
+            autoria[0].get("autor", "Não informado") if autoria else "Não informado"
+        )
+
         status_atual = "Sem status"
         data_ultima_movimentacao = ""
-        autuacoes = dados.get('autuacoes', [])
+        autuacoes = dados.get("autuacoes", [])
         if autuacoes:
             # Pega a autuação que tem situação atual
             # Normalmente a primeira autuação é a principal
-            situacoes = autuacoes[0].get('situacoes', [])
+            situacoes = autuacoes[0].get("situacoes", [])
             if situacoes:
                 # Pega a última situação que tenha data de início
                 for s in reversed(situacoes):
-                    if s.get('inicio'):
-                        data_ultima_movimentacao = s['inicio']
-                        status_atual = s.get('descricao', status_atual)
+                    if s.get("inicio"):
+                        data_ultima_movimentacao = s["inicio"]
+                        status_atual = s.get("descricao", status_atual)
                         break
 
         # Tenta extrair tipo, numero e ano do "PL 123/2023"
@@ -254,5 +302,5 @@ class SenadoAdapter:
             data_ultima_movimentacao=data_ultima_movimentacao,
             orgao_atual="Senado Federal",
             link_oficial=f"https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id={id_materia}",
-            tags=[]
+            tags=[],
         )

@@ -1,10 +1,12 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
 
+
 class Tramitacao(SQLModel, table=True):
     """
     Representa uma movimentação ou tramitação de uma proposição.
     """
+
     id: Optional[int] = Field(default=None, primary_key=True)
     proposicao_id: str = Field(foreign_key="proposicao.id", index=True)
     data_hora: str
@@ -22,8 +24,10 @@ class Tramitacao(SQLModel, table=True):
 
     def normalizar(self):
         """Normaliza as descrições e status para o formato 'Sentence case'."""
+
         def _fmt(texto: Optional[str]) -> Optional[str]:
-            if not texto: return texto
+            if not texto:
+                return texto
             # Se estiver tudo em maiúsculo, converte para capitalizado
             if texto.isupper():
                 return texto.capitalize()
