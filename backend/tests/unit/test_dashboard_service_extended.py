@@ -126,6 +126,6 @@ def test_obter_dados_status(mock_repo):
     
     assert len(dados) == 2
     # Aprovada: 2/3 = 67%
-    aprovada = next(d for d in dados if d["status"] == "Aprovada")
+    aprovada = next(d for d in dados if d["status"] == "Aprovada/Sancionada")
     assert aprovada["quantidade"] == 2
     assert aprovada["percentual"] == 67
