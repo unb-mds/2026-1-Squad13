@@ -11,8 +11,6 @@ import type { MetricasDashboard, DadosGraficoTipo, DadosGraficoComissao, DadosGr
 import { formatarTempo } from '@/shared/lib/utils'
 import { KpiCard, Card, CardHeader, CardBody } from '@/shared/ui'
 
-const COLORS = ['#c2ff3d', '#6366f1', '#f59e0b', '#fb7185', '#22d3ee', '#a78bfa', '#34d399']
-
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
