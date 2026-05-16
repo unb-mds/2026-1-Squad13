@@ -41,8 +41,8 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 - **O que é:** banco de dados relacional robusto, com suporte a `WINDOW FUNCTIONS` e SQL avançado.
 - **Por que usamos:** [ADR-002: PostgreSQL](docs/adr/ADR-002-postgresql.md)
   - Permite calcular métricas temporais diretamente em SQL.
-  - Suporta SQLAlchemy com interface assíncrona.
-- **Estado atual:** O sistema utiliza um **Mock em memória** (`ProposicaoRepository`) para facilitar o desenvolvimento inicial. O PostgreSQL será integrado na próxima fase.
+  - Suporta SQLModel/SQLAlchemy para persistência de dados.
+- **Estado atual:** **Implementado.** O sistema utiliza o `SQLProposicaoRepository` integrado ao PostgreSQL para persistência real de proposições e tramitações.
 - **Camada na arquitetura:** Infraestrutura (`src/infrastructure/repositories/`).
 
 ---

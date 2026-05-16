@@ -9,13 +9,13 @@ Este documento contém o backlog oficial derivado do `story-map.md`, organizado 
 
 | ID | Issue | Prioridade | Esforço | Status |
 |---|---|---|---|---|
-| # | feat: ligar busca e filtros ao backend real | Alta | Pequeno | 📝 Todo |
-| # | feat: endpoint GET /proposicoes/{id} e detalhe real | Alta | Pequeno | 📝 Todo |
-| # | feat: card de tempo de tramitação com dados reais | Alta | Mínimo | 📝 Todo |
-| # | feat: endpoint POST /auth/login com JWT | Alta | Médio | 📝 Todo |
-| # | feat: endpoint POST /usuarios/cadastro | Alta | Pequeno | 📝 Todo |
-| # | chore: script de seed com dados reais | Alta | Pequeno | 📝 Todo |
-| # | chore: corrigir SenadoAdapter (campo data) | Alta | Mínimo | 📝 Todo |
+| # | feat: ligar busca e filtros ao backend real | Alta | Pequeno | ✅ Done |
+| # | feat: endpoint GET /proposicoes/{id} e detalhe real | Alta | Pequeno | ✅ Done |
+| # | feat: card de tempo de tramitação com dados reais | Alta | Mínimo | ✅ Done |
+| # | feat: endpoint POST /auth/login com JWT | Alta | Médio | ✅ Done |
+| # | feat: endpoint POST /usuarios/cadastro | Alta | Pequeno | ✅ Done |
+| # | chore: script de seed com dados reais | Alta | Pequeno | ✅ Done |
+| # | chore: corrigir SenadoAdapter (campo data) | Alta | Mínimo | ✅ Done |
 
 ---
 
@@ -24,8 +24,8 @@ Este documento contém o backlog oficial derivado do `story-map.md`, organizado 
 
 | ID | Issue | Prioridade | Status |
 |---|---|---|---|
-| # | feat: entidade Tramitacao e endpoint de movimentações | Alta | 📝 Todo |
-| # | feat: endpoints de breakdown para dashboard | Alta | 📝 Todo |
+| # | feat: entidade Tramitacao e endpoint de movimentações | Alta | ✅ Done |
+| # | feat: endpoints de breakdown para dashboard | Alta | ✅ Done |
 | # | feat: logout com invalidação no servidor | Alta | 📝 Todo |
 | # | chore: worker de coleta batch diária | Alta | 📝 Todo |
 | # | feat: tempo por fase com dados reais | Média | 📝 Todo |
