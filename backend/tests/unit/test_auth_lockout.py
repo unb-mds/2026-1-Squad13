@@ -1,9 +1,8 @@
 import pytest
 from unittest.mock import MagicMock
-from fastapi import HTTPException
 from application.services.auth_service import AuthService
 from domain.entities.user import User, UserLogin
-from domain.exceptions import ContaBloqueadaError
+from domain.exceptions import ContaBloqueadaError, CredenciaisInvalidasError
 
 
 class MockLoginAttemptProvider:
@@ -87,7 +86,7 @@ def test_login_falha_incrementa_tentativas(
     user_repository.buscar_por_email.return_value = None  # Usuário não encontrado
 
     # Ação & Verificação
-    with pytest.raises(HTTPException):
+    with pytest.raises(CredenciaisInvalidasError):
         auth_service.login(UserLogin(email=email, password="wrong"))
 
     assert attempt_provider.attempts[email] == 1
@@ -100,14 +99,14 @@ def test_bloqueio_apos_cinco_falhas(auth_service, user_repository, attempt_provi
 
     # Simula 4 falhas
     for _ in range(4):
-        with pytest.raises(HTTPException):
+        with pytest.raises(CredenciaisInvalidasError):
             auth_service.login(UserLogin(email=email, password="wrong"))
 
     assert attempt_provider.attempts[email] == 4
     assert not attempt_provider.esta_bloqueado(email)
 
     # 5ª falha: Deve bloquear
-    with pytest.raises(HTTPException):
+    with pytest.raises(CredenciaisInvalidasError):
         auth_service.login(UserLogin(email=email, password="wrong"))
 
     assert attempt_provider.attempts[email] == 5
