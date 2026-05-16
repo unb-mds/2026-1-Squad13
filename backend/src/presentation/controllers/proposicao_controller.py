@@ -145,7 +145,12 @@ def listar_movimentacoes(id: str, session: Session = Depends(get_session)):
     orgao_repo = SQLOrgaoLegislativoRepository(session)
 
     service = ListarMovimentacoesService(
-        evento_repo, proposicao_repo, fase_repo, orgao_repo, camara_adapter, senado_adapter
+        evento_repo,
+        proposicao_repo,
+        fase_repo,
+        orgao_repo,
+        camara_adapter,
+        senado_adapter,
     )
 
     try:
