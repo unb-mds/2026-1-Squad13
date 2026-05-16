@@ -1,6 +1,9 @@
 from datetime import timedelta
+from typing import Optional
 from fastapi import HTTPException, status
 from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
+from domain.exceptions import ContaBloqueadaError
+from domain.services.login_attempt_service import LoginAttemptProvider
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import (
     get_password_hash,
@@ -15,8 +18,13 @@ class AuthService:
     Serviço de aplicação para gerenciar autenticação e usuários.
     """
 
-    def __init__(self, user_repository: SQLUserRepository):
+    def __init__(
+        self,
+        user_repository: SQLUserRepository,
+        attempt_provider: Optional[LoginAttemptProvider] = None,
+    ):
         self.user_repository = user_repository
+        self.attempt_provider = attempt_provider
 
     def registrar_usuario(self, user_in: UserCreate) -> UserResponse:
         """Registra um novo usuário no sistema."""
@@ -45,14 +53,29 @@ class AuthService:
 
     def login(self, login_in: UserLogin) -> Token:
         """Autentica um usuário e retorna um token JWT."""
+        # 1. Verifica se a conta está bloqueada antes de qualquer processamento
+        if self.attempt_provider and self.attempt_provider.esta_bloqueado(
+            login_in.email
+        ):
+            raise ContaBloqueadaError(login_in.email)
+
         user = self.user_repository.buscar_por_email(login_in.email)
 
+        # 2. Validação de senha e usuário
         if not user or not verify_password(login_in.password, user.hashed_password):
+            # 3. Registra a falha se o provider estiver disponível
+            if self.attempt_provider:
+                self.attempt_provider.registrar_falha(login_in.email)
+
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="E-mail ou senha incorretos",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+        # 4. Login bem-sucedido: Reseta o contador de tentativas
+        if self.attempt_provider:
+            self.attempt_provider.resetar_tentativas(login_in.email)
 
         # Gera o token de acesso
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
