@@ -87,13 +87,13 @@ Clean Architecture é a evolução natural da Layered e seria a escolha ideal pa
 O projeto adota a Layered Architecture como objetivo estrutural, evoluindo de mocks iniciais para integrações reais de forma progressiva.
 
 **Estado Atual:**
-O sistema já conta com a **integração real com banco de dados PostgreSQL** (ou SQLite para desenvolvimento local/testes) utilizando `SQLModel`. Esta escolha permitiu unificar as Entidades de Domínio com os Modelos de Persistência, reduzindo a complexidade de mapeamento nesta fase de MVP acadêmico.
+O sistema já conta com a **integração real com banco de dados PostgreSQL** (ou SQLite para desenvolvimento local/testes) utilizando `SQLModel`. Além disso, a **integração com as APIs reais da Câmara e do Senado está estabilizada** por meio de `Adapters` que normalizam os dados diretamente para o domínio. Esta escolha permitiu unificar as Entidades de Domínio com os Modelos de Persistência, reduzindo a complexidade de mapeamento e garantindo dados reais desde o MVP.
 
 **Próximos Passos:**
 À medida que o desenvolvimento avança, o código será refinado para incluir:
-1.  Implementação completa de `Adapters` reais para coleta automática das APIs da Câmara e Senado (atualmente em transição de mocks).
-2.  Uso de `Redis` para cache de consultas frequentes.
-3.  Configuração de `Celery` para orquestrar o processamento em lote (batch) de coleta de dados.
+1.  Uso de `Redis` para cache de consultas frequentes.
+2.  Configuração de `Celery` para orquestrar o processamento em lote (batch) de coleta de dados (ADR-004).
+3.  Implementação de funcionalidades avançadas de análise temporal e IA.
 
 Essa abordagem evita o overhead de abstrações prematuras e permite que a equipe aprenda e aplique os conceitos arquiteturais passo a passo.
 
