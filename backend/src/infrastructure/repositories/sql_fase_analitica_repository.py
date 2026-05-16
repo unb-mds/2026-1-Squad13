@@ -20,16 +20,12 @@ class SQLFaseAnaliticaRepository:
 
     def buscar_por_codigo(self, codigo: str) -> Optional[FaseAnalitica]:
         """Busca uma fase pelo seu código único."""
-        statement = select(FaseAnalitica).where(
-            FaseAnalitica.codigo == codigo
-        )
+        statement = select(FaseAnalitica).where(FaseAnalitica.codigo == codigo)
         return self.session.exec(statement).first()
 
     def buscar_todas(self) -> List[FaseAnalitica]:
         """Lista todas as fases ordenadas por ordem_logica."""
-        statement = select(FaseAnalitica).order_by(
-            FaseAnalitica.ordem_logica.asc()
-        )
+        statement = select(FaseAnalitica).order_by(FaseAnalitica.ordem_logica.asc())
         return list(self.session.exec(statement).all())
 
     def seed_fases(self) -> None:

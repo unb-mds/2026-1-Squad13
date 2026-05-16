@@ -36,9 +36,7 @@ class SQLEventoTramitacaoRepository:
             self.session.commit()
         return eventos
 
-    def buscar_por_proposicao(
-        self, proposicao_id: str
-    ) -> List[EventoTramitacao]:
+    def buscar_por_proposicao(self, proposicao_id: str) -> List[EventoTramitacao]:
         """
         Retorna todos os eventos de uma proposição ordenados
         cronologicamente (data_evento ASC, sequencia ASC).
@@ -73,18 +71,18 @@ class SQLEventoTramitacaoRepository:
                 EventoTramitacao.sequencia.asc(),
             )
         )
-        
+
         resultados = self.session.exec(statement).all()
-        
-        agrupado: Dict[str, List[EventoTramitacao]] = {pid: [] for pid in proposicoes_ids}
+
+        agrupado: Dict[str, List[EventoTramitacao]] = {
+            pid: [] for pid in proposicoes_ids
+        }
         for e in resultados:
             agrupado[e.proposicao_id].append(e)
-            
+
         return agrupado
 
-    def buscar_ultimo_evento(
-        self, proposicao_id: str
-    ) -> Optional[EventoTramitacao]:
+    def buscar_ultimo_evento(self, proposicao_id: str) -> Optional[EventoTramitacao]:
         """Retorna o evento mais recente de uma proposição."""
         statement = (
             select(EventoTramitacao)
