@@ -141,3 +141,24 @@ class SQLProposicaoRepository:
             )
 
         return self.session.exec(statement).one()
+
+    def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> List[int]:
+        """
+        Busca cirúrgica: traz apenas a coluna de tempo em dias de proposições
+        que já foram concluídas e que casam com o tipo e tema solicitados.
+        """
+        # Explicação Pedagógica: select(Proposicao.tempo_total_dias) em vez de select(Proposicao)
+        # faz com que o SQLModel gere um 'SELECT tempo_total_dias' apenas.
+        # Isso evita carregar strings gigantes de 'ementa' ou JSONs pesados na memória do Python.
+        statement = select(Proposicao.tempo_total_dias).where(
+            func.lower(Proposicao.tipo) == tipo.lower(),
+            # Postgres JSONB contains: busca o tema dentro da lista de tags
+            Proposicao.tags.contains([tema]),
+            # Apenas proposições concluídas têm um tempo de aprovação "final"
+            Proposicao.status.in_(["Concluída (Lei)", "Sancionada", "Aprovada"]),
+            Proposicao.tempo_total_dias > 0,
+        )
+
+        results = self.session.exec(statement).all()
+        # Garante que não retornamos None e limpamos a lista
+        return [int(d) for d in results if d is not None]
