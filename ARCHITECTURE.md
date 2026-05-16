@@ -56,13 +56,15 @@ O sistema é dividido em 4 camadas horizontais. Cada camada só conversa com a c
 │                Aplicação                        │
 │   Services · casos de uso · orquestração        │
 │   Sabe O QUE fazer. Delega o COMO para baixo.   │
-│   Ex: BuscarProposicoesService                  │
+│   Ex: BuscarProposicoesService,                 │
+│       NormalizarTramitacaoService                │
 ├─────────────────────────────────────────────────┤
 │                 Domínio                         │
 │   Entidades · regras de negócio · cálculos      │
 │   Zero dependências externas. Funciona sem      │
 │   banco, sem HTTP, sem framework.               │
-│   Ex: Proposicao · Tramitacao · dias_parada()   │
+│   Ex: Proposicao · EventoTramitacao ·           │
+│       classificar_tipo_evento()                 │
 ├─────────────────────────────────────────────────┤
 │              Infraestrutura                     │
 │   Banco · APIs externas · Cache · Workers       │
@@ -87,13 +89,18 @@ Clean Architecture é a evolução natural da Layered e seria a escolha ideal pa
 O projeto adota a Layered Architecture como objetivo estrutural, evoluindo de mocks iniciais para integrações reais de forma progressiva.
 
 **Estado Atual:**
-O sistema já conta com a **integração real com banco de dados PostgreSQL** (ou SQLite para desenvolvimento local/testes) utilizando `SQLModel`. Além disso, a **integração com as APIs reais da Câmara e do Senado está estabilizada** por meio de `Adapters` que normalizam os dados diretamente para o domínio. Esta escolha permitiu unificar as Entidades de Domínio com os Modelos de Persistência, reduzindo a complexidade de mapeamento e garantindo dados reais desde o MVP.
+O sistema já conta com:
+- **Banco de dados PostgreSQL** operacional via Docker, usando `SQLModel`.
+- **Integração real com as APIs da Câmara e do Senado**, estabilizada por meio de `Adapters`.
+- **Modelo analítico `EventoTramitacao`** que substituiu o modelo raso de `Tramitacao`. Cada movimentação legislativa é classificada por tipo de evento (20 tipos normalizados) e fase analítica (8 fases do processo legislativo).
+- **Serviços de domínio** como `ClassificarEventoService` e `DeterminarFaseAnaliticaService` que processam as tramitações brutas das APIs.
+- **Autenticação JWT** com endpoints `/auth/login` e `/auth/register`.
 
-**Próximos Passos:**
-À medida que o desenvolvimento avança, o código será refinado para incluir:
-1.  Uso de `Redis` para cache de consultas frequentes.
-2.  Configuração de `Celery` para orquestrar o processamento em lote (batch) de coleta de dados (ADR-004).
-3.  Implementação de funcionalidades avançadas de análise temporal e IA.
+**Próximos Passos (R2):**
+1.  Uso de `Redis` para cache de métricas do dashboard.
+2.  Worker de coleta batch diária via Celery (ADR-004).
+3.  Logout com invalidação de token no servidor.
+4.  Funcionalidades preditivas baseadas em volume histórico.
 
 Essa abordagem evita o overhead de abstrações prematuras e permite que a equipe aprenda e aplique os conceitos arquiteturais passo a passo.
 
@@ -121,37 +128,59 @@ O projeto adota uma pirâmide de testes focada em garantir a confiabilidade das 
 │
 ├── docs/
 │   ├── adr/                     ← Architecture Decision Records
-│   └── diagrams/                ← Diagramas C4 (PlantUML/Mermaid)
+│   ├── MIGRATION_SCOPE.md       ← Escopo da migração para modelo analítico
+│   └── BACKLOG.md               ← Backlog normalizado por release
 │
 ├── backend/
 │   └── src/
 │       ├── main.py
-│       ├── presentation/        ← Camada de Apresentação (Controllers, Schemas)
+│       ├── presentation/        ← Camada de Apresentação
 │       │   └── controllers/
-│       │       └── proposicao_controller.py
-│       ├── application/         ← Camada de Aplicação (Services, Use Cases)
+│       │       ├── proposicao_controller.py
+│       │       ├── dashboard_controller.py
+│       │       └── auth_controller.py
+│       ├── application/         ← Camada de Aplicação (Services)
 │       │   └── services/
 │       │       ├── buscar_proposicoes_service.py
-│       │       └── gerar_relatorio_service.py
-│       ├── domain/              ← Camada de Domínio (Entidades, Regras de Negócio)
+│       │       ├── dashboard_service.py
+│       │       ├── listar_movimentacoes_service.py
+│       │       ├── normalizar_tramitacao_service.py
+│       │       ├── detalhe_proposicao_service.py
+│       │       └── auth_service.py
+│       ├── domain/              ← Camada de Domínio
 │       │   ├── entities/
 │       │   │   ├── proposicao.py
-│       │   │   └── tramitacao.py
+│       │   │   ├── evento_tramitacao.py  ← modelo analítico principal
+│       │   │   ├── fase_analitica.py
+│       │   │   ├── orgao_legislativo.py
+│       │   │   ├── tipo_evento.py        ← enum com 20 tipos
+│       │   │   ├── fase_codigo.py        ← enum das 8 fases
+│       │   │   └── user.py
+│       │   ├── classificar_evento.py     ← funções de domínio
 │       │   └── exceptions.py
-│       └── infrastructure/      ← Camada de Infraestrutura (DB, APIs, Cache)
-│           ├── adapters/        ← Adaptores para APIs externas
-│           ├── repositories/    ← Repositórios (SQLAlchemy, Mocks)
-│           │   └── proposicao_repository.py
-│           ├── cache/           ← Configuração de Cache (Redis)
-│           └── workers/         ← Tarefas agendadas (Celery)
+│       └── infrastructure/      ← Camada de Infraestrutura
+│           ├── adapters/        ← Adapters para APIs externas
+│           │   ├── camara_adapter.py
+│           │   ├── senado_adapter.py
+│           │   └── security_adapter.py
+│           ├── repositories/    ← Repositórios SQL
+│           │   ├── sql_proposicao_repository.py
+│           │   ├── sql_evento_tramitacao_repository.py
+│           │   ├── sql_fase_analitica_repository.py
+│           │   ├── sql_orgao_legislativo_repository.py
+│           │   └── sql_user_repository.py
+│           ├── cache/           ← Cache (Redis — planejado para R2)
+│           └── workers/         ← Tarefas agendadas (Celery — planejado para R2)
 │
-└── frontend/
-    ├── src/
-    │   ├── app/                 ← Configurações globais, rotas e providers
-    │   ├── features/            ← Funcionalidades isoladas (ex: filtros, lista)
-    │   ├── pages/               ← Páginas da aplicação
-    │   ├── shared/              ← Componentes e libs compartilhados
-    │   └── main.tsx
+├── frontend/
+│   └── src/
+│       ├── app/                 ← Configurações globais, rotas e providers
+│       ├── features/            ← Funcionalidades isoladas (ex: filtros, lista)
+│       ├── pages/               ← Páginas da aplicação
+│       ├── shared/              ← Componentes e libs compartilhados
+│       └── main.tsx
+│
+└── squad-dashboard/             ← Painel de métricas do time (standalone)
 ```
 
 ---
@@ -174,20 +203,28 @@ Utilizamos o **Modelo C4** para documentar a arquitetura em diferentes níveis d
 | ADR-006 | Redis para cache de respostas                     | Aceita   |
 | ADR-007 | Estratégia de Testes                              | Aceita   |
 | ADR-008 | Pipeline de Dados para o Squad Dashboard          | Aceita   |
+| ADR-009 | Squad Dashboard no GitHub Pages                   | Aceita   |
 
 ---
 
 ## Integração com as APIs Legislativas
 
-O sistema normaliza os dados da Câmara e do Senado para a entidade de domínio `Proposicao`.
+Os adaptadores (`CamaraAdapter`, `SenadoAdapter`) buscam tramitações brutas das APIs e retornam dicts crus. O `NormalizarTramitacaoService` processa esses dados usando funções de domínio (`classificar_tipo_evento`, `determinar_fase_analitica`) para produzir entidades `EventoTramitacao` normalizadas.
+
+```
+CamaraAdapter  ──→ dicts brutos ──┐
+                                  ├──→ NormalizarTramitacaoService ──→ EventoTramitacao
+SenadoAdapter  ──→ dicts brutos ──┘
+```
 
 ### Decisões de integração
 
 1.  **Estratégia de coleta: batch diário** (ADR-004)
-2.  **Normalização: adaptador por fonte** (ADR-005)
+2.  **Normalização: adaptador por fonte + serviço de normalização** (ADR-005)
 3.  **Deduplicação: por número canônico** (ex: `PL 1234/2023`)
 4.  **Falhas: retry com backoff exponencial**
+5.  **Classificação: 20 tipos de evento normalizados, 8 fases analíticas** (ver `docs/MIGRATION_SCOPE.md`)
 
 ---
 
-_Última atualização: consulte o histórico de commits do repositório._
+_Última atualização: 2026-05-16_
