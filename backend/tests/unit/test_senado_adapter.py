@@ -96,3 +96,70 @@ def test_senado_adapter_erro_rede(adapter):
 
         # Assert
         assert proposicao is None
+
+
+def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
+    mock_dados_materia = {
+        "DetalheMateria": {
+            "Materia": {
+                "IdentificacaoMateria": {"IdentificacaoProcesso": "999"}
+            }
+        }
+    }
+    
+    mock_dados_processo = {
+        "autuacoes": [
+            {
+                "situacoes": [
+                    {
+                        "inicio": "2024-01-02",
+                        "colegiado": {"sigla": "CCJ"},
+                        "descricao": "Situação Nova"
+                    },
+                    {
+                        "inicio": "2024-01-01",
+                        "colegiado": {"sigla": "PLEN"},
+                        "descricao": "Situação Antiga"
+                    }
+                ]
+            }
+        ]
+    }
+
+    with patch("requests.get") as mock_get:
+        # Duas respostas: a primeira pra buscar id do processo, a segunda pro processo em si
+        mock_resp_mat = MagicMock()
+        mock_resp_mat.status_code = 200
+        mock_resp_mat.json.return_value = mock_dados_materia
+
+        mock_resp_proc = MagicMock()
+        mock_resp_proc.status_code = 200
+        mock_resp_proc.json.return_value = mock_dados_processo
+
+        mock_get.side_effect = [mock_resp_mat, mock_resp_proc]
+
+        # Act
+        tramitacoes = adapter.buscar_tramitacoes_brutas(123)
+
+        # Assert
+        assert len(tramitacoes) == 2
+        
+        # A API do Senado inverte (mais antigas ganham sequencia menor)
+        assert tramitacoes[0]["descricao"] == "Situação Antiga"
+        assert tramitacoes[0]["sigla_orgao"] == "PLEN"
+        assert tramitacoes[0]["sequencia"] == 1
+        
+        assert tramitacoes[1]["descricao"] == "Situação Nova"
+        assert tramitacoes[1]["sigla_orgao"] == "CCJ"
+        assert tramitacoes[1]["sequencia"] == 2
+
+
+def test_senado_adapter_buscar_tramitacoes_brutas_erro(adapter):
+    with patch("requests.get") as mock_get:
+        mock_get.side_effect = requests.exceptions.RequestException("Erro")
+
+        # Act
+        tramitacoes = adapter.buscar_tramitacoes_brutas(123)
+
+        # Assert
+        assert tramitacoes == []

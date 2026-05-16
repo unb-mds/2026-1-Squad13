@@ -9,9 +9,17 @@ def mock_repo():
     return Mock()
 
 
-def test_obter_metricas_vazio(mock_repo):
+@pytest.fixture
+def mock_evento_repo():
+    repo = Mock()
+    repo.buscar_por_multiplas_proposicoes.return_value = {}
+    repo.contar_por_tipo.return_value = {}
+    return repo
+
+
+def test_obter_metricas_vazio(mock_repo, mock_evento_repo):
     mock_repo.filtrar.return_value = []
-    service = DashboardService(mock_repo)
+    service = DashboardService(mock_repo, mock_evento_repo)
 
     metricas = service.obter_metricas()
 
@@ -20,7 +28,7 @@ def test_obter_metricas_vazio(mock_repo):
     assert metricas["comissaoMaiorTempo"] == "N/A"
 
 
-def test_obter_metricas_com_dados(mock_repo):
+def test_obter_metricas_com_dados(mock_repo, mock_evento_repo):
     p1 = Proposicao(
         id="1",
         tipo="PL",
@@ -45,7 +53,7 @@ def test_obter_metricas_com_dados(mock_repo):
     )  # Tem atraso (> 180)
 
     mock_repo.filtrar.return_value = [p1, p2]
-    service = DashboardService(mock_repo)
+    service = DashboardService(mock_repo, mock_evento_repo)
 
     metricas = service.obter_metricas()
 
@@ -58,7 +66,7 @@ def test_obter_metricas_com_dados(mock_repo):
     assert metricas["comissaoMaiorTempoMedia"] == 200
 
 
-def test_obter_dados_tipo(mock_repo):
+def test_obter_dados_tipo(mock_repo, mock_evento_repo):
     p1 = Proposicao(
         id="1",
         tipo="PL",
@@ -94,7 +102,7 @@ def test_obter_dados_tipo(mock_repo):
     )
 
     mock_repo.filtrar.return_value = [p1, p2, p3]
-    service = DashboardService(mock_repo)
+    service = DashboardService(mock_repo, mock_evento_repo)
 
     dados = service.obter_dados_tipo()
 
@@ -108,7 +116,7 @@ def test_obter_dados_tipo(mock_repo):
     assert dados[1]["tempoMedio"] == 300
 
 
-def test_obter_gargalos(mock_repo):
+def test_obter_gargalos(mock_repo, mock_evento_repo):
     # CCJ: 1 proposição, 300 dias (atrasada)
     p1 = Proposicao(
         id="1",
@@ -135,7 +143,7 @@ def test_obter_gargalos(mock_repo):
     )
 
     mock_repo.filtrar.return_value = [p1, p2]
-    service = DashboardService(mock_repo)
+    service = DashboardService(mock_repo, mock_evento_repo)
 
     gargalos = service.obter_gargalos()
 
@@ -148,7 +156,7 @@ def test_obter_gargalos(mock_repo):
     assert gargalos[1]["tempoMedioMeses"] == 2.0  # 60 / 30
 
 
-def test_obter_dados_comissao(mock_repo):
+def test_obter_dados_comissao(mock_repo, mock_evento_repo):
     p1 = Proposicao(
         id="1",
         tipo="PL",
@@ -173,7 +181,7 @@ def test_obter_dados_comissao(mock_repo):
     )  # Deve virar "Desconhecido"
 
     mock_repo.filtrar.return_value = [p1, p2]
-    service = DashboardService(mock_repo)
+    service = DashboardService(mock_repo, mock_evento_repo)
 
     dados = service.obter_dados_comissao()
 
@@ -183,9 +191,9 @@ def test_obter_dados_comissao(mock_repo):
     assert dados[1]["comissao"] == "CCJ"
 
 
-def test_obter_dados_status(mock_repo):
+def test_obter_dados_status(mock_repo, mock_evento_repo):
     mock_repo.filtrar.return_value = []
-    service = DashboardService(mock_repo)
+    service = DashboardService(mock_repo, mock_evento_repo)
     assert service.obter_dados_status() == []
 
     p1 = Proposicao(
@@ -223,7 +231,7 @@ def test_obter_dados_status(mock_repo):
     )
 
     mock_repo.filtrar.return_value = [p1, p2, p3]
-    service = DashboardService(mock_repo)
+    service = DashboardService(mock_repo, mock_evento_repo)
 
     dados = service.obter_dados_status()
 

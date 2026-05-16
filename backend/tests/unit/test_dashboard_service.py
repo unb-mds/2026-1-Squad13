@@ -47,8 +47,10 @@ def session_fixture():
 
 
 def test_obter_metricas_dashboard(session: Session):
+    from infrastructure.repositories.sql_evento_tramitacao_repository import SQLEventoTramitacaoRepository
     repo = SQLProposicaoRepository(session)
-    service = DashboardService(repo)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    service = DashboardService(repo, evento_repo)
 
     metricas = service.obter_metricas()
 
