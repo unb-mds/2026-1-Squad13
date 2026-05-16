@@ -46,6 +46,38 @@ Para fins de auditoria e rastreabilidade (Data Lineage), o sistema persistirá:
 *   O status normalizado.
 *   A origem da regra de mapeamento aplicada.
 
+### Mapeamento de Campos
+
+#### Campo API Câmara → Campo Domínio
+| Campo API Câmara (`/proposicoes` e `/autores`) | Campo Domínio (`Proposicao`) |
+| :--- | :--- |
+| `id` | `id` |
+| `siglaTipo` | `tipo` |
+| `numero` | `numero` |
+| `ano` | `ano` |
+| `ementa` | `ementa` |
+| `dataApresentacao` | `data_apresentacao` |
+| `statusProposicao.dataHora` | `data_ultima_movimentacao` |
+| `statusProposicao.siglaOrgao` | `orgao_atual` |
+| `statusProposicao.despacho` ou `descricaoSituacao` | `status` |
+| `nome` (endpoint `/autores`) | `autor` |
+| `siglaUf` (endpoint `/autores`) | `uf_autor` |
+
+#### Campo API Senado → Campo Domínio
+| Campo API Senado (`/materia` ou `/processo`) | Campo Domínio (`Proposicao`) |
+| :--- | :--- |
+| `codigoMateria` ou `id` | `id` |
+| `DescricaoIdentificacaoMateria` (parseado) | `tipo`, `numero`, `ano` |
+| `txtNomeMateria` (ou `EmentaMateria` / `ementa`) | `ementa` |
+| `DataApresentacao` ou `dataApresentacao` | `data_apresentacao` |
+| `DataSituacao` ou `inicio` | `data_ultima_movimentacao` |
+| `DescricaoSituacao` ou `descricao` | `status` |
+| `Autor` ou `autor` | `autor` |
+| *Não disponível* | `uf_autor` (Fixo como "N/A") |
+
+**Notas de Decisão:**
+O mapeamento específico do campo `ementa` da Câmara e `txtNomeMateria` do Senado para um mesmo campo `ementa` na nossa entidade de Domínio ilustra o propósito da nossa **Anti-Corruption Layer (ACL)** implementada pelos Adapters. As duas APIs possuem vocabulários e estruturas completamente diferentes para descrever a mesma informação (o resumo ou nome da matéria). Se o nosso Domínio absorvesse o termo `txtNomeMateria` ou exigisse tratamentos condicionais (if/else) na camada de Aplicação dependendo da origem, o modelo externo estaria "corrompendo" o nosso sistema. Ao interceptar essas diferenças nos Adapters e normalizá-las sob a linguagem ubíqua interna (`ementa`), protegemos o Domínio e garantimos que as regras de negócio operem com uma estrutura previsível, unificada e agnóstica à infraestrutura externa.
+
 Implementação:
 
 ```python
