@@ -1,6 +1,6 @@
 import { CheckCircle2, Clock, Activity, TrendingUp, AlertTriangle } from 'lucide-react'
 import { KpiCard } from '@/widgets/kpi-card'
-import { BurndownChart } from '@/widgets/burndown-chart'
+import { ProjectBurnupChart } from '@/widgets/project-burnup-chart'
 import { CommitsChart } from '@/widgets/commits-chart'
 import { ProgressBar } from '@/shared/ui/progress-bar'
 import { Skeleton } from '@/shared/ui/skeleton'
@@ -88,38 +88,63 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Feature progress strip */}
-        <div className="bg-surface-2 border border-border-subtle rounded-xl p-5 h-full">
-          <p className="text-sm font-semibold text-white mb-4">Progresso por Feature</p>
-          <div className="space-y-4">
-            {loading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-3 w-32" />
-                  <Skeleton className="h-2 w-full" />
-                </div>
-              ))
-            ) : features.length > 0 ? (
-              features.map(f => (
-                <div key={f.id} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-300 truncate font-medium">{f.name}</span>
-                    <span className="text-xs text-slate-500 tabular-nums ml-2">{f.tasksDone}/{f.tasksTotal} ({f.progress}%)</span>
+        {/* Lado Esquerdo: Features e Métricas de Fluxo */}
+        <div className="space-y-6">
+          <div className="bg-surface-2 border border-border-subtle rounded-xl p-5">
+            <p className="text-sm font-semibold text-white mb-4">Progresso por Feature</p>
+            <div className="space-y-4">
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-3 w-32" />
+                    <Skeleton className="h-2 w-full" />
                   </div>
-                  <ProgressBar
-                    value={f.progress}
-                    barClassName={f.progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}
-                  />
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-slate-500 text-center py-4">Nenhuma feature mapeada.</p>
-            )}
+                ))
+              ) : features.length > 0 ? (
+                features.map(f => (
+                  <div key={f.id} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-300 truncate font-medium">{f.name}</span>
+                      <span className="text-xs text-slate-500 tabular-nums ml-2">{f.tasksDone}/{f.tasksTotal} ({f.progress}%)</span>
+                    </div>
+                    <ProgressBar
+                      value={f.progress}
+                      barClassName={f.progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}
+                    />
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500 text-center py-4">Nenhuma feature mapeada.</p>
+              )}
+            </div>
           </div>
+
+          {/* Métricas de Fluxo */}
+          {!loading && gh && gh.metrics && (
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-surface-3 border border-border-subtle rounded-lg p-3">
+                <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Scope Change</p>
+                <p className={`text-sm font-bold ${(gh.metrics.scopeChange || 0) > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {(gh.metrics.scopeChange || 0) > 0 ? '+' : ''}{gh.metrics.scopeChange || 0}%
+                </p>
+              </div>
+              <div className="bg-surface-3 border border-border-subtle rounded-lg p-3">
+                <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Throughput</p>
+                <p className="text-sm font-bold text-white">{gh.metrics.throughput || 0} <span className="text-[10px] font-normal text-slate-500">it/dia</span></p>
+              </div>
+              <div className="bg-surface-3 border border-border-subtle rounded-lg p-3">
+                <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Completion</p>
+                <p className="text-sm font-bold text-blue-400">{gh.metrics.completionRate || 0}%</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Burndown */}
-        <BurndownChart data={gh?.burndownData} />
+        {/* Lado Direito: Burnup */}
+        <ProjectBurnupChart 
+          data={gh?.burnup?.series} 
+          metadata={gh?.burnup?.metadata}
+        />
       </div>
 
       {/* Gráfico de Commits */}

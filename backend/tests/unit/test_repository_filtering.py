@@ -1,7 +1,10 @@
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 from domain.entities.proposicao import Proposicao
-from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
+
 
 @pytest.fixture(name="session")
 def session_fixture():
@@ -10,27 +13,43 @@ def session_fixture():
     with Session(engine) as session:
         # Adicionar dados de teste
         p1 = Proposicao(
-            id="1", tipo="PL", numero="1", ano=2024, autor="Autor A", 
-            status="Aprovada", orgao_atual="Câmara", ementa="Projeto de teste 1",
-            data_apresentacao="2024-01-01", data_ultima_movimentacao="2024-01-01",
-            orgao_origem="Câmara"
+            id="1",
+            tipo="PL",
+            numero="1",
+            ano=2024,
+            autor="Autor A",
+            status="Aprovada",
+            orgao_atual="Câmara",
+            ementa="Projeto de teste 1",
+            data_apresentacao="2024-01-01",
+            data_ultima_movimentacao="2024-01-01",
+            orgao_origem="Câmara",
         )
         p2 = Proposicao(
-            id="2", tipo="PEC", numero="2", ano=2024, autor="Autor B", 
-            status="Em tramitação", orgao_atual="Senado", ementa="Projeto de teste 2",
-            data_apresentacao="2024-02-01", data_ultima_movimentacao="2024-02-01",
-            orgao_origem="Senado"
+            id="2",
+            tipo="PEC",
+            numero="2",
+            ano=2024,
+            autor="Autor B",
+            status="Em tramitação",
+            orgao_atual="Senado",
+            ementa="Projeto de teste 2",
+            data_apresentacao="2024-02-01",
+            data_ultima_movimentacao="2024-02-01",
+            orgao_origem="Senado",
         )
         session.add(p1)
         session.add(p2)
         session.commit()
         yield session
 
+
 def test_filtrar_por_status(session: Session):
     repo = SQLProposicaoRepository(session)
     resultados = repo.filtrar(status="Aprovada")
     assert len(resultados) == 1
     assert resultados[0].id == "1"
+
 
 def test_filtrar_por_busca_texto(session: Session):
     repo = SQLProposicaoRepository(session)
@@ -39,11 +58,13 @@ def test_filtrar_por_busca_texto(session: Session):
     assert len(resultados) == 1
     assert resultados[0].id == "2"
 
+
 def test_filtrar_por_data_range(session: Session):
     repo = SQLProposicaoRepository(session)
     resultados = repo.filtrar(data_inicio="2024-01-15")
     assert len(resultados) == 1
     assert resultados[0].id == "2"
+
 
 def test_filtrar_por_busca_case_insensitive(session: Session):
     repo = SQLProposicaoRepository(session)
@@ -51,24 +72,38 @@ def test_filtrar_por_busca_case_insensitive(session: Session):
     assert len(resultados) == 1
     assert resultados[0].id == "2"
 
+
 def test_atraso_critico_property(session: Session):
-    p = Proposicao(tipo="PL", numero="1", ano=2024, autor="A", status="S", orgao_atual="O", ementa="E",
-                   data_apresentacao="D", data_ultima_movimentacao="D", tempo_total_dias=200)
+    p = Proposicao(
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        autor="A",
+        status="S",
+        orgao_atual="O",
+        ementa="E",
+        data_apresentacao="D",
+        data_ultima_movimentacao="D",
+        tempo_total_dias=200,
+    )
     assert p.atraso_critico is True
 
     p.tempo_total_dias = 180
     assert p.atraso_critico is False
+
 
 def test_filtrar_com_limit_retorna_apenas_n_registros(session: Session):
     repo = SQLProposicaoRepository(session)
     resultados = repo.filtrar(limit=1)
     assert len(resultados) == 1
 
+
 def test_filtrar_com_offset_pula_registros(session: Session):
     repo = SQLProposicaoRepository(session)
     todos = repo.filtrar()
     com_offset = repo.filtrar(offset=1)
     assert len(com_offset) == len(todos) - 1
+
 
 def test_filtrar_limit_e_offset_combinados(session: Session):
     repo = SQLProposicaoRepository(session)
@@ -78,17 +113,71 @@ def test_filtrar_limit_e_offset_combinados(session: Session):
     assert len(segunda_pagina) == 1
     assert primeira_pagina[0].id != segunda_pagina[0].id
 
+
 def test_contar_retorna_total_sem_paginacao(session: Session):
     repo = SQLProposicaoRepository(session)
     total = repo.contar()
     assert total == 2
+
 
 def test_contar_com_filtro_status(session: Session):
     repo = SQLProposicaoRepository(session)
     total = repo.contar(status="Aprovada")
     assert total == 1
 
+
 def test_contar_sem_resultados(session: Session):
     repo = SQLProposicaoRepository(session)
     total = repo.contar(status="Inexistente")
     assert total == 0
+
+
+def test_filtrar_todos_campos(session: Session):
+    repo = SQLProposicaoRepository(session)
+    # Adiciona proposição completa
+    p = Proposicao(
+        id="full",
+        tipo="PL",
+        numero="123",
+        ano=2024,
+        autor="Autor X",
+        uf_autor="RR",
+        status="Status X",
+        orgao_origem="Origem X",
+        ementa="Ementa X",
+        data_apresentacao="2024-05-14",
+        data_ultima_movimentacao="2024-05-14",
+        orgao_atual="Orgao X",
+        tags=[],
+    )
+    session.add(p)
+    session.commit()
+
+    # Testa cada filtro individualmente para garantir cobertura em filtrar() e contar()
+    assert len(repo.filtrar(tipo="PL")) >= 1
+    assert repo.contar(tipo="PL") >= 1
+
+    assert len(repo.filtrar(numero=123)) == 1
+    assert repo.contar(numero=123) == 1
+
+    assert len(repo.filtrar(ano=2024)) >= 1
+    assert repo.contar(ano=2024) >= 1
+
+    assert len(repo.filtrar(autor="Autor X")) == 1
+    assert repo.contar(autor="Autor X") == 1
+
+    assert len(repo.filtrar(uf_autor="RR")) == 1
+    assert repo.contar(uf_autor="RR") == 1
+
+    assert len(repo.filtrar(orgao_origem="Origem X")) == 1
+    assert repo.contar(orgao_origem="Origem X") == 1
+
+    assert len(repo.filtrar(data_fim="2024-05-14")) >= 1
+    assert repo.contar(data_fim="2024-05-14") >= 1
+
+    assert len(repo.filtrar(busca="123")) == 1  # Busca por número
+    assert len(repo.filtrar(busca="Autor X")) == 1  # Busca por autor
+
+    # Cobertura adicional para o método contar()
+    assert repo.contar(data_inicio="2024-05-01") >= 1
+    assert repo.contar(busca="Ementa X") == 1

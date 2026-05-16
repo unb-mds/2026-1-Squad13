@@ -36,6 +36,12 @@ Sempre que uma nova decisão persistente for adicionada, o registro deve seguir 
 
 ## Decisões Consolidadas
 
+### [2026-05] Migração para Modelo Analítico de Tramitação (`EventoTramitacao`)
+**Evidência:** Diretórios `backend/src/domain/entities/evento_tramitacao.py`, `backend/src/domain/classificar_evento.py` e `docs/MIGRATION_SCOPE.md`.  
+**Decisão:** Substituição do modelo legado de `Tramitacao` pelo modelo analítico, que classifica cada tramitação por 20 tipos de eventos normalizados e 8 fases legislativas.  
+**Justificativa:** APIs da Câmara e Senado retornam textos verbosos e variados, inviabilizando agregações numéricas no dashboard e detecção de gargalos. A normalização no domínio resolve isso.  
+**Impacto:** Métricas de tempo e dashboards não utilizam mais os campos das APIs diretamente; todos os cálculos são baseados no `TipoEvento` e `FaseAnalitica`.
+
 ### [2026-05] Layered Architecture como contrato estrito de backend
 **Evidência:** Estrutura isolada em `backend/src/` com pastas `presentation`, `application`, `domain` e `infrastructure`.
 **Decisão:** O domínio não conhece frameworks HTTP nem de acesso direto à rede. Controllers em `presentation` delegam para `application`.
@@ -65,3 +71,9 @@ Sempre que uma nova decisão persistente for adicionada, o registro deve seguir 
 **Decisão:** Os testes de integração (acesso a BD, APIs mockadas) são estritamente separados dos testes unitários (execução em memória pura).
 **Justificativa:** Garantir CI rápida (unitários) enquanto mantém garantia de funcionamento do fluxo completo (integração).
 **Impacto:** Novos Adapters de rede ou Repositórios de banco exigem testes na pasta `integration`. Lógicas de cálculo ou formatação devem ir para `unit`.
+
+### [2026-05] Validação Blindada e Automação de Ambiente
+**Evidência:** Scripts `start_dev.sh`, `test_all.sh` e configuração do Ruff/Vitest.
+**Decisão:** Uso de scripts de entrada única para subir o ambiente e validar todo o monorepo. Adoção do Ruff (backend) e Vitest (frontend) como padrões de qualidade.
+**Justificativa:** Reduzir o atrito no onboarding e garantir que nenhum commit quebre a integridade do monorepo.
+**Impacto:** O CI bloqueia merges sem a "Validação Blindada" (lint + tipos + testes) aprovada em ambos os subprojetos.

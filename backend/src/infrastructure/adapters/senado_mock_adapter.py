@@ -48,7 +48,12 @@ class SenadoMockAdapter(ProposicaoAdapter):
                 tempo_total_dias=1555,
                 tem_atraso=True,
                 tem_previsao_ia=False,
-                tags=["internet", "fake news", "redes sociais", "liberdade de expressão"],
+                tags=[
+                    "internet",
+                    "fake news",
+                    "redes sociais",
+                    "liberdade de expressão",
+                ],
             ),
             Proposicao(
                 id="sen-3",

@@ -6,7 +6,7 @@ Referência rápida para contribuir com o projeto de forma consistente.
 
 ## Branches
 
-Crie sempre uma branch a partir da `main` atualizada. Use o prefixo correspondente ao tipo de mudança:
+Crie sempre uma branch a partir da `develop` atualizada. Use o prefixo correspondente ao tipo de mudança:
 
 | Prefixo | Quando usar |
 |---------|-------------|
@@ -17,8 +17,8 @@ Crie sempre uma branch a partir da `main` atualizada. Use o prefixo corresponden
 | `refactor/` | refatoração sem mudança de comportamento |
 
 ```bash
-git checkout main
-git pull origin main
+git checkout develop
+git pull origin develop
 git checkout -b feat/nome-descritivo
 ```
 
@@ -43,10 +43,11 @@ Tipos aceitos: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `style`.
 
 ## Pull Requests
 
-1. Abra o PR sempre para `main`.
+1. Abra o PR sempre para `develop`.
 2. Use um título no formato Conventional Commits.
 3. Descreva o que mudou, por que mudou e o que o revisor deve verificar.
 4. Não faça merge sem o CI passar.
+5. Releases são promovidas de `develop` para `main` via PR de release.
 
 O CI é disparado automaticamente ao abrir ou atualizar um PR.
 
@@ -68,9 +69,9 @@ Arquivo: `.github/workflows/frontend.yml`
 
 Arquivo: `.github/workflows/backend.yml`
 
-- Roda em todo PR para `main` que altere `backend/`
+- Roda em todo PR para `main` ou `develop` que altere `backend/`
 - Instala dependências: `uv sync`
-- Verifica sintaxe: `py_compile src/main.py`
+- Verifica código: Ruff (lint) + pytest (testes unitários e de integração)
 
 ### Squad Dashboard
 

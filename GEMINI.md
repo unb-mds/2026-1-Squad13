@@ -37,7 +37,7 @@ Monitoramento de Tempo de Tramitação de Leis (PL/PEC). Busca, acompanhamento e
 
 ## Estado Atual
 
-Fase de integração e estabilização (mocks → APIs reais Câmara/Senado) e evolução do pipeline de dados interno.
+Integração com APIs reais estabilizada; infra Docker e scripts de automação operacionais; CI/CD validando a integridade de todo o monorepo.
 
 ## O que evitar
 

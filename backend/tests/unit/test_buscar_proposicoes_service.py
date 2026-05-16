@@ -1,13 +1,15 @@
-import pytest
+def test_deve_permitir_busca_sem_filtros(service):
+    # Act
+    resultado = service.executar(filtros={})
 
-def test_deve_lancar_erro_ao_buscar_sem_filtros(service):
-    # Act & Assert
-    with pytest.raises(ValueError) as excinfo:
-        service.executar(filtros={})
-    
-    assert "Preencha pelo menos um filtro" in str(excinfo.value)
+    # Assert
+    assert "items" in resultado
+    assert "total" in resultado
 
-def test_deve_filtrar_por_tipo_com_sucesso(service, mock_repositorio, lista_proposicoes):
+
+def test_deve_filtrar_por_tipo_com_sucesso(
+    service, mock_repositorio, lista_proposicoes
+):
     # Arrange
     proposicoes_pl = [p for p in lista_proposicoes if p.tipo == "PL"]
     mock_repositorio.filtrar.return_value = proposicoes_pl
@@ -20,14 +22,30 @@ def test_deve_filtrar_por_tipo_com_sucesso(service, mock_repositorio, lista_prop
     assert resultado["total"] == 2
     assert all(p.tipo == "PL" for p in resultado["items"])
     mock_repositorio.contar.assert_called_once_with(
-        tipo="PL", numero=None, ano=None, autor=None, status=None,
-        busca=None, orgao_origem=None, data_inicio=None, data_fim=None
+        tipo="PL",
+        numero=None,
+        ano=None,
+        autor=None,
+        status=None,
+        busca=None,
+        orgao_origem=None,
+        data_inicio=None,
+        data_fim=None,
     )
     mock_repositorio.filtrar.assert_called_once_with(
-        tipo="PL", numero=None, ano=None, autor=None, status=None,
-        busca=None, orgao_origem=None, data_inicio=None, data_fim=None,
-        limit=10, offset=0,
+        tipo="PL",
+        numero=None,
+        ano=None,
+        autor=None,
+        status=None,
+        busca=None,
+        orgao_origem=None,
+        data_inicio=None,
+        data_fim=None,
+        limit=10,
+        offset=0,
     )
+
 
 def test_deve_filtrar_por_ano_com_sucesso(service, mock_repositorio, lista_proposicoes):
     # Arrange
@@ -42,16 +60,34 @@ def test_deve_filtrar_por_ano_com_sucesso(service, mock_repositorio, lista_propo
     assert resultado["total"] == 1
     assert resultado["items"][0].ano == 2023
     mock_repositorio.contar.assert_called_once_with(
-        tipo=None, numero=None, ano=2023, autor=None, status=None,
-        busca=None, orgao_origem=None, data_inicio=None, data_fim=None
+        tipo=None,
+        numero=None,
+        ano=2023,
+        autor=None,
+        status=None,
+        busca=None,
+        orgao_origem=None,
+        data_inicio=None,
+        data_fim=None,
     )
     mock_repositorio.filtrar.assert_called_once_with(
-        tipo=None, numero=None, ano=2023, autor=None, status=None,
-        busca=None, orgao_origem=None, data_inicio=None, data_fim=None,
-        limit=10, offset=0,
+        tipo=None,
+        numero=None,
+        ano=2023,
+        autor=None,
+        status=None,
+        busca=None,
+        orgao_origem=None,
+        data_inicio=None,
+        data_fim=None,
+        limit=10,
+        offset=0,
     )
 
-def test_deve_retornar_lista_vazia_quando_nao_houver_resultados(service, mock_repositorio):
+
+def test_deve_retornar_lista_vazia_quando_nao_houver_resultados(
+    service, mock_repositorio
+):
     # Arrange
     mock_repositorio.filtrar.return_value = []
     mock_repositorio.contar.return_value = 0
