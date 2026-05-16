@@ -205,29 +205,27 @@ Para a demo da R1 funcionar, o banco precisa ter proposições reais. Um script 
 
 ---
 
-#### feat: entidade Tramitacao e endpoint de movimentações
+#### feat: modelo analítico EventoTramitacao e endpoint de movimentações
 
 **Prioridade:** Alta
 
 ##### 📝 Descrição
 
-Criar a entidade `Tramitacao` no domínio e expor um endpoint de movimentações por proposição. O componente `TimelineTramitacao` no frontend já está pronto e aguardando dados reais.
+Migrar a lógica de tramitação para o modelo analítico `EventoTramitacao`. O componente `TimelineTramitacao` no frontend já está pronto e aguardando os novos dados normalizados.
 
 ##### 🏗️ Impacto Arquitetural
 
-- **Domínio:** entidade `Tramitacao` com campos: `id`, `proposicao_id`, `descricao`, `orgao`, `data_entrada`, `data_saida`, `responsavel`. Método `dias_na_etapa()` como property.
-- **Infraestrutura:** `TramitacaoRepository`; adapters da Câmara e Senado devem buscar tramitações junto com a proposição.
-- **Apresentação:** `GET /proposicoes/{id}/movimentacoes` retornando lista ordenada.
-- **Frontend:** `obterMovimentacoes()` em `api.ts` troca mock por chamada real.
+- **Domínio:** entidades `EventoTramitacao`, `FaseAnalitica`, `OrgaoLegislativo` e `TipoEvento` que substituem `Tramitacao`. Funções `classificar_tipo_evento` e `determinar_fase_analitica`.
+- **Infraestrutura:** `SQLEventoTramitacaoRepository`; adapters da Câmara e Senado buscando tramitações brutas.
+- **Apresentação:** `GET /proposicoes/{id}/movimentacoes` retornando lista ordenada com fases analíticas.
+- **Frontend:** `obterMovimentacoes()` consome nova estrutura e mapeia as fases (ex: `NA_COMISSAO`).
 
 ##### ✅ Critérios de Aceitação
 
-- [x] Tramitações ordenadas da mais recente para a mais antiga.
-- [x] Cada etapa exibe: descrição, órgão, data entrada, data saída, dias calculados.
-- [x] Etapas sem data saída exibem tempo acumulado até hoje.
-- [x] Etapas > 180 dias disparam flag `tem_atraso = true`.
-- [x] Testes unitários em `dias_na_etapa()`.
-- [x] Testes de integração no endpoint.
+- [x] Tramitações classificadas corretamente por `TipoEvento` (20 categorias normalizadas).
+- [x] Tramitações recebem uma `FaseAnalitica` correspondente.
+- [x] Testes unitários do domínio valendo as classificações e fases.
+- [x] Endpoint integrado devolvendo lista cronológica inversa (mais recentes primeiro).
 
 ---
 

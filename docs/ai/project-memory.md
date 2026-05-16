@@ -36,6 +36,12 @@ Sempre que uma nova decisão persistente for adicionada, o registro deve seguir 
 
 ## Decisões Consolidadas
 
+### [2026-05] Migração para Modelo Analítico de Tramitação (`EventoTramitacao`)
+**Evidência:** Diretórios `backend/src/domain/entities/evento_tramitacao.py`, `backend/src/domain/classificar_evento.py` e `docs/MIGRATION_SCOPE.md`.  
+**Decisão:** Substituição do modelo legado de `Tramitacao` pelo modelo analítico, que classifica cada tramitação por 20 tipos de eventos normalizados e 8 fases legislativas.  
+**Justificativa:** APIs da Câmara e Senado retornam textos verbosos e variados, inviabilizando agregações numéricas no dashboard e detecção de gargalos. A normalização no domínio resolve isso.  
+**Impacto:** Métricas de tempo e dashboards não utilizam mais os campos das APIs diretamente; todos os cálculos são baseados no `TipoEvento` e `FaseAnalitica`.
+
 ### [2026-05] Layered Architecture como contrato estrito de backend
 **Evidência:** Estrutura isolada em `backend/src/` com pastas `presentation`, `application`, `domain` e `infrastructure`.
 **Decisão:** O domínio não conhece frameworks HTTP nem de acesso direto à rede. Controllers em `presentation` delegam para `application`.

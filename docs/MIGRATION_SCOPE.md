@@ -121,16 +121,16 @@ Nunca são criadas em runtime.
 ## Ordem de execução das etapas
 
 ```
-Etapa 1 — branch + este documento                   ← você está aqui
-Etapa 2 — entidades: FaseAnalitica, OrgaoLegislativo, EventoTramitacao
-Etapa 3 — funções de domínio: classificar_tipo_evento(), determinar_fase_analitica()
-Etapa 4 — NormalizarTramitacaoService + adapters
-Etapa 5 — seed atualizado + endpoint GET /proposicoes/{id}/movimentacoes
-Etapa 6 — cálculo de duração on-the-fly + DashboardService atualizado
+Etapa 1 — branch + este documento                   ✅ concluída
+Etapa 2 — entidades: FaseAnalitica, OrgaoLegislativo, EventoTramitacao   ✅ concluída
+Etapa 3 — funções de domínio: classificar_tipo_evento(), determinar_fase_analitica()   ✅ concluída
+Etapa 4 — NormalizarTramitacaoService + adapters     ✅ concluída
+Etapa 5 — seed atualizado + endpoint GET /proposicoes/{id}/movimentacoes   ✅ concluída
+Etapa 6 — cálculo de duração on-the-fly + DashboardService atualizado   ✅ concluída
 ```
 
-Etapas 2a, 2b e 2c (as três entidades) podem ser desenvolvidas em paralelo.
-Etapa 3 é gargalo: ninguém avança para 4 sem os testes das funções de domínio aprovados.
+Etapas 2a, 2b e 2c (as três entidades) foram desenvolvidas em paralelo.
+Etapa 3 foi gargalo: os testes das funções de domínio foram aprovados antes de avançar para 4.
 
 ---
 
