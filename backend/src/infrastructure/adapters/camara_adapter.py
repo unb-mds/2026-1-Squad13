@@ -1,7 +1,6 @@
 import requests
 from typing import Optional, List
 from domain.entities.proposicao import Proposicao
-from domain.entities.tramitacao import Tramitacao
 
 
 class CamaraAdapter:
@@ -81,32 +80,49 @@ class CamaraAdapter:
             print(f"Erro ao listar proposições recentes na Câmara: {e}")
             return []
 
-    def buscar_tramitacoes(self, id_proposicao: int) -> List[Tramitacao]:
-        """Busca as tramitações de uma proposição na Câmara."""
+
+
+    def buscar_tramitacoes_brutas(self, id_proposicao: int) -> List[dict]:
+        """
+        Retorna payload bruto de cada tramitação da Câmara.
+        
+        Cada dict contém:
+            - data_hora: str
+            - sequencia: int
+            - sigla_orgao: str
+            - descricao: str (descricaoTramitacao + despacho consolidados)
+            - payload_bruto: dict (JSON original para auditoria)
+        """
         url = f"{self.base_url}/proposicoes/{id_proposicao}/tramitacoes"
         try:
             resp = requests.get(url, timeout=10)
             resp.raise_for_status()
             dados = resp.json()["dados"]
 
-            tramitacoes = []
+            brutas = []
             for d in dados:
-                tramitacoes.append(
-                    Tramitacao(
-                        proposicao_id=str(id_proposicao),
-                        data_hora=d.get("dataHora", ""),
-                        sequencia=d.get("sequencia", 0),
-                        sigla_orgao=d.get("siglaOrgao", "N/A"),
-                        descricao_tramitacao=d.get("descricaoTramitacao", ""),
-                        despacho=d.get("despacho", ""),
-                        status=d.get("descricaoSituacao", ""),
-                    )
-                )
+                # Consolida descricao_tramitacao e despacho
+                desc_tram = d.get("descricaoTramitacao", "").strip()
+                despacho = d.get("despacho", "").strip()
+                
+                descricao_partes = []
+                if desc_tram:
+                    descricao_partes.append(desc_tram)
+                if despacho and despacho != desc_tram:
+                    descricao_partes.append(despacho)
+                    
+                descricao_consolidada = " - ".join(descricao_partes)
 
-            for t in tramitacoes:
-                t.normalizar()
-
-            return tramitacoes
+                brutas.append({
+                    "data_hora": d.get("dataHora", ""),
+                    "sequencia": d.get("sequencia", 0),
+                    "sigla_orgao": d.get("siglaOrgao", "N/A"),
+                    "descricao": descricao_consolidada,
+                    "payload_bruto": d
+                })
+            
+            return brutas
         except Exception as e:
-            print(f"Erro ao buscar tramitações da Câmara para ID {id_proposicao}: {e}")
+            print(f"Erro ao buscar tramitações brutas da Câmara para ID {id_proposicao}: {e}")
             return []
+

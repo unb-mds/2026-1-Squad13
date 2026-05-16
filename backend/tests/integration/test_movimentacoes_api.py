@@ -1,18 +1,22 @@
 from unittest.mock import patch
 from fastapi.testclient import TestClient
-from domain.entities.tramitacao import Tramitacao
+from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.tipo_evento import TipoEvento
 from domain.entities.proposicao import Proposicao
 
-
-def _tramitacao_mock(id_prop: str) -> Tramitacao:
-    return Tramitacao(
+def _evento_mock(id_prop: str) -> EventoTramitacao:
+    return EventoTramitacao(
         proposicao_id=id_prop,
-        data_hora="2024-05-14T10:00:00",
+        data_evento="2024-05-14T10:00:00",
         sequencia=1,
         sigla_orgao="CCJ",
-        descricao_tramitacao="Recebimento na CCJ",
-        status="Aguardando relator",
+        descricao_original="Recebimento na CCJ",
+        tipo_evento=TipoEvento.NAO_CLASSIFICADO.value,
+        deliberativo=False,
+        mudou_fase=False,
+        mudou_orgao=False,
     )
+
 
 
 def _proposicao_mock(id_prop: str, orgao: str) -> Proposicao:
@@ -35,7 +39,14 @@ def _proposicao_mock(id_prop: str, orgao: str) -> Proposicao:
 def test_listar_movimentacoes_camara_retorna200(http_client: TestClient):
     id_prop = "123456"
     prop = _proposicao_mock(id_prop, "Câmara dos Deputados")
-    tram = _tramitacao_mock(id_prop)
+    
+    tram_bruta = {
+        "data_hora": "2024-05-14T10:00:00",
+        "sequencia": 1,
+        "sigla_orgao": "CCJ",
+        "descricao": "Recebimento na CCJ",
+        "payload_bruto": {}
+    }
 
     with (
         patch(
@@ -43,15 +54,15 @@ def test_listar_movimentacoes_camara_retorna200(http_client: TestClient):
             return_value=prop,
         ),
         patch(
-            "infrastructure.repositories.sql_tramitacao_repository.SQLTramitacaoRepository.buscar_por_proposicao",
+            "infrastructure.repositories.sql_evento_tramitacao_repository.SQLEventoTramitacaoRepository.buscar_por_proposicao",
             return_value=[],
         ),
         patch(
-            "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_tramitacoes",
-            return_value=[tram],
+            "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_tramitacoes_brutas",
+            return_value=[tram_bruta],
         ),
         patch(
-            "infrastructure.repositories.sql_tramitacao_repository.SQLTramitacaoRepository.salvar_lote"
+            "infrastructure.repositories.sql_evento_tramitacao_repository.SQLEventoTramitacaoRepository.salvar_lote"
         ),
     ):
         response = http_client.get(f"/proposicoes/{id_prop}/movimentacoes")
@@ -61,12 +72,20 @@ def test_listar_movimentacoes_camara_retorna200(http_client: TestClient):
     assert len(dados) == 1
     assert dados[0]["proposicaoId"] == id_prop
     assert dados[0]["siglaOrgao"] == "CCJ"
+    assert "tipoEvento" in dados[0]
 
 
 def test_listar_movimentacoes_senado_retorna200(http_client: TestClient):
     id_prop = "654321"
     prop = _proposicao_mock(id_prop, "Senado Federal")
-    tram = _tramitacao_mock(id_prop)
+    
+    tram_bruta = {
+        "data_hora": "2024-05-14T10:00:00",
+        "sequencia": 1,
+        "sigla_orgao": "CCJ",
+        "descricao": "Recebimento na CCJ",
+        "payload_bruto": {}
+    }
 
     with (
         patch(
@@ -74,15 +93,15 @@ def test_listar_movimentacoes_senado_retorna200(http_client: TestClient):
             return_value=prop,
         ),
         patch(
-            "infrastructure.repositories.sql_tramitacao_repository.SQLTramitacaoRepository.buscar_por_proposicao",
+            "infrastructure.repositories.sql_evento_tramitacao_repository.SQLEventoTramitacaoRepository.buscar_por_proposicao",
             return_value=[],
         ),
         patch(
-            "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_tramitacoes",
-            return_value=[tram],
+            "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_tramitacoes_brutas",
+            return_value=[tram_bruta],
         ),
         patch(
-            "infrastructure.repositories.sql_tramitacao_repository.SQLTramitacaoRepository.salvar_lote"
+            "infrastructure.repositories.sql_evento_tramitacao_repository.SQLEventoTramitacaoRepository.salvar_lote"
         ),
     ):
         response = http_client.get(f"/proposicoes/{id_prop}/movimentacoes")
@@ -95,12 +114,12 @@ def test_listar_movimentacoes_senado_retorna200(http_client: TestClient):
 
 def test_listar_movimentacoes_usa_cache_do_banco(http_client: TestClient):
     id_prop = "111222"
-    tram = _tramitacao_mock(id_prop)
+    evento = _evento_mock(id_prop)
 
     with (
         patch(
-            "infrastructure.repositories.sql_tramitacao_repository.SQLTramitacaoRepository.buscar_por_proposicao",
-            return_value=[tram],
+            "infrastructure.repositories.sql_evento_tramitacao_repository.SQLEventoTramitacaoRepository.buscar_por_proposicao",
+            return_value=[evento],
         ),
         patch(
             "infrastructure.repositories.sql_proposicao_repository.SQLProposicaoRepository.buscar_por_id"
