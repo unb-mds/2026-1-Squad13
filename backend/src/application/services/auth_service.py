@@ -1,8 +1,11 @@
 from datetime import timedelta
 from typing import Optional
-from fastapi import HTTPException, status
 from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
-from domain.exceptions import ContaBloqueadaError
+from domain.exceptions import (
+    ContaBloqueadaError,
+    CredenciaisInvalidasError,
+    EmailJaCadastradoError,
+)
 from domain.services.login_attempt_service import LoginAttemptProvider
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import (
@@ -30,9 +33,7 @@ class AuthService:
         """Registra um novo usuário no sistema."""
         # Verifica se o usuário já existe
         if self.user_repository.buscar_por_email(user_in.email):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail já cadastrado"
-            )
+            raise EmailJaCadastradoError()
 
         # Cria a entidade de usuário com a senha hasheada
         user = User(
@@ -67,11 +68,7 @@ class AuthService:
             if self.attempt_provider:
                 self.attempt_provider.registrar_falha(login_in.email)
 
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="E-mail ou senha incorretos",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise CredenciaisInvalidasError()
 
         # 4. Login bem-sucedido: Reseta o contador de tentativas
         if self.attempt_provider:
