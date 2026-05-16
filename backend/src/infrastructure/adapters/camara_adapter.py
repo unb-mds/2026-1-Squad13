@@ -80,12 +80,10 @@ class CamaraAdapter:
             print(f"Erro ao listar proposições recentes na Câmara: {e}")
             return []
 
-
-
     def buscar_tramitacoes_brutas(self, id_proposicao: int) -> List[dict]:
         """
         Retorna payload bruto de cada tramitação da Câmara.
-        
+
         Cada dict contém:
             - data_hora: str
             - sequencia: int
@@ -104,25 +102,28 @@ class CamaraAdapter:
                 # Consolida descricao_tramitacao e despacho
                 desc_tram = d.get("descricaoTramitacao", "").strip()
                 despacho = d.get("despacho", "").strip()
-                
+
                 descricao_partes = []
                 if desc_tram:
                     descricao_partes.append(desc_tram)
                 if despacho and despacho != desc_tram:
                     descricao_partes.append(despacho)
-                    
+
                 descricao_consolidada = " - ".join(descricao_partes)
 
-                brutas.append({
-                    "data_hora": d.get("dataHora", ""),
-                    "sequencia": d.get("sequencia", 0),
-                    "sigla_orgao": d.get("siglaOrgao", "N/A"),
-                    "descricao": descricao_consolidada,
-                    "payload_bruto": d
-                })
-            
+                brutas.append(
+                    {
+                        "data_hora": d.get("dataHora", ""),
+                        "sequencia": d.get("sequencia", 0),
+                        "sigla_orgao": d.get("siglaOrgao", "N/A"),
+                        "descricao": descricao_consolidada,
+                        "payload_bruto": d,
+                    }
+                )
+
             return brutas
         except Exception as e:
-            print(f"Erro ao buscar tramitações brutas da Câmara para ID {id_proposicao}: {e}")
+            print(
+                f"Erro ao buscar tramitações brutas da Câmara para ID {id_proposicao}: {e}"
+            )
             return []
-

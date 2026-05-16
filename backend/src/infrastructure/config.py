@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 horas
 
+    # Redis e Bloqueio de Conta
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+    TENTATIVAS_MAXIMAS: int = 5
+    BLOQUEIO_MINUTOS: int = 15
+
     @property
     def database_url(self) -> str:
         """Gera a URL de conexão para o SQLAlchemy/SQLModel"""

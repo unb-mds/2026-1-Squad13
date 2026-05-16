@@ -183,12 +183,10 @@ class SenadoAdapter:
             print(f"Erro ao listar matérias recentes no Senado: {e}")
             return []
 
-
-
     def buscar_tramitacoes_brutas(self, id_materia: int) -> List[dict]:
         """
         Retorna payload bruto de cada tramitação do Senado.
-        
+
         Cada dict contém:
             - data_hora: str
             - sequencia: int
@@ -230,20 +228,22 @@ class SenadoAdapter:
             seq = 1
             if autuacoes:
                 situacoes = autuacoes[0].get("situacoes", [])
-                
+
                 # Inverte as situacoes pois o senado retorna da mais recente para a mais antiga
                 # E queremos sequencia 1 para a primeira
                 for s in reversed(situacoes):
                     sigla_orgao = s.get("colegiado", {}).get("sigla") or "Senado"
                     descricao = s.get("descricao", "").strip()
 
-                    brutas.append({
-                        "data_hora": s.get("inicio", ""),
-                        "sequencia": seq,
-                        "sigla_orgao": sigla_orgao,
-                        "descricao": descricao,
-                        "payload_bruto": s
-                    })
+                    brutas.append(
+                        {
+                            "data_hora": s.get("inicio", ""),
+                            "sequencia": seq,
+                            "sigla_orgao": sigla_orgao,
+                            "descricao": descricao,
+                            "payload_bruto": s,
+                        }
+                    )
                     seq += 1
 
             return brutas
@@ -252,7 +252,6 @@ class SenadoAdapter:
                 f"Erro ao buscar tramitações brutas do Senado para ID {id_materia} (Processo {id_processo}): {e}"
             )
             return []
-
 
     def _processar_dados_processo(self, dados: dict, id_materia: str) -> Proposicao:
         """Processa a estrutura flat retornada pelo endpoint /processo."""
