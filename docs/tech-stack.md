@@ -1,16 +1,16 @@
 # Tech Stack: Monitoramento de Tempo de Tramitação de Proposições
 
-Resumo das tecnologias principais usadas no projeto, explicando **o que é** e **por que escolhemos essa tecnologia**, ligando tudo aos [ADRs](docs/adr/) e à [arquitetura definida em `ARCHITECTURE.md`](ARCHITECTURE.md).
+Resumo das tecnologias principais usadas no projeto, explicando **o que é** e **por que escolhemos essa tecnologia**, ligando tudo aos [ADRs](../docs/adr/) e à [arquitetura definida em `ARCHITECTURE.md`](../ARCHITECTURE.md).
 
 ---
 
 ## 1. Stack geral
 
-- **Backend:** Python + FastAPI + SQLAlchemy + Pydantic
-- **Frontend:** React + Vite
-- **Banco de dados:** [PostgreSQL](docs/adr/ADR-002-postgresql.md) (Planejado/Mock em memória no momento)
-- **Cache + Celery broker:** [Redis](docs/adr/ADR-006-redis-cache.md) (Planejado)
-- **Worker & agendamento:** Celery + Celery Beat (Planejado)
+- **Backend:** Python + FastAPI + SQLModel + Pydantic
+- **Frontend:** React + Vite + TypeScript + Tailwind CSS
+- **Banco de dados:** [PostgreSQL](adr/ADR-002-postgresql.md) — **Implementado** e operacional via Docker
+- **Cache + Celery broker:** [Redis](adr/ADR-006-redis-cache.md) (Planejado para R2)
+- **Worker & agendamento:** Celery + Celery Beat (Planejado para R2)
 - **Contêineres:** Docker Compose
 - **CI/CD:** GitHub Actions
 
@@ -95,6 +95,6 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 
 Veja também:
 
-- [Arquitetura completa](ARCHITECTURE.md)
-- [Cheat Sheet de comandos](docs/cheat-sheet.md)
-- [README.md](README.md).
+- [Arquitetura completa](../ARCHITECTURE.md)
+- [Cheat Sheet de comandos](cheat-sheet.md)
+- [README.md](../README.md)

@@ -127,11 +127,12 @@ Para entender como o sistema é estruturado, as decisões técnicas tomadas e o 
 | [ADR-006](./docs/adr/ADR-006-redis-cache.md)          | Redis para cache de respostas                    | Aceita   |
 | [ADR-007](./docs/adr/ADR-007-testing-strategy.md)     | Estratégia de Testes (Frontend e Backend)        | Aceita   |
 | [ADR-008](./docs/adr/ADR-008-github-actions-data-pipeline.md) | Pipeline de Dados para o Squad Dashboard | Aceita   |
+| [ADR-009](./docs/adr/ADR-009-squad-dashboard-ghpages.md)      | Squad Dashboard no GitHub Pages          | Aceita   |
 
 ## Estado atual
 
-- **Backend:** FastAPI com Layered Architecture, adaptadores reais para as APIs da Câmara e do Senado, integração com PostgreSQL via SQLAlchemy, e testes automatizados (unitários e de integração) configurados com pytest.
-- **Frontend:** React + TypeScript + Vite integrado ao backend, com ESLint configurado e build validado automaticamente no CI.
-- **CI/CD:** GitHub Actions com workflows separados para frontend e backend, disparados automaticamente em PRs para `main`.
+- **Backend:** FastAPI com Layered Architecture, modelo analítico `EventoTramitacao` com classificação de eventos e fases legislativas, autenticação JWT (`/auth/login`, `/auth/register`), adaptadores reais para as APIs da Câmara e do Senado, integração com PostgreSQL via SQLModel, e testes automatizados (unitários e de integração) com pytest.
+- **Frontend:** React + TypeScript + Vite integrado ao backend real, com ESLint configurado e build validado automaticamente no CI. Dashboard com métricas de fluxo e gráfico de burnup semântico.
+- **CI/CD:** GitHub Actions com workflows separados para frontend, backend e squad-dashboard, disparados automaticamente em PRs para `main` e `develop`.
 
 Para contribuir, consulte o [CONTRIBUTING.md](./CONTRIBUTING.md).

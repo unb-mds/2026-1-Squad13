@@ -1,4 +1,4 @@
-# ADR-007: Squad Dashboard como projeto standalone deployado no GitHub Pages
+# ADR-009: Squad Dashboard como projeto standalone deployado no GitHub Pages
 
 **Data:** 2026-05-11  
 **Status:** Aceita  
