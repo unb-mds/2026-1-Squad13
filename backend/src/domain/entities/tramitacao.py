@@ -2,9 +2,10 @@ from sqlmodel import SQLModel, Field
 from typing import Optional
 
 
-class Tramitacao(SQLModel, table=True):
+class Tramitacao(SQLModel):
     """
     Representa uma movimentação ou tramitação de uma proposição.
+    (Em depreciação: mantido apenas como DTO retornado pelos adapters)
     """
 
     id: Optional[int] = Field(default=None, primary_key=True)

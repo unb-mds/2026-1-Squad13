@@ -3,15 +3,21 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
-from application.services.listar_tramitacoes_service import ListarTramitacoesService
+from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
-from infrastructure.repositories.sql_tramitacao_repository import (
-    SQLTramitacaoRepository,
+from infrastructure.repositories.sql_evento_tramitacao_repository import (
+    SQLEventoTramitacaoRepository,
 )
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
+from infrastructure.repositories.sql_fase_analitica_repository import (
+    SQLFaseAnaliticaRepository,
+)
+from infrastructure.repositories.sql_orgao_legislativo_repository import (
+    SQLOrgaoLegislativoRepository,
+)
 from infrastructure.database import get_session
 from sqlmodel import Session
 
@@ -20,18 +26,22 @@ router = APIRouter()
 # --- Schemas ---
 
 
-class TramitacaoResponse(BaseModel):
-    """Schema para retorno de tramitações com normalização camelCase"""
+class EventoTramitacaoResponse(BaseModel):
+    """Schema para retorno de eventos de tramitação com normalização camelCase"""
 
     model_config = ConfigDict(from_attributes=True)
 
     proposicaoId: str = Field(alias="proposicaoId")
-    dataHora: str = Field(alias="dataHora")
+    dataEvento: str = Field(alias="dataEvento")
     sequencia: int
-    siglaOrgao: str = Field(alias="siglaOrgao")
-    descricaoTramitacao: str = Field(alias="descricaoTramitacao")
-    despacho: Optional[str] = None
-    status: Optional[str] = None
+    siglaOrgao: Optional[str] = Field(default=None, alias="siglaOrgao")
+    descricaoOriginal: str = Field(alias="descricaoOriginal")
+    tipoEvento: str = Field(alias="tipoEvento")
+    faseAnaliticaId: Optional[int] = Field(default=None, alias="faseAnaliticaId")
+    deliberativo: bool
+    mudouFase: bool = Field(alias="mudouFase")
+    mudouOrgao: bool = Field(alias="mudouOrgao")
+    remessaOuRetorno: Optional[str] = Field(default=None, alias="remessaOuRetorno")
 
 
 class ProposicaoResponse(BaseModel):
@@ -98,35 +108,49 @@ def _to_response(p) -> dict:
     }
 
 
-def _to_tramitacao_response(t) -> dict:
+def _to_evento_response(e) -> dict:
+    data_str = e.data_evento.replace(" ", "T")
+    if not data_str.endswith("Z") and "+" not in data_str:
+        data_str += "Z"
+
     return {
-        "proposicaoId": t.proposicao_id,
-        "dataHora": t.data_hora,
-        "sequencia": t.sequencia,
-        "siglaOrgao": t.sigla_orgao,
-        "descricaoTramitacao": t.descricao_tramitacao,
-        "despacho": t.despacho,
-        "status": t.status,
+        "proposicaoId": e.proposicao_id,
+        "dataEvento": data_str,
+        "sequencia": e.sequencia,
+        "siglaOrgao": e.sigla_orgao,
+        "descricaoOriginal": e.descricao_original,
+        "tipoEvento": e.tipo_evento,
+        "faseAnaliticaId": e.fase_analitica_id,
+        "deliberativo": e.deliberativo,
+        "mudouFase": e.mudou_fase,
+        "mudouOrgao": e.mudou_orgao,
+        "remessaOuRetorno": e.remessa_ou_retorno,
     }
 
 
 # --- Controller ---
 
 
-@router.get("/proposicoes/{id}/movimentacoes", response_model=List[TramitacaoResponse])
+@router.get(
+    "/proposicoes/{id}/movimentacoes",
+    response_model=List[EventoTramitacaoResponse],
+)
 def listar_movimentacoes(id: str, session: Session = Depends(get_session)):
-    tramitacao_repo = SQLTramitacaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
     proposicao_repo = SQLProposicaoRepository(session)
     camara_adapter = CamaraAdapter()
     senado_adapter = SenadoAdapter()
 
-    service = ListarTramitacoesService(
-        tramitacao_repo, proposicao_repo, camara_adapter, senado_adapter
+    fase_repo = SQLFaseAnaliticaRepository(session)
+    orgao_repo = SQLOrgaoLegislativoRepository(session)
+
+    service = ListarMovimentacoesService(
+        evento_repo, proposicao_repo, fase_repo, orgao_repo, camara_adapter, senado_adapter
     )
 
     try:
         movimentacoes = service.executar(id)
-        return [_to_tramitacao_response(t) for t in movimentacoes]
+        return [_to_evento_response(e) for e in movimentacoes]
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Erro ao buscar movimentações: {str(e)}"

@@ -6,6 +6,9 @@ from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
 from infrastructure.database import get_session
+from infrastructure.repositories.sql_evento_tramitacao_repository import (
+    SQLEventoTramitacaoRepository,
+)
 from sqlmodel import Session
 
 router = APIRouter()
@@ -54,9 +57,11 @@ class ComparacaoTemaResponse(BaseModel):
     velocidade: str
 
 
+
 def get_dashboard_service(session: Session = Depends(get_session)) -> DashboardService:
     repository = SQLProposicaoRepository(session)
-    return DashboardService(repository)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    return DashboardService(repository, evento_repo)
 
 
 @router.get("/dashboard/metricas", response_model=DashboardMetricasResponse)

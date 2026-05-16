@@ -59,5 +59,54 @@ def test_camara_adapter_erro_rede(adapter):
         # Act
         proposicao = adapter.buscar_por_id(12345)
 
-        # Assert
         assert proposicao is None
+
+
+def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
+    mock_dados = {
+        "dados": [
+            {
+                "dataHora": "2024-01-01T10:00:00",
+                "sequencia": 1,
+                "siglaOrgao": "MESA",
+                "descricaoTramitacao": "Apresentação",
+                "despacho": ""
+            },
+            {
+                "dataHora": "2024-01-02T10:00:00",
+                "sequencia": 2,
+                "siglaOrgao": "CCJ",
+                "descricaoTramitacao": "Despacho",
+                "despacho": "Às comissões"
+            }
+        ]
+    }
+
+    with patch("requests.get") as mock_get:
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_dados
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        # Act
+        tramitacoes = adapter.buscar_tramitacoes_brutas(123)
+
+        # Assert
+        assert len(tramitacoes) == 2
+        assert tramitacoes[0]["descricao"] == "Apresentação"
+        assert tramitacoes[0]["sigla_orgao"] == "MESA"
+        assert tramitacoes[1]["descricao"] == "Despacho - Às comissões"
+        assert tramitacoes[1]["sigla_orgao"] == "CCJ"
+        assert tramitacoes[1]["payload_bruto"] == mock_dados["dados"][1]
+
+
+def test_camara_adapter_buscar_tramitacoes_brutas_erro(adapter):
+    with patch("requests.get") as mock_get:
+        mock_get.side_effect = requests.exceptions.RequestException("Erro")
+
+        # Act
+        tramitacoes = adapter.buscar_tramitacoes_brutas(123)
+
+        # Assert
+        assert tramitacoes == []
+
