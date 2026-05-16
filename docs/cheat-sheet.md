@@ -2,7 +2,7 @@
 
 Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 
-**Para contexto, veja [tech-stack.md](tech-stack.md) e [ARCHITECTURE.md](ARCHITECTURE.md).**
+**Para contexto, veja [tech-stack.md](tech-stack.md) e [ARCHITECTURE.md](../ARCHITECTURE.md).**
 
 ---
 
@@ -18,7 +18,7 @@ Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 
 ## 2. Docker / Docker Compose
 
-- `docker-compose up -d` → subir PostgreSQL, Redis, backend, worker [ADR-002, ADR-006].
+- `docker-compose up -d` → subir PostgreSQL, Redis e backend [ADR-002, ADR-006].
 - `docker-compose down` → desligar tudo.
 - `docker-compose logs backend` → logs do FastAPI.
 - `docker-compose exec backend bash` → terminal no container backend.
@@ -28,14 +28,23 @@ Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 
 ## 3. FastAPI / Backend
 
-- `uvicorn src.presentation.main:app --reload` → rodar backend dev [ADR-003].
-- `python -m alembic revision --autogenerate -m "descrição"` → nova migration.
-- `python -m alembic upgrade head` → aplicar migrations [ADR-002].
+- `uv run fastapi dev src/main.py` → rodar backend em modo dev [ADR-003].
+- `uv run python src/seed.py` → popular banco com dados reais das APIs.
+- `uv run python src/init_db.py` → criar tabelas no banco.
 - Acessar [Swagger em `/docs`](http://localhost:8000/docs) para testar endpoints [ADR-003].
 
 ---
 
-## 4. PostgreSQL
+## 4. Testes — Backend
+
+- `uv run pytest` → rodar todos os testes.
+- `uv run pytest -m "not integration"` → apenas unitários.
+- `uv run pytest -m "integration"` → apenas integração.
+- `uv run ruff check .` → linting.
+
+---
+
+## 5. PostgreSQL
 
 - `psql -h localhost -U seu_usuario -d nome_banco` → conectar localmente.
 - `\dt` → listar tabelas.
@@ -43,14 +52,7 @@ Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 
 ---
 
-## 5. Celery / Worker
-
-- `celery -A src.infrastructure.workers.celery_app worker -l info` → rodar worker [ADR-004].
-- `celery -A src.infrastructure.workers.celery_app beat -l info` → agendador [ADR-004].
-
----
-
-## 6. Redis
+## 6. Redis (planejado para R2)
 
 - `redis-cli` → acessar Redis.
 - `keys PROPOSICAO*` → ver chaves de cache [ADR-006].
@@ -64,13 +66,13 @@ Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 - `npm run build` → build produção.
 - `npm run preview` → preview do build.
 - `npm run lint` → verificar qualidade do código (ESLint).
+- `npm run test` → rodar testes (Vitest).
 
 ---
 
 **Links úteis:**
 
 - [Tech Stack](tech-stack.md)
-- [Arquitetura](ARCHITECTURE.md)
-- [ADRs](docs/adr/)
-- [README.md](README.md)
-)
+- [Arquitetura](../ARCHITECTURE.md)
+- [ADRs](adr/)
+- [README.md](../README.md)

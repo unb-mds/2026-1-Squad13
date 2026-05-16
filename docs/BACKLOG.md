@@ -9,13 +9,12 @@ Este documento contém o backlog oficial derivado do `story-map.md`, organizado 
 
 | ID | Issue | Prioridade | Esforço | Status |
 |---|---|---|---|---|
-| # | feat: ligar busca e filtros ao backend real | Alta | Pequeno | 📝 Todo |
-| # | feat: endpoint GET /proposicoes/{id} e detalhe real | Alta | Pequeno | 📝 Todo |
-| # | feat: card de tempo de tramitação com dados reais | Alta | Mínimo | 📝 Todo |
-| # | feat: endpoint POST /auth/login com JWT | Alta | Médio | 📝 Todo |
-| # | feat: endpoint POST /usuarios/cadastro | Alta | Pequeno | 📝 Todo |
-| # | chore: script de seed com dados reais | Alta | Pequeno | 📝 Todo |
-| # | chore: corrigir SenadoAdapter (campo data) | Alta | Mínimo | 📝 Todo |
+| #40 | feat: ligar busca e filtros ao backend real | Alta | Pequeno | ✅ Done |
+| #43 | feat: endpoint GET /proposicoes/{id} e detalhe real | Alta | Pequeno | ✅ Done |
+| #44 | feat: endpoint POST /auth/login com JWT | Alta | Médio | ✅ Done |
+| #82 | feat: endpoint POST /usuarios/cadastro | Alta | Pequeno | ✅ Done |
+| #45 | chore: script de seed com dados reais | Alta | Pequeno | ✅ Done |
+| #46 | fix: corrigir SenadoAdapter (campo data) | Alta | Mínimo | ✅ Done |
 
 ---
 
@@ -24,14 +23,14 @@ Este documento contém o backlog oficial derivado do `story-map.md`, organizado 
 
 | ID | Issue | Prioridade | Status |
 |---|---|---|---|
-| # | feat: entidade Tramitacao e endpoint de movimentações | Alta | 📝 Todo |
-| # | feat: endpoints de breakdown para dashboard | Alta | 📝 Todo |
-| # | feat: logout com invalidação no servidor | Alta | 📝 Todo |
-| # | chore: worker de coleta batch diária | Alta | 📝 Todo |
-| # | feat: tempo por fase com dados reais | Média | 📝 Todo |
-| # | feat: filtros ativos afetando o dashboard | Média | 📝 Todo |
-| # | chore: cache Redis para métricas | Média | 📝 Todo |
-| # | feat: recuperação de senha por e-mail | Média | 📝 Todo |
-| # | feat: estimativa de tempo de aprovação (IA) | Baixa | 📝 Todo |
-| # | feat: bloqueio de conta (tentativas falhas) | Baixa | 📝 Todo |
-| # | chore: documentar mapeamento de campos (ADR-005) | Baixa | 📝 Todo |
+| #88 | feat: modelo analítico EventoTramitacao e endpoint de movimentações | Alta | ✅ Done |
+| #90 | feat: endpoints de breakdown para dashboard | Alta | ✅ Done |
+| #92 | feat: logout com invalidação no servidor | Alta | 📝 Todo |
+| #87 | chore: worker de coleta batch diária | Alta | 📝 Todo |
+| #89 | feat: tempo por fase com dados reais | Média | 📝 Todo |
+| #91 | feat: filtros ativos afetando o dashboard | Média | 📝 Todo |
+| #94 | chore: cache Redis para métricas | Média | 📝 Todo |
+| #86 | feat: recuperação de senha por e-mail | Média | 📝 Todo |
+| #96 | feat: estimativa de tempo de aprovação (IA) | Baixa | 📝 Todo |
+| #93 | feat: bloqueio de conta (tentativas falhas) | Baixa | 📝 Todo |
+| #95 | chore: documentar mapeamento de campos (ADR-005) | Baixa | 📝 Todo |

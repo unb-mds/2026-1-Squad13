@@ -52,11 +52,11 @@ O frontend já consome `GET /proposicoes` com filtros. O que falta é garantir q
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] Busca por palavra-chave funciona com acentos e maiúsculas sem retorno vazio indevido.
-- [ ] Filtros cumulativos retornam apenas registros que atendem todos os critérios.
-- [ ] Paginação usa `LIMIT/OFFSET` no SQL — não carrega todos os registros em memória.
-- [ ] Tela de lista vazia exibe mensagem informativa (não tela em branco).
-- [ ] Testes de integração cobrem: busca vazia (400), busca com resultado, busca sem resultado, filtro combinado.
+- [x] Busca por palavra-chave funciona com acentos e maiúsculas sem retorno vazio indevido.
+- [x] Filtros cumulativos retornam apenas registros que atendem todos os critérios.
+- [x] Paginação usa `LIMIT/OFFSET` no SQL — não carrega todos os registros em memória.
+- [x] Tela de lista vazia exibe mensagem informativa (não tela em branco).
+- [x] Testes de integração cobrem: busca vazia (400), busca com resultado, busca sem resultado, filtro combinado.
 
 ---
 
@@ -76,11 +76,12 @@ A página de detalhe existe e está completa visualmente, mas `obterProposicao()
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] `GET /proposicoes/{id}` retorna 200 com dados completos para ID existente.
-- [ ] Retorna 404 para ID inexistente — frontend exibe tela "não encontrado".
-- [ ] Campos nulos omitidos da resposta (sem `null` visível).
-- [ ] Link oficial abre em nova aba.
-- [ ] Testes de integração: ID existente, ID inexistente.
+- [x] `GET /proposicoes/{id}` retorna 200 com dados completos para ID existente.
+- [x] Retorna 404 para ID inexistente — frontend exibe tela "não encontrado".
+- [x] Campos nulos omitidos da resposta (sem `null` visível).
+- [x] Link oficial abre em nova aba.
+- [x] Testes de integração: ID existente, ID inexistente.
+
 
 ---
 
@@ -100,9 +101,9 @@ O card de "Tempo de tramitação" na página de detalhe já renderiza corretamen
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] `tempoTotalDias` exibido com dados reais do banco.
-- [ ] `atraso_critico` (> 180 dias) dispara alerta visual.
-- [ ] Proposições em tramitação exibem tempo acumulado até hoje.
+- [x] `tempoTotalDias` exibido com dados reais do banco.
+- [x] `atraso_critico` (> 180 dias) dispara alerta visual.
+- [x] Proposições em tramitação exibem tempo acumulado até hoje.
 
 ---
 
@@ -129,12 +130,12 @@ Criar autenticação real no backend com geração de token JWT. O frontend já 
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] `POST /auth/login` com credenciais válidas retorna token JWT.
-- [ ] Token inválido em rota protegida retorna 401.
-- [ ] Erro de credenciais retorna mensagem genérica (sem revelar qual campo está errado).
-- [ ] Frontend redireciona para `/dashboard` após login bem-sucedido.
-- [ ] Frontend redireciona para `/login` ao tentar acessar rota privada sem token.
-- [ ] Testes unitários na lógica de validação de credenciais.
+- [x] `POST /auth/login` com credenciais válidas retorna token JWT.
+- [x] Token inválido em rota protegida retorna 401.
+- [x] Erro de credenciais retorna mensagem genérica (sem revelar qual campo está errado).
+- [x] Frontend redireciona para `/dashboard` após login bem-sucedido.
+- [x] Frontend redireciona para `/login` ao tentar acessar rota privada sem token.
+- [x] Testes unitários na lógica de validação de credenciais.
 
 ---
 
@@ -148,11 +149,11 @@ Cadastro real no banco. Sem e-mail de confirmação para R1.
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] E-mail único — retorna 409 para duplicata com mensagem clara.
-- [ ] Senha mínima de 8 caracteres validada no backend.
-- [ ] Senha armazenada como hash (nunca em texto plano).
-- [ ] Frontend valida 8 caracteres (corrigir o bug atual de 6).
-- [ ] Testes unitários na validação de senha e unicidade.
+- [x] E-mail único — retorna 409 para duplicata com mensagem clara.
+- [x] Senha mínima de 8 caracteres validada no backend.
+- [x] Senha armazenada como hash (nunca em texto plano).
+- [x] Frontend valida 8 caracteres (corrigir o bug atual de 6).
+- [x] Testes unitários na validação de senha e unicidade.
 
 ---
 
@@ -170,10 +171,10 @@ Para a demo da R1 funcionar, o banco precisa ter proposições reais. Um script 
 
 ##### 🛠️ Plano de Ação
 
-- [ ] Criar `backend/src/init_db.py` (ou expandir o existente) com chamada aos adapters reais.
-- [ ] Seed com pelo menos 20 proposições reais (mix Câmara + Senado).
-- [ ] Script deve usar upsert por `id` para ser idempotente.
-- [ ] Documentar no README como executar o seed.
+- [x] Criar `backend/src/init_db.py` (ou expandir o existente) com chamada aos adapters reais.
+- [x] Seed com pelo menos 20 proposições reais (mix Câmara + Senado).
+- [x] Script deve usar upsert por `id` para ser idempotente.
+- [x] Documentar no README como executar o seed.
 
 ---
 
@@ -187,9 +188,10 @@ Para a demo da R1 funcionar, o banco precisa ter proposições reais. Um script 
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] `data_ultima_movimentacao` populado com a data da última situação em `autuacoes[0].situacoes[-1]`.
-- [ ] Se campo indisponível, retornar `data_apresentacao` como fallback (não string vazia).
-- [ ] Teste unitário do adapter atualizado para validar o campo.
+- [x] `data_ultima_movimentacao` populado with a data da última situação em `autuacoes[0].situacoes[-1]`.
+- [x] Se campo indisponível, retornar `data_apresentacao` como fallback (não string vazia).
+- [x] Teste unitário do adapter atualizado para validar o campo.
+
 
 ---
 
@@ -203,29 +205,27 @@ Para a demo da R1 funcionar, o banco precisa ter proposições reais. Um script 
 
 ---
 
-#### feat: entidade Tramitacao e endpoint de movimentações
+#### feat: modelo analítico EventoTramitacao e endpoint de movimentações
 
 **Prioridade:** Alta
 
 ##### 📝 Descrição
 
-Criar a entidade `Tramitacao` no domínio e expor um endpoint de movimentações por proposição. O componente `TimelineTramitacao` no frontend já está pronto e aguardando dados reais.
+Migrar a lógica de tramitação para o modelo analítico `EventoTramitacao`. O componente `TimelineTramitacao` no frontend já está pronto e aguardando os novos dados normalizados.
 
 ##### 🏗️ Impacto Arquitetural
 
-- **Domínio:** entidade `Tramitacao` com campos: `id`, `proposicao_id`, `descricao`, `orgao`, `data_entrada`, `data_saida`, `responsavel`. Método `dias_na_etapa()` como property.
-- **Infraestrutura:** `TramitacaoRepository`; adapters da Câmara e Senado devem buscar tramitações junto com a proposição.
-- **Apresentação:** `GET /proposicoes/{id}/movimentacoes` retornando lista ordenada.
-- **Frontend:** `obterMovimentacoes()` em `api.ts` troca mock por chamada real.
+- **Domínio:** entidades `EventoTramitacao`, `FaseAnalitica`, `OrgaoLegislativo` e `TipoEvento` que substituem `Tramitacao`. Funções `classificar_tipo_evento` e `determinar_fase_analitica`.
+- **Infraestrutura:** `SQLEventoTramitacaoRepository`; adapters da Câmara e Senado buscando tramitações brutas.
+- **Apresentação:** `GET /proposicoes/{id}/movimentacoes` retornando lista ordenada com fases analíticas.
+- **Frontend:** `obterMovimentacoes()` consome nova estrutura e mapeia as fases (ex: `NA_COMISSAO`).
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] Tramitações ordenadas da mais recente para a mais antiga.
-- [ ] Cada etapa exibe: descrição, órgão, data entrada, data saída, dias calculados.
-- [ ] Etapas sem data saída exibem tempo acumulado até hoje.
-- [ ] Etapas > 180 dias disparam flag `tem_atraso = true`.
-- [ ] Testes unitários em `dias_na_etapa()`.
-- [ ] Testes de integração no endpoint.
+- [x] Tramitações classificadas corretamente por `TipoEvento` (20 categorias normalizadas).
+- [x] Tramitações recebem uma `FaseAnalitica` correspondente.
+- [x] Testes unitários do domínio valendo as classificações e fases.
+- [x] Endpoint integrado devolvendo lista cronológica inversa (mais recentes primeiro).
 
 ---
 
@@ -265,9 +265,9 @@ Os gráficos de tempo por tipo, por comissão e distribuição por status usam d
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] Três endpoints de breakdown implementados e testados.
-- [ ] Gráficos refletem dados reais do banco.
-- [ ] Testes unitários nos métodos de agregação.
+- [x] Três endpoints de breakdown implementados e testados.
+- [x] Gráficos refletem dados reais do banco.
+- [x] Testes unitários nos métodos de agregação.
 
 ---
 

@@ -1,11 +1,13 @@
 from typing import List, Optional
 from domain.entities.proposicao import Proposicao
 
+
 class ProposicaoRepository:
     """
     Repositório temporário com dados em memória (Mock).
     No futuro, será substituído por uma implementação que acessa o banco de dados.
     """
+
     def __init__(self):
         self._dados = [
             Proposicao(
@@ -21,7 +23,7 @@ class ProposicaoRepository:
                 data_ultima_movimentacao="2024-03-20",
                 orgao_atual="CCJ",
                 link_oficial="https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=1",
-                tags=["Transparência", "Administração Pública"]
+                tags=["Transparência", "Administração Pública"],
             ),
             Proposicao(
                 id=2,
@@ -36,7 +38,7 @@ class ProposicaoRepository:
                 data_ultima_movimentacao="2023-12-15",
                 orgao_atual="Plenário",
                 link_oficial="https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2",
-                tags=["Economia", "Constitucional"]
+                tags=["Economia", "Constitucional"],
             ),
         ]
 
@@ -50,7 +52,7 @@ class ProposicaoRepository:
         ano: Optional[int] = None,
         autor: Optional[str] = None,
         uf_autor: Optional[str] = None,
-        status_tramitacao: Optional[str] = None
+        status_tramitacao: Optional[str] = None,
     ) -> List[Proposicao]:
         resultados = self._dados
 
@@ -63,11 +65,14 @@ class ProposicaoRepository:
         if autor:
             resultados = [x for x in resultados if autor.lower() in x.autor.lower()]
         if uf_autor:
-            resultados = [x for x in resultados if x.uf_autor.lower() == uf_autor.lower()]
+            resultados = [
+                x for x in resultados if x.uf_autor.lower() == uf_autor.lower()
+            ]
         if status_tramitacao:
             resultados = [
-                x for x in resultados
+                x
+                for x in resultados
                 if x.status_tramitacao.lower() == status_tramitacao.lower()
             ]
-        
+
         return resultados

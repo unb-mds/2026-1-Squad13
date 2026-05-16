@@ -1,7 +1,10 @@
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 from domain.entities.proposicao import Proposicao
-from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
+
 
 @pytest.fixture(name="session")
 def session_fixture():
@@ -10,6 +13,7 @@ def session_fixture():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
 
 def test_salvar_proposicao(session: Session):
     # Arrange (Organizar)
@@ -26,7 +30,7 @@ def test_salvar_proposicao(session: Session):
         ementa="Teste de persistência",
         data_apresentacao="2026-01-01",
         data_ultima_movimentacao="2026-01-01",
-        tags=["teste"]
+        tags=["teste"],
     )
 
     # Act (Agir)
@@ -41,20 +45,22 @@ def test_salvar_proposicao(session: Session):
 
 def test_buscarPorIdExistente_retornaProposicao(session: Session):
     repo = SQLProposicaoRepository(session)
-    repo.salvar(Proposicao(
-        id="42",
-        tipo="PEC",
-        numero="1",
-        ano=2025,
-        autor="Teste",
-        uf_autor="DF",
-        status="Em tramitação",
-        orgao_atual="CCJ",
-        ementa="Ementa de teste",
-        data_apresentacao="2025-01-01",
-        data_ultima_movimentacao="2025-01-01",
-        tags=[]
-    ))
+    repo.salvar(
+        Proposicao(
+            id="42",
+            tipo="PEC",
+            numero="1",
+            ano=2025,
+            autor="Teste",
+            uf_autor="DF",
+            status="Em tramitação",
+            orgao_atual="CCJ",
+            ementa="Ementa de teste",
+            data_apresentacao="2025-01-01",
+            data_ultima_movimentacao="2025-01-01",
+            tags=[],
+        )
+    )
 
     resultado = repo.buscar_por_id("42")
 

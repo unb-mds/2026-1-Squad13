@@ -1,16 +1,16 @@
 # Tech Stack: Monitoramento de Tempo de Tramitação de Proposições
 
-Resumo das tecnologias principais usadas no projeto, explicando **o que é** e **por que escolhemos essa tecnologia**, ligando tudo aos [ADRs](docs/adr/) e à [arquitetura definida em `ARCHITECTURE.md`](ARCHITECTURE.md).
+Resumo das tecnologias principais usadas no projeto, explicando **o que é** e **por que escolhemos essa tecnologia**, ligando tudo aos [ADRs](../docs/adr/) e à [arquitetura definida em `ARCHITECTURE.md`](../ARCHITECTURE.md).
 
 ---
 
 ## 1. Stack geral
 
-- **Backend:** Python + FastAPI + SQLAlchemy + Pydantic
-- **Frontend:** React + Vite
-- **Banco de dados:** [PostgreSQL](docs/adr/ADR-002-postgresql.md) (Planejado/Mock em memória no momento)
-- **Cache + Celery broker:** [Redis](docs/adr/ADR-006-redis-cache.md) (Planejado)
-- **Worker & agendamento:** Celery + Celery Beat (Planejado)
+- **Backend:** Python + FastAPI + SQLModel + Pydantic
+- **Frontend:** React + Vite + TypeScript + Tailwind CSS
+- **Banco de dados:** [PostgreSQL](adr/ADR-002-postgresql.md) — **Implementado** e operacional via Docker
+- **Cache + Celery broker:** [Redis](adr/ADR-006-redis-cache.md) (Planejado para R2)
+- **Worker & agendamento:** Celery + Celery Beat (Planejado para R2)
 - **Contêineres:** Docker Compose
 - **CI/CD:** GitHub Actions
 
@@ -41,8 +41,8 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 - **O que é:** banco de dados relacional robusto, com suporte a `WINDOW FUNCTIONS` e SQL avançado.
 - **Por que usamos:** [ADR-002: PostgreSQL](docs/adr/ADR-002-postgresql.md)
   - Permite calcular métricas temporais diretamente em SQL.
-  - Suporta SQLAlchemy com interface assíncrona.
-- **Estado atual:** O sistema utiliza um **Mock em memória** (`ProposicaoRepository`) para facilitar o desenvolvimento inicial. O PostgreSQL será integrado na próxima fase.
+  - Suporta SQLModel/SQLAlchemy para persistência de dados.
+- **Estado atual:** **Implementado.** O sistema utiliza o `SQLProposicaoRepository` integrado ao PostgreSQL para persistência real de proposições e tramitações.
 - **Camada na arquitetura:** Infraestrutura (`src/infrastructure/repositories/`).
 
 ---
@@ -95,6 +95,6 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 
 Veja também:
 
-- [Arquitetura completa](ARCHITECTURE.md)
-- [Cheat Sheet de comandos](docs/cheat-sheet.md)
-- [README.md](README.md).
+- [Arquitetura completa](../ARCHITECTURE.md)
+- [Cheat Sheet de comandos](cheat-sheet.md)
+- [README.md](../README.md)
