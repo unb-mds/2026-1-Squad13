@@ -1,7 +1,10 @@
 import redis
+import logging
 from typing import Any, Optional
 from application.ports.cache_provider import CacheProvider
 from infrastructure.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class RedisClient(CacheProvider):
@@ -20,8 +23,7 @@ class RedisClient(CacheProvider):
         try:
             return self.client.get(key)
         except redis.RedisError as e:
-            # Log de erro (idealmente usaria um logger)
-            print(f"Erro ao aceder ao Redis (GET): {e}")
+            logger.error(f"Erro ao acessar o Redis (GET): {e}")
             return None
 
     def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None) -> None:
@@ -32,14 +34,14 @@ class RedisClient(CacheProvider):
             else:
                 self.client.set(key, value)
         except redis.RedisError as e:
-            print(f"Erro ao aceder ao Redis (SET): {e}")
+            logger.error(f"Erro ao acessar o Redis (SET): {e}")
 
     def delete(self, key: str) -> None:
         """Remove um valor específico do cache."""
         try:
             self.client.delete(key)
         except redis.RedisError as e:
-            print(f"Erro ao aceder ao Redis (DELETE): {e}")
+            logger.error(f"Erro ao acessar o Redis (DELETE): {e}")
 
     def invalidate(self, prefix: str) -> None:
         """Invalida todas as chaves que começam com o prefixo fornecido usando SCAN."""
@@ -52,4 +54,4 @@ class RedisClient(CacheProvider):
                 if keys:
                     self.client.delete(*keys)
         except redis.RedisError as e:
-            print(f"Erro ao aceder ao Redis (INVALIDATE): {e}")
+            logger.error(f"Erro ao acessar o Redis (INVALIDATE): {e}")
