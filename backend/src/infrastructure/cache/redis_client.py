@@ -1,7 +1,7 @@
-import os
 import redis
 from typing import Any, Optional
 from application.ports.cache_provider import CacheProvider
+from infrastructure.config import settings
 
 
 class RedisClient(CacheProvider):
@@ -11,8 +11,7 @@ class RedisClient(CacheProvider):
 
     def __init__(self, redis_url: str = None):
         if redis_url is None:
-            # Default para a URL do Redis no docker-compose
-            redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+            redis_url = settings.redis_url
 
         self.client = redis.Redis.from_url(redis_url, decode_responses=True)
 
