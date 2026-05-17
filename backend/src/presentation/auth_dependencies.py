@@ -5,7 +5,6 @@ from jose import JWTError
 from sqlmodel import Session
 from infrastructure.database import get_session
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
-from infrastructure.repositories.sql_evento_tramitacao_repository import SQLEventoTramitacaoRepository
 from infrastructure.adapters.security_adapter import decode_access_token
 from infrastructure.adapters.redis_blacklist_adapter import RedisTokenBlacklistAdapter
 from infrastructure.adapters.redis_login_attempt_adapter import RedisLoginAttemptAdapter
