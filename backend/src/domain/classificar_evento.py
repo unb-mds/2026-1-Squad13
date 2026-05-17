@@ -137,9 +137,7 @@ def classificar_tipo_evento(descricao: str) -> TipoEvento:
         <TipoEvento.NAO_CLASSIFICADO: 'NAO_CLASSIFICADO'>
     """
     if not isinstance(descricao, str):
-        raise TypeError(
-            f"descricao deve ser str, recebido: {type(descricao).__name__}"
-        )
+        raise TypeError(f"descricao deve ser str, recebido: {type(descricao).__name__}")
 
     texto = descricao.strip()
     if not texto:

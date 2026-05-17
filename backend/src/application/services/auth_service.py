@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
 from domain.exceptions import (
     TokenRevogadoError,
+    ContaBloqueadaError,
     CredenciaisInvalidasError,
-    UsuarioJaCadastradoError,
+    EmailJaCadastradoError,
 )
+from domain.services.login_attempt_service import LoginAttemptProvider
 from application.ports.token_blacklist_provider import TokenBlacklistProvider
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import (
@@ -24,16 +27,18 @@ class AuthService:
     def __init__(
         self,
         user_repository: SQLUserRepository,
-        token_blacklist: TokenBlacklistProvider = None,
+        attempt_provider: Optional[LoginAttemptProvider] = None,
+        token_blacklist: Optional[TokenBlacklistProvider] = None,
     ):
         self.user_repository = user_repository
+        self.attempt_provider = attempt_provider
         self.token_blacklist = token_blacklist
 
     def registrar_usuario(self, user_in: UserCreate) -> UserResponse:
         """Registra um novo usuário no sistema."""
         # Verifica se o usuário já existe
         if self.user_repository.buscar_por_email(user_in.email):
-            raise UsuarioJaCadastradoError("E-mail já cadastrado")
+            raise EmailJaCadastradoError()
 
         # Cria a entidade de usuário com a senha hasheada
         user = User(
@@ -54,10 +59,31 @@ class AuthService:
 
     def login(self, login_in: UserLogin) -> Token:
         """Autentica um usuário e retorna um token JWT."""
+        # 1. Busca o usuário no banco primeiro para evitar spam no Redis com e-mails inexistentes
         user = self.user_repository.buscar_por_email(login_in.email)
 
-        if not user or not verify_password(login_in.password, user.hashed_password):
-            raise CredenciaisInvalidasError("E-mail ou senha incorretos")
+        if not user:
+            # Caso o usuário não exista, não tocamos no Redis para evitar poluição
+            raise CredenciaisInvalidasError()
+
+        # 2. Se o usuário existe, verifica se a conta está bloqueada
+        if self.attempt_provider and self.attempt_provider.esta_bloqueado(
+            login_in.email
+        ):
+            segundos = self.attempt_provider.tempo_restante_bloqueio(login_in.email)
+            raise ContaBloqueadaError(login_in.email, segundos_restantes=segundos)
+
+        # 3. Validação de senha
+        if not verify_password(login_in.password, user.hashed_password):
+            # Registra a falha apenas para usuários existentes
+            if self.attempt_provider:
+                self.attempt_provider.registrar_falha(login_in.email)
+
+            raise CredenciaisInvalidasError()
+
+        # 4. Login bem-sucedido: Reseta o contador de tentativas
+        if self.attempt_provider:
+            self.attempt_provider.resetar_tentativas(login_in.email)
 
         # Gera o token de acesso
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
