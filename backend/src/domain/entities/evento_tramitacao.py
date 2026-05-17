@@ -55,7 +55,12 @@ class EventoTramitacao(SQLModel, table=True):
 
     __tablename__ = "evento_tramitacao"
     __table_args__ = (
-        Index("ix_evento_tramitacao_prop_data_seq", "proposicao_id", "data_evento", "sequencia"),
+        Index(
+            "ix_evento_tramitacao_prop_data_seq",
+            "proposicao_id",
+            "data_evento",
+            "sequencia",
+        ),
     )
 
     evento_id: Optional[int] = Field(default=None, primary_key=True)
@@ -130,9 +135,7 @@ class EventoTramitacao(SQLModel, table=True):
 
         # 3. sequencia >= 1
         if self.sequencia < 1:
-            raise ValueError(
-                f"sequencia deve ser >= 1, recebido: {self.sequencia}"
-            )
+            raise ValueError(f"sequencia deve ser >= 1, recebido: {self.sequencia}")
 
         # 4. data_evento em formato ISO
         if not _ISO_DATE_RE.match(self.data_evento):
