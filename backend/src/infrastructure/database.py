@@ -1,3 +1,4 @@
+import redis
 from sqlmodel import SQLModel, create_engine, Session
 from .config import settings
 
@@ -25,3 +26,15 @@ def get_session():
     """
     with Session(engine) as session:
         yield session
+
+
+def get_redis_connection():
+    """
+    Retorna uma instância do cliente Redis configurada.
+    Utiliza decode_responses=True por padrão para facilitar o uso de strings.
+    """
+    return redis.Redis.from_url(
+        settings.redis_url,
+        decode_responses=True,
+        socket_timeout=2.0,  # Previne travamentos se o Redis estiver lento
+    )
