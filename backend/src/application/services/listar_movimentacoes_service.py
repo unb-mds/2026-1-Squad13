@@ -73,7 +73,7 @@ class ListarMovimentacoesService:
 
         # 2. Se não está no cache, precisa saber a origem
         proposicao = self.proposicao_repo.buscar_por_id(real_id)
-        
+
         # Determina o adapter e a casa padrão com base na proposição ou tenta fallback
         dados_brutos = []
         casa_padrao = CasaLegislativa.CAMARA
@@ -85,14 +85,20 @@ class ListarMovimentacoesService:
 
             dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
             if not dados_brutos:
-                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(int(real_id))
+                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
+                    int(real_id)
+                )
                 casa_padrao = CasaLegislativa.SENADO
         else:
             if "Câmara" in (proposicao.orgao_origem or ""):
-                dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
+                dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(
+                    int(real_id)
+                )
                 casa_padrao = CasaLegislativa.CAMARA
             else:
-                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(int(real_id))
+                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
+                    int(real_id)
+                )
                 casa_padrao = CasaLegislativa.SENADO
 
         if not dados_brutos:

@@ -26,7 +26,7 @@ def _mock_proposicao(id_str, status, tempo=None):
 def test_dashboard_service_analitico_calculo_tempo(monkeypatch):
     prop_repo = Mock()
     evento_repo = Mock()
-    
+
     # Proposição baseada em eventos (60 dias de tramitação até arquivamento)
     prop1 = _mock_proposicao("1", "Em Tramitação", 0)
     eventos_prop1 = [
@@ -39,7 +39,7 @@ def test_dashboard_service_analitico_calculo_tempo(monkeypatch):
         ),
         EventoTramitacao(
             proposicao_id="1",
-            data_evento="2024-03-01T10:00:00", # 60 dias depois
+            data_evento="2024-03-01T10:00:00",  # 60 dias depois
             sequencia=2,
             tipo_evento=TipoEvento.ARQUIVAMENTO.value,
             descricao_original="",
@@ -51,26 +51,31 @@ def test_dashboard_service_analitico_calculo_tempo(monkeypatch):
     eventos_prop2 = []
 
     prop_repo.filtrar.return_value = [prop1, prop2]
-    
-    evento_repo.buscar_por_multiplas_proposicoes.return_value = {"1": eventos_prop1, "2": eventos_prop2}
-    
+
+    evento_repo.buscar_por_multiplas_proposicoes.return_value = {
+        "1": eventos_prop1,
+        "2": eventos_prop2,
+    }
+
     service = DashboardService(prop_repo, evento_repo)
     metricas = service.obter_metricas()
 
     assert metricas["totalProposicoes"] == 2
     # tempo_total_dias médio: (60 + 100) / 2 = 80
     assert metricas["tempoMedioTramitacao"] == 80
-    
+
     # Status atual de prop1 passa a ser Arquivada por conta dos eventos
-    assert metricas["totalRejeitadas"] == 1  # prop1 (arquivamento -> rejeitada/arquivada)
-    assert metricas["totalAprovadas"] == 1   # prop2 (fallback "Aprovada")
+    assert (
+        metricas["totalRejeitadas"] == 1
+    )  # prop1 (arquivamento -> rejeitada/arquivada)
+    assert metricas["totalAprovadas"] == 1  # prop2 (fallback "Aprovada")
 
 
 def test_dashboard_service_status_atual():
     prop_repo = Mock()
     evento_repo = Mock()
     service = DashboardService(prop_repo, evento_repo)
-    
+
     eventos = [
         EventoTramitacao(
             proposicao_id="1",
@@ -90,13 +95,14 @@ def test_dashboard_service_status_atual():
             proposicao_id="1",
             data_evento="2024-02-05T10:00:00",
             sequencia=3,
-            tipo_evento=TipoEvento.NAO_CLASSIFICADO.value, # NAO_CLASSIFICADO deve ser ignorado para status atual
+            tipo_evento=TipoEvento.NAO_CLASSIFICADO.value,  # NAO_CLASSIFICADO deve ser ignorado para status atual
             descricao_original="",
         ),
     ]
-    
+
     status = service._extrair_status_atual(eventos, "Fallback")
     assert status == "Aprovada"
+
 
 def test_dashboard_service_atraso_critico():
     prop_repo = Mock()
@@ -114,12 +120,12 @@ def test_dashboard_service_atraso_critico():
         ),
         EventoTramitacao(
             proposicao_id="1",
-            data_evento="2024-07-09T10:00:00", # 190 dias
+            data_evento="2024-07-09T10:00:00",  # 190 dias
             sequencia=2,
             tipo_evento=TipoEvento.APROVACAO.value,
             descricao_original="",
         ),
     ]
-    
+
     tempo = service._calcular_tempo_total(eventos_atraso, 0)
     assert tempo == 190

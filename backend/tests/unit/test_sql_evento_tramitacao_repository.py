@@ -120,11 +120,13 @@ def test_salvar_lote_multiplos_eventos(session: Session):
 def test_buscar_por_proposicao_ordena_por_data_e_sequencia(session: Session):
     repo = SQLEventoTramitacaoRepository(session)
     # Inserir fora de ordem
-    repo.salvar_lote([
-        _criar_evento(sequencia=3, data_evento="2024-01-02T09:00"),
-        _criar_evento(sequencia=1, data_evento="2024-01-01T10:00"),
-        _criar_evento(sequencia=2, data_evento="2024-01-01T11:00"),
-    ])
+    repo.salvar_lote(
+        [
+            _criar_evento(sequencia=3, data_evento="2024-01-02T09:00"),
+            _criar_evento(sequencia=1, data_evento="2024-01-01T10:00"),
+            _criar_evento(sequencia=2, data_evento="2024-01-01T11:00"),
+        ]
+    )
 
     resultados = repo.buscar_por_proposicao("123")
 
@@ -145,11 +147,13 @@ def test_buscar_por_proposicao_retorna_vazio_se_inexistente(session: Session):
 
 def test_buscar_ultimo_evento_retorna_mais_recente(session: Session):
     repo = SQLEventoTramitacaoRepository(session)
-    repo.salvar_lote([
-        _criar_evento(sequencia=1, data_evento="2024-01-01T10:00"),
-        _criar_evento(sequencia=2, data_evento="2024-01-02T10:00"),
-        _criar_evento(sequencia=3, data_evento="2024-01-03T10:00"),
-    ])
+    repo.salvar_lote(
+        [
+            _criar_evento(sequencia=1, data_evento="2024-01-01T10:00"),
+            _criar_evento(sequencia=2, data_evento="2024-01-02T10:00"),
+            _criar_evento(sequencia=3, data_evento="2024-01-03T10:00"),
+        ]
+    )
 
     ultimo = repo.buscar_ultimo_evento("123")
 
@@ -172,14 +176,18 @@ def test_buscar_ultimo_evento_retorna_none_se_vazio(session: Session):
 def test_deletar_por_proposicao_remove_apenas_especifica(session: Session):
     repo = SQLEventoTramitacaoRepository(session)
     # Eventos para prop 123
-    repo.salvar_lote([
-        _criar_evento(proposicao_id="123", sequencia=1),
-        _criar_evento(proposicao_id="123", sequencia=2),
-    ])
+    repo.salvar_lote(
+        [
+            _criar_evento(proposicao_id="123", sequencia=1),
+            _criar_evento(proposicao_id="123", sequencia=2),
+        ]
+    )
     # Eventos para prop 456
-    repo.salvar_lote([
-        _criar_evento(proposicao_id="456", sequencia=1),
-    ])
+    repo.salvar_lote(
+        [
+            _criar_evento(proposicao_id="456", sequencia=1),
+        ]
+    )
 
     repo.deletar_por_proposicao("123")
 
@@ -192,12 +200,14 @@ def test_deletar_por_proposicao_remove_apenas_especifica(session: Session):
 
 def test_contar_por_tipo_agrupa_corretamente(session: Session):
     repo = SQLEventoTramitacaoRepository(session)
-    repo.salvar_lote([
-        _criar_evento(sequencia=1, tipo_evento=TipoEvento.APRESENTACAO.value),
-        _criar_evento(sequencia=2, tipo_evento=TipoEvento.DESPACHO.value),
-        _criar_evento(sequencia=3, tipo_evento=TipoEvento.DESPACHO.value),
-        _criar_evento(sequencia=4, tipo_evento=TipoEvento.NAO_CLASSIFICADO.value),
-    ])
+    repo.salvar_lote(
+        [
+            _criar_evento(sequencia=1, tipo_evento=TipoEvento.APRESENTACAO.value),
+            _criar_evento(sequencia=2, tipo_evento=TipoEvento.DESPACHO.value),
+            _criar_evento(sequencia=3, tipo_evento=TipoEvento.DESPACHO.value),
+            _criar_evento(sequencia=4, tipo_evento=TipoEvento.NAO_CLASSIFICADO.value),
+        ]
+    )
 
     contagem = repo.contar_por_tipo("123")
 
@@ -245,9 +255,7 @@ def test_evento_terminal_via_property(session: Session):
     """Valida a property eh_evento_terminal definida pelo domínio (A)."""
     repo = SQLEventoTramitacaoRepository(session)
 
-    evento_normal = _criar_evento(
-        sequencia=1, tipo_evento=TipoEvento.DESPACHO.value
-    )
+    evento_normal = _criar_evento(sequencia=1, tipo_evento=TipoEvento.DESPACHO.value)
     evento_terminal = _criar_evento(
         sequencia=2, tipo_evento=TipoEvento.ARQUIVAMENTO.value
     )
