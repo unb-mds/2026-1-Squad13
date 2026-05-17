@@ -57,7 +57,6 @@ class ComparacaoTemaResponse(BaseModel):
     velocidade: str
 
 
-
 def get_dashboard_service(session: Session = Depends(get_session)) -> DashboardService:
     repository = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
