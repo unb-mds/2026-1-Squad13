@@ -70,15 +70,15 @@ def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
                 "sequencia": 1,
                 "siglaOrgao": "MESA",
                 "descricaoTramitacao": "Apresentação",
-                "despacho": ""
+                "despacho": "",
             },
             {
                 "dataHora": "2024-01-02T10:00:00",
                 "sequencia": 2,
                 "siglaOrgao": "CCJ",
                 "descricaoTramitacao": "Despacho",
-                "despacho": "Às comissões"
-            }
+                "despacho": "Às comissões",
+            },
         ]
     }
 
@@ -109,4 +109,3 @@ def test_camara_adapter_buscar_tramitacoes_brutas_erro(adapter):
 
         # Assert
         assert tramitacoes == []
-
