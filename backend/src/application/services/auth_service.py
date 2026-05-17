@@ -54,17 +54,22 @@ class AuthService:
 
     def login(self, login_in: UserLogin) -> Token:
         """Autentica um usuário e retorna um token JWT."""
-        # 1. Verifica se a conta está bloqueada antes de qualquer processamento
+        # 1. Busca o usuário no banco primeiro para evitar spam no Redis com e-mails inexistentes
+        user = self.user_repository.buscar_por_email(login_in.email)
+
+        if not user:
+            # Caso o usuário não exista, não tocamos no Redis para evitar poluição
+            raise CredenciaisInvalidasError()
+
+        # 2. Se o usuário existe, verifica se a conta está bloqueada
         if self.attempt_provider and self.attempt_provider.esta_bloqueado(
             login_in.email
         ):
             raise ContaBloqueadaError(login_in.email)
 
-        user = self.user_repository.buscar_por_email(login_in.email)
-
-        # 2. Validação de senha e usuário
-        if not user or not verify_password(login_in.password, user.hashed_password):
-            # 3. Registra a falha se o provider estiver disponível
+        # 3. Validação de senha
+        if not verify_password(login_in.password, user.hashed_password):
+            # Registra a falha apenas para usuários existentes
             if self.attempt_provider:
                 self.attempt_provider.registrar_falha(login_in.email)
 
