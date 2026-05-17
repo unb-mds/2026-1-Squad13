@@ -17,16 +17,16 @@ from application.ports.cache_provider import CacheProvider
 class MockCacheProvider(CacheProvider):
     def __init__(self):
         self.store = {}
-    
+
     def get(self, key: str) -> Optional[Any]:
         return self.store.get(key)
-        
+
     def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None) -> None:
         self.store[key] = value
-        
+
     def delete(self, key: str) -> None:
         self.store.pop(key, None)
-        
+
     def invalidate(self, prefix: str) -> None:
         keys_to_delete = [k for k in self.store.keys() if k.startswith(prefix)]
         for k in keys_to_delete:
@@ -94,10 +94,12 @@ def test_obter_metricas_cache_miss_e_set(session: Session):
 
     # Ocorre o Cache Miss, processa e deve fazer o Set no final
     metricas = service.obter_metricas()
-    
+
+    assert metricas["totalProposicoes"] == 2
+    assert metricas["tempoMedioTramitacao"] == 150
+
     cached_value = cache_provider.get("dashboard:metricas")
     assert cached_value is not None
-    
     # Verifica se os dados salvos em JSON estão corretos
     cached_dict = json.loads(cached_value)
     assert cached_dict["totalProposicoes"] == 2
@@ -118,27 +120,28 @@ def test_obter_metricas_cache_hit(session: Session):
         "totalEmTramitacao": 20,
         "totalRejeitadas": 10,
         "comissaoMaiorTempo": "MOCK",
-        "comissaoMaiorTempoMedia": 999
+        "comissaoMaiorTempoMedia": 999,
     }
-    
+
     cache_provider.set("dashboard:metricas", json.dumps(dados_simulados))
-    
+
     # Deve pegar direto do cache (Cache Hit) e não processar os dados do banco
     metricas = service.obter_metricas()
-    
+
     assert metricas["totalProposicoes"] == 50
     assert metricas["tempoMedioTramitacao"] == 999
     assert metricas["comissaoMaiorTempo"] == "MOCK"
+
 
 def test_cache_provider_invalidation():
     cache_provider = MockCacheProvider()
     cache_provider.set("dashboard:metricas", '{"a": 1}')
     cache_provider.set("dashboard:tipos", '{"b": 2}')
     cache_provider.set("outra:chave", "valor")
-    
+
     # Invalida tudo do dashboard
     cache_provider.invalidate("dashboard:")
-    
+
     assert cache_provider.get("dashboard:metricas") is None
     assert cache_provider.get("dashboard:tipos") is None
     assert cache_provider.get("outra:chave") == "valor"
