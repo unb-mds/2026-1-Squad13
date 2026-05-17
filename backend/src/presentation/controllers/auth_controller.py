@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, status, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from presentation.auth_dependencies import (
@@ -21,6 +22,8 @@ from domain.exceptions import (
 )
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
+
+logger = logging.getLogger(__name__)
 
 
 @router.post(
@@ -86,7 +89,7 @@ def solicitar_recuperacao_senha(
         try:
             usecase.executar(request.email)
         except UsuarioNaoEncontradoError:
-            pass  # Ignora para não vazar info (User Enumeration)
+            logger.warning(f"Tentativa de recuperação de senha para e-mail não cadastrado: {request.email}")
 
     background_tasks.add_task(background_task)
     return {
