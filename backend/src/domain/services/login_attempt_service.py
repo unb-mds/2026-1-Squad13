@@ -19,3 +19,7 @@ class LoginAttemptProvider(Protocol):
     def resetar_tentativas(self, email: str) -> None:
         """Limpa o contador de tentativas após um login bem-sucedido."""
         ...
+
+    def tempo_restante_bloqueio(self, email: str) -> int:
+        """Retorna o tempo restante de bloqueio em segundos. Retorna 0 se não bloqueado."""
+        ...

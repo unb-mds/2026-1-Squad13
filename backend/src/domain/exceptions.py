@@ -9,9 +9,11 @@ class FiltroInvalidoError(Exception):
 class ContaBloqueadaError(Exception):
     """Exceção lançada quando uma conta está temporariamente bloqueada por excesso de tentativas."""
 
-    def __init__(self, email: str):
+    def __init__(self, email: str, segundos_restantes: int = 900):
         self.email = email
-        self.message = "A conta foi bloqueada por múltiplas tentativas falhas. Tente novamente mais tarde."
+        self.segundos_restantes = segundos_restantes
+        minutos = (segundos_restantes + 59) // 60  # Arredonda para cima
+        self.message = f"A conta foi bloqueada por múltiplas tentativas falhas. Tente novamente em {minutos} minuto(s)."
         super().__init__(self.message)
 
 
