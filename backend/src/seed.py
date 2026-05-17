@@ -26,6 +26,7 @@ from infrastructure.repositories.sql_orgao_legislativo_repository import (
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
+from infrastructure.cache.redis_client import RedisClient
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.dashboard_service import DashboardService
 from init_db import seed_demo_user
@@ -180,7 +181,6 @@ def run() -> None:
 
     # Invalidação do cache após a carga em lote
     print("\nInvalidando cache do dashboard...")
-    from infrastructure.cache.redis_client import RedisClient
 
     try:
         redis_client = RedisClient()
