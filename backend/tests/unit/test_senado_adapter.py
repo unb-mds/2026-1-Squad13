@@ -101,12 +101,10 @@ def test_senado_adapter_erro_rede(adapter):
 def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
     mock_dados_materia = {
         "DetalheMateria": {
-            "Materia": {
-                "IdentificacaoMateria": {"IdentificacaoProcesso": "999"}
-            }
+            "Materia": {"IdentificacaoMateria": {"IdentificacaoProcesso": "999"}}
         }
     }
-    
+
     mock_dados_processo = {
         "autuacoes": [
             {
@@ -114,13 +112,13 @@ def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
                     {
                         "inicio": "2024-01-02",
                         "colegiado": {"sigla": "CCJ"},
-                        "descricao": "Situação Nova"
+                        "descricao": "Situação Nova",
                     },
                     {
                         "inicio": "2024-01-01",
                         "colegiado": {"sigla": "PLEN"},
-                        "descricao": "Situação Antiga"
-                    }
+                        "descricao": "Situação Antiga",
+                    },
                 ]
             }
         ]
@@ -143,12 +141,12 @@ def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
 
         # Assert
         assert len(tramitacoes) == 2
-        
+
         # A API do Senado inverte (mais antigas ganham sequencia menor)
         assert tramitacoes[0]["descricao"] == "Situação Antiga"
         assert tramitacoes[0]["sigla_orgao"] == "PLEN"
         assert tramitacoes[0]["sequencia"] == 1
-        
+
         assert tramitacoes[1]["descricao"] == "Situação Nova"
         assert tramitacoes[1]["sigla_orgao"] == "CCJ"
         assert tramitacoes[1]["sequencia"] == 2
