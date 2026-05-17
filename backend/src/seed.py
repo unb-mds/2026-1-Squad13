@@ -13,7 +13,7 @@ Ordem de execução:
 from sqlmodel import text
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import init_db, get_session
+from infrastructure.database import init_db, get_session, get_redis_connection
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
@@ -183,7 +183,8 @@ def run() -> None:
     print("\nInvalidando cache do dashboard...")
 
     try:
-        redis_client = RedisClient()
+        redis_conn = get_redis_connection()
+        redis_client = RedisClient(redis_conn)
         redis_client.invalidate("dashboard:")
         print("  Cache invalidado com sucesso.")
     except Exception as e:
