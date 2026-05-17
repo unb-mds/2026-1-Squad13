@@ -1,6 +1,8 @@
-from typing import Dict, List
+import json
+from typing import Dict, List, Optional
 from datetime import datetime, date
 
+from application.ports.cache_provider import CacheProvider
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
@@ -21,9 +23,12 @@ class DashboardService:
         self,
         repository: SQLProposicaoRepository,
         evento_repo: SQLEventoTramitacaoRepository,
+        cache_provider: Optional[CacheProvider] = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
+        self.cache_provider = cache_provider
+        self.cache_ttl = 86400  # 24 horas em segundos
 
     def _calcular_tempo_total(self, eventos: List[EventoTramitacao], fallback_tempo: int) -> int:
         if not eventos:
@@ -182,10 +187,26 @@ class DashboardService:
         return "Outros"
 
     def obter_metricas(self) -> Dict:
+        cache_key = "dashboard:metricas"
+        
+        # Padrão Cache-Aside:
+        # 1. Verifica se os dados já existem no cache (Cache Hit)
+        if self.cache_provider:
+            cached = self.cache_provider.get(cache_key)
+            if cached:
+                if isinstance(cached, str):
+                    try:
+                        return json.loads(cached)
+                    except json.JSONDecodeError:
+                        pass
+                else:
+                    return cached
+                    
+        # 2. Se não existir no cache (Cache Miss), busca e calcula a partir do repositório (origem dos dados)
         todas = self.repository.filtrar()
 
         if not todas:
-            return {
+            resultado_vazio = {
                 "tempoMedioTramitacao": 0,
                 "totalProposicoes": 0,
                 "proposicoesComAtraso": 0,
@@ -195,6 +216,10 @@ class DashboardService:
                 "comissaoMaiorTempo": "N/A",
                 "comissaoMaiorTempoMedia": 0,
             }
+            # 3. Salva no cache com um TTL para os próximos acessos
+            if self.cache_provider:
+                self.cache_provider.set(cache_key, json.dumps(resultado_vazio), self.cache_ttl)
+            return resultado_vazio
 
         dados = self._obter_dados_em_lote(todas)
 
@@ -227,7 +252,7 @@ class DashboardService:
         )
         pior_media = medias_orgaos.get(pior_orgao, 0)
 
-        return {
+        resultado = {
             "tempoMedioTramitacao": int(tempo_medio),
             "totalProposicoes": total,
             "proposicoesComAtraso": len(com_atraso),
@@ -237,6 +262,12 @@ class DashboardService:
             "comissaoMaiorTempo": pior_orgao,
             "comissaoMaiorTempoMedia": int(pior_media),
         }
+        
+        # 3. Salva no cache com um TTL para os próximos acessos
+        if self.cache_provider:
+            self.cache_provider.set(cache_key, json.dumps(resultado), self.cache_ttl)
+            
+        return resultado
 
     def obter_dados_tipo(self) -> List[Dict]:
         todas = self.repository.filtrar()
