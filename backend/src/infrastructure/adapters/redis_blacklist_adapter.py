@@ -1,6 +1,9 @@
 import redis
+import logging
 from application.ports.token_blacklist_provider import TokenBlacklistProvider
 from infrastructure.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class RedisTokenBlacklistAdapter(TokenBlacklistProvider):
@@ -12,12 +15,7 @@ class RedisTokenBlacklistAdapter(TokenBlacklistProvider):
     def __init__(self, redis_client: redis.Redis = None):
         # Permite injetar um mock para testes, ou usa a conexão padrão
         if redis_client is None:
-            self.redis = redis.Redis(
-                host=settings.REDIS_HOST,
-                port=settings.REDIS_PORT,
-                db=settings.REDIS_DB,
-                decode_responses=True,
-            )
+            self.redis = redis.Redis.from_url(settings.redis_url, decode_responses=True)
         else:
             self.redis = redis_client
 
@@ -26,23 +24,24 @@ class RedisTokenBlacklistAdapter(TokenBlacklistProvider):
     def adicionar_na_blacklist(self, token: str, expires_in_seconds: int) -> None:
         """
         Adiciona o token à blacklist usando o Redis.
-
-        [Conceito Pedagógico - Trade-off do TTL no Redis]:
-        Delegar o gerenciamento do TTL (Time to Live) diretamente para o Redis 
-        (via 'setex') é uma excelente escolha arquitetural porque:
-        1. Desonera a aplicação de rodar CRON jobs ou rotinas em background para limpar tokens expirados.
-        2. Otimiza o uso de memória do Redis automaticamente.
-        3. A camada de infraestrutura cuida da mecânica de armazenamento, mantendo a
-           lógica de "quanto tempo falta" estritamente no domínio/aplicação.
         """
-        chave = f"{self.prefix}{token}"
-        # setex define o valor e o tempo de expiração de forma atômica
-        self.redis.setex(name=chave, time=expires_in_seconds, value="revogado")
+        try:
+            chave = f"{self.prefix}{token}"
+            # setex define o valor e o tempo de expiração de forma atômica
+            self.redis.setex(name=chave, time=expires_in_seconds, value="revogado")
+        except redis.RedisError as e:
+            logger.error(f"Erro ao adicionar token à blacklist no Redis: {e}")
 
     def esta_na_blacklist(self, token: str) -> bool:
         """
         Verifica se a chave do token existe no Redis.
+        Política Fail-Open: Se o Redis falhar, assume que NÃO está na blacklist
+        para não bloquear o acesso legítimo, priorizando disponibilidade.
         """
-        chave = f"{self.prefix}{token}"
-        # exists retorna 1 se a chave existir, 0 caso contrário
-        return self.redis.exists(chave) > 0
+        try:
+            chave = f"{self.prefix}{token}"
+            # exists retorna 1 se a chave existir, 0 caso contrário
+            return self.redis.exists(chave) > 0
+        except redis.RedisError as e:
+            logger.error(f"Erro ao verificar blacklist no Redis: {e}")
+            return False
