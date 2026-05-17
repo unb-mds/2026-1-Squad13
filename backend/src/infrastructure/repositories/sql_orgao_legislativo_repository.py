@@ -58,9 +58,7 @@ class SQLOrgaoLegislativoRepository:
 
     def buscar_por_sigla(self, sigla: str) -> List[OrgaoLegislativo]:
         """Lista todos os órgãos com a sigla fornecida (pode haver um por Casa)."""
-        statement = select(OrgaoLegislativo).where(
-            OrgaoLegislativo.sigla == sigla
-        )
+        statement = select(OrgaoLegislativo).where(OrgaoLegislativo.sigla == sigla)
         return list(self.session.exec(statement).all())
 
     def seed_orgaos(self) -> None:
