@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
@@ -17,6 +18,8 @@ from infrastructure.adapters.security_adapter import (
     decode_access_token,
 )
 from infrastructure.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -117,9 +120,9 @@ class AuthService:
 
                 if ttl > 0:
                     self.token_blacklist.adicionar_na_blacklist(token, ttl)
-        except Exception:
-            # Token inválido ou erro na decodificação: não precisa ser blacklisted
-            pass
+        except Exception as e:
+            # Swallows exception to avoid breaking the logout response, but logs for monitoring
+            logger.error(f"Falha ao processar logout/blacklist para o token: {e}")
 
     def verificar_token_blacklist(self, token: str) -> None:
         """
