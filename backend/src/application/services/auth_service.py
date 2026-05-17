@@ -1,11 +1,17 @@
-from datetime import timedelta
-from fastapi import HTTPException, status
+from datetime import datetime, timedelta, timezone
 from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
+from domain.exceptions import (
+    TokenRevogadoError,
+    CredenciaisInvalidasError,
+    UsuarioJaCadastradoError,
+)
+from application.ports.token_blacklist_provider import TokenBlacklistProvider
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import (
     get_password_hash,
     verify_password,
     create_access_token,
+    decode_access_token,
 )
 from infrastructure.config import settings
 
@@ -15,16 +21,19 @@ class AuthService:
     Serviço de aplicação para gerenciar autenticação e usuários.
     """
 
-    def __init__(self, user_repository: SQLUserRepository):
+    def __init__(
+        self,
+        user_repository: SQLUserRepository,
+        token_blacklist: TokenBlacklistProvider = None,
+    ):
         self.user_repository = user_repository
+        self.token_blacklist = token_blacklist
 
     def registrar_usuario(self, user_in: UserCreate) -> UserResponse:
         """Registra um novo usuário no sistema."""
         # Verifica se o usuário já existe
         if self.user_repository.buscar_por_email(user_in.email):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail já cadastrado"
-            )
+            raise UsuarioJaCadastradoError("E-mail já cadastrado")
 
         # Cria a entidade de usuário com a senha hasheada
         user = User(
@@ -48,11 +57,7 @@ class AuthService:
         user = self.user_repository.buscar_por_email(login_in.email)
 
         if not user or not verify_password(login_in.password, user.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="E-mail ou senha incorretos",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise CredenciaisInvalidasError("E-mail ou senha incorretos")
 
         # Gera o token de acesso
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -67,3 +72,33 @@ class AuthService:
                 id=user.id, nome=user.nome, email=user.email, perfil=user.perfil
             ),
         )
+
+    def logout(self, token: str) -> None:
+        """
+        Invalida o token JWT adicionando-o à blacklist.
+        Calcula o TTL baseado no campo 'exp' do token.
+        """
+        if not self.token_blacklist:
+            return
+
+        try:
+            payload = decode_access_token(token)
+            exp = payload.get("exp")
+            if exp:
+                # exp é um timestamp Unix (segundos desde epoch)
+                now = datetime.now(timezone.utc).timestamp()
+                ttl = int(exp - now)
+
+                if ttl > 0:
+                    self.token_blacklist.adicionar_na_blacklist(token, ttl)
+        except Exception:
+            # Token inválido ou erro na decodificação: não precisa ser blacklisted
+            pass
+
+    def verificar_token_blacklist(self, token: str) -> None:
+        """
+        Verifica se o token está na blacklist.
+        Lança TokenRevogadoError se estiver.
+        """
+        if self.token_blacklist and self.token_blacklist.esta_na_blacklist(token):
+            raise TokenRevogadoError("Token foi revogado")
