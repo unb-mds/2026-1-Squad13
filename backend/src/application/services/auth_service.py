@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta, timezone
-from fastapi import HTTPException, status
 from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
-from domain.exceptions import TokenRevogadoError
+from domain.exceptions import (
+    TokenRevogadoError,
+    CredenciaisInvalidasError,
+    UsuarioJaCadastradoError,
+)
 from application.ports.token_blacklist_provider import TokenBlacklistProvider
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import (
@@ -30,9 +33,7 @@ class AuthService:
         """Registra um novo usuário no sistema."""
         # Verifica se o usuário já existe
         if self.user_repository.buscar_por_email(user_in.email):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail já cadastrado"
-            )
+            raise UsuarioJaCadastradoError("E-mail já cadastrado")
 
         # Cria a entidade de usuário com a senha hasheada
         user = User(
@@ -56,11 +57,7 @@ class AuthService:
         user = self.user_repository.buscar_por_email(login_in.email)
 
         if not user or not verify_password(login_in.password, user.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="E-mail ou senha incorretos",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise CredenciaisInvalidasError("E-mail ou senha incorretos")
 
         # Gera o token de acesso
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
