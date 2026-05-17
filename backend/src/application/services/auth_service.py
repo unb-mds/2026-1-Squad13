@@ -1,6 +1,12 @@
 from datetime import timedelta
-from fastapi import HTTPException, status
+from typing import Optional
 from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
+from domain.exceptions import (
+    ContaBloqueadaError,
+    CredenciaisInvalidasError,
+    EmailJaCadastradoError,
+)
+from domain.services.login_attempt_service import LoginAttemptProvider
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import (
     get_password_hash,
@@ -15,16 +21,19 @@ class AuthService:
     Serviço de aplicação para gerenciar autenticação e usuários.
     """
 
-    def __init__(self, user_repository: SQLUserRepository):
+    def __init__(
+        self,
+        user_repository: SQLUserRepository,
+        attempt_provider: Optional[LoginAttemptProvider] = None,
+    ):
         self.user_repository = user_repository
+        self.attempt_provider = attempt_provider
 
     def registrar_usuario(self, user_in: UserCreate) -> UserResponse:
         """Registra um novo usuário no sistema."""
         # Verifica se o usuário já existe
         if self.user_repository.buscar_por_email(user_in.email):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail já cadastrado"
-            )
+            raise EmailJaCadastradoError()
 
         # Cria a entidade de usuário com a senha hasheada
         user = User(
@@ -45,14 +54,31 @@ class AuthService:
 
     def login(self, login_in: UserLogin) -> Token:
         """Autentica um usuário e retorna um token JWT."""
+        # 1. Busca o usuário no banco primeiro para evitar spam no Redis com e-mails inexistentes
         user = self.user_repository.buscar_por_email(login_in.email)
 
-        if not user or not verify_password(login_in.password, user.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="E-mail ou senha incorretos",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        if not user:
+            # Caso o usuário não exista, não tocamos no Redis para evitar poluição
+            raise CredenciaisInvalidasError()
+
+        # 2. Se o usuário existe, verifica se a conta está bloqueada
+        if self.attempt_provider and self.attempt_provider.esta_bloqueado(
+            login_in.email
+        ):
+            segundos = self.attempt_provider.tempo_restante_bloqueio(login_in.email)
+            raise ContaBloqueadaError(login_in.email, segundos_restantes=segundos)
+
+        # 3. Validação de senha
+        if not verify_password(login_in.password, user.hashed_password):
+            # Registra a falha apenas para usuários existentes
+            if self.attempt_provider:
+                self.attempt_provider.registrar_falha(login_in.email)
+
+            raise CredenciaisInvalidasError()
+
+        # 4. Login bem-sucedido: Reseta o contador de tentativas
+        if self.attempt_provider:
+            self.attempt_provider.resetar_tentativas(login_in.email)
 
         # Gera o token de acesso
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

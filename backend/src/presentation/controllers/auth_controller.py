@@ -4,28 +4,36 @@ from pydantic import BaseModel
 import redis
 from infrastructure.database import get_session
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
+from infrastructure.adapters.redis_login_attempt_adapter import RedisLoginAttemptAdapter
 from application.services.auth_service import AuthService
 from application.services.recuperacao_senha_service import (
     SolicitarRecuperacaoSenhaUseCase,
     RedefinirSenhaUseCase,
 )
 from domain.entities.user import UserCreate, UserLogin, UserResponse, Token
-from domain.exceptions import UsuarioNaoEncontradoError, TokenInvalidoError
+from domain.exceptions import (
+    UsuarioNaoEncontradoError,
+    TokenInvalidoError,
+    ContaBloqueadaError,
+    CredenciaisInvalidasError,
+    EmailJaCadastradoError,
+)
 from infrastructure.cache.redis_token_provider import RedisPasswordResetTokenProvider
 from infrastructure.adapters.dummy_email_sender import DummyEmailSender
-
+from infrastructure.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 
 # Dependência do Redis (poderia vir de um get_redis_client no config, mas usaremos uma instância simples aqui para dev)
 def get_redis_client():
-    return redis.Redis(host="localhost", port=6379, db=0)
+    return redis.Redis.from_url(settings.redis_url, decode_responses=True)
 
 
 def get_auth_service(session: Session = Depends(get_session)) -> AuthService:
     repository = SQLUserRepository(session)
-    return AuthService(repository)
+    attempt_provider = RedisLoginAttemptAdapter()
+    return AuthService(repository, attempt_provider)
 
 
 def get_solicitar_recuperacao_usecase(
@@ -52,13 +60,28 @@ def get_redefinir_senha_usecase(
 )
 def register(user_in: UserCreate, service: AuthService = Depends(get_auth_service)):
     """Registra um novo usuário."""
-    return service.registrar_usuario(user_in)
+    try:
+        return service.registrar_usuario(user_in)
+    except EmailJaCadastradoError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post("/login", response_model=Token)
 def login(login_in: UserLogin, service: AuthService = Depends(get_auth_service)):
     """Autentica o usuário e retorna o token de acesso."""
-    return service.login(login_in)
+    try:
+        return service.login(login_in)
+    except ContaBloqueadaError as e:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=e.message,
+        )
+    except CredenciaisInvalidasError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 class RecuperacaoSenhaRequest(BaseModel):
