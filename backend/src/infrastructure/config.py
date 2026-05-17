@@ -40,6 +40,11 @@ class Settings(BaseSettings):
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
 
+    @property
+    def redis_url(self) -> str:
+        """Gera a URL de conexão para o Redis"""
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
 
 # Instância global para ser usada no projeto
 settings = Settings()
