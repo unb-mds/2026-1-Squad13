@@ -65,7 +65,8 @@ class AuthService:
         if self.attempt_provider and self.attempt_provider.esta_bloqueado(
             login_in.email
         ):
-            raise ContaBloqueadaError(login_in.email)
+            segundos = self.attempt_provider.tempo_restante_bloqueio(login_in.email)
+            raise ContaBloqueadaError(login_in.email, segundos_restantes=segundos)
 
         # 3. Validação de senha
         if not verify_password(login_in.password, user.hashed_password):

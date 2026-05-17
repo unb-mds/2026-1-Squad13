@@ -71,3 +71,15 @@ class RedisLoginAttemptAdapter(LoginAttemptProvider):
             self.redis.delete(key)
         except redis.RedisError as e:
             logger.error(f"Erro ao resetar tentativas no Redis para {email}: {e}")
+
+    def tempo_restante_bloqueio(self, email: str) -> int:
+        """
+        Retorna o TTL da chave no Redis em segundos.
+        """
+        try:
+            key = self._get_key(email)
+            ttl = self.redis.ttl(key)
+            return max(0, ttl) if ttl > 0 else 0
+        except redis.RedisError as e:
+            logger.error(f"Erro ao buscar TTL no Redis para {email}: {e}")
+            return 0

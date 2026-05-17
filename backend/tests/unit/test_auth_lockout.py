@@ -26,6 +26,9 @@ class MockLoginAttemptProvider:
         if email in self.blocked:
             self.blocked.remove(email)
 
+    def tempo_restante_bloqueio(self, email: str) -> int:
+        return 900 if email in self.blocked else 0
+
 
 @pytest.fixture
 def user_repository():
