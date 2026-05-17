@@ -25,7 +25,9 @@ class DashboardService:
         self.repository = repository
         self.evento_repo = evento_repo
 
-    def _calcular_tempo_total(self, eventos: List[EventoTramitacao], fallback_tempo: int) -> int:
+    def _calcular_tempo_total(
+        self, eventos: List[EventoTramitacao], fallback_tempo: int
+    ) -> int:
         if not eventos:
             return fallback_tempo
 
@@ -35,7 +37,7 @@ class DashboardService:
             if e.tipo_evento == TipoEvento.APRESENTACAO.value:
                 primeiro_evento = e
                 break
-        
+
         if not primeiro_evento:
             primeiro_evento = eventos[0]
 
@@ -49,23 +51,29 @@ class DashboardService:
             TipoEvento.SANCAO_OU_VETO.value,
             TipoEvento.PROMULGACAO.value,
         }
-        
+
         for e in reversed(eventos):
             if e.tipo_evento in terminais:
                 ultimo_evento_terminal = e
                 break
 
         try:
-            inicio = datetime.fromisoformat(primeiro_evento.data_evento.replace("Z", "+00:00")).date()
+            inicio = datetime.fromisoformat(
+                primeiro_evento.data_evento.replace("Z", "+00:00")
+            ).date()
             if ultimo_evento_terminal:
-                fim = datetime.fromisoformat(ultimo_evento_terminal.data_evento.replace("Z", "+00:00")).date()
+                fim = datetime.fromisoformat(
+                    ultimo_evento_terminal.data_evento.replace("Z", "+00:00")
+                ).date()
             else:
                 fim = date.today()
             return (fim - inicio).days
         except (ValueError, AttributeError):
             return fallback_tempo
 
-    def _extrair_status_atual(self, eventos: List[EventoTramitacao], fallback_status: str) -> str:
+    def _extrair_status_atual(
+        self, eventos: List[EventoTramitacao], fallback_status: str
+    ) -> str:
         if not eventos:
             return fallback_status
 
@@ -86,12 +94,12 @@ class DashboardService:
             TipoEvento.SANCAO_OU_VETO.value: "Sancionada/Vetada",
             TipoEvento.PROMULGACAO.value: "Promulgada",
         }
-        
+
         # Procura retroativamente o primeiro status com mapeamento caso o último seja NAO_CLASSIFICADO
         for e in reversed(eventos):
             if e.tipo_evento in mapa_status:
                 return mapa_status[e.tipo_evento]
-                
+
         return fallback_status
 
     def _obter_dados_em_lote(self, proposicoes) -> List[dict]:
@@ -108,15 +116,17 @@ class DashboardService:
             status = self._extrair_status_atual(eventos, p.status)
             atraso_critico = tempo > 180
 
-            dados.append({
-                "prop": p,
-                "tempo_total_dias": tempo,
-                "status": status,
-                "atraso_critico": atraso_critico,
-                "orgao_atual": p.orgao_atual,
-                "tipo": p.tipo,
-                "tags": p.tags,
-            })
+            dados.append(
+                {
+                    "prop": p,
+                    "tempo_total_dias": tempo,
+                    "status": status,
+                    "atraso_critico": atraso_critico,
+                    "orgao_atual": p.orgao_atual,
+                    "tipo": p.tipo,
+                    "tags": p.tags,
+                }
+            )
         return dados
 
     def _agrupar_status(self, status_raw: str) -> str:
@@ -200,17 +210,23 @@ class DashboardService:
 
         total = len(dados)
         aprovadas = [
-            d for d in dados if self._agrupar_status(d["status"]) == "Aprovada/Sancionada"
+            d
+            for d in dados
+            if self._agrupar_status(d["status"]) == "Aprovada/Sancionada"
         ]
         em_tramitacao = [
             d for d in dados if self._agrupar_status(d["status"]) == "Em tramitação"
         ]
         rejeitadas = [
-            d for d in dados if self._agrupar_status(d["status"]) == "Rejeitada/Arquivada"
+            d
+            for d in dados
+            if self._agrupar_status(d["status"]) == "Rejeitada/Arquivada"
         ]
         com_atraso = [d for d in dados if d["atraso_critico"]]
 
-        tempos = [d["tempo_total_dias"] for d in dados if d["tempo_total_dias"] is not None]
+        tempos = [
+            d["tempo_total_dias"] for d in dados if d["tempo_total_dias"] is not None
+        ]
         tempo_medio = sum(tempos) / len(tempos) if tempos else 0
 
         # Agrupamento por órgão para identificar a comissão mais lenta
@@ -241,7 +257,7 @@ class DashboardService:
     def obter_dados_tipo(self) -> List[Dict]:
         todas = self.repository.filtrar()
         dados = self._obter_dados_em_lote(todas)
-        
+
         tipos: Dict[str, Dict] = {}
         for d in dados:
             if d["tipo"] not in tipos:
@@ -267,7 +283,7 @@ class DashboardService:
     def obter_dados_comissao(self) -> List[Dict]:
         todas = self.repository.filtrar()
         dados = self._obter_dados_em_lote(todas)
-        
+
         orgaos: Dict[str, Dict] = {}
         for d in dados:
             orgao = d["orgao_atual"] or "Desconhecido"
@@ -316,7 +332,7 @@ class DashboardService:
     def obter_gargalos(self) -> List[Dict]:
         todas = self.repository.filtrar()
         dados = self._obter_dados_em_lote(todas)
-        
+
         orgaos: Dict[str, Dict] = {}
         for d in dados:
             orgao = d["orgao_atual"] or "Desconhecido"
@@ -362,7 +378,7 @@ class DashboardService:
     def obter_comparacao_temas(self) -> List[Dict]:
         todas = self.repository.filtrar()
         dados = self._obter_dados_em_lote(todas)
-        
+
         temas: Dict[str, Dict] = {}
 
         for d in dados:

@@ -24,11 +24,11 @@ from infrastructure.repositories.sql_orgao_legislativo_repository import (
 class NormalizarTramitacaoService:
     """
     Orquestra a transformação de tramitações brutas em EventoTramitacao.
-    
+
     Nota sobre Órgãos Legislativos:
-    O método `normalizar` faz um upsert silencioso dos órgãos encontrados nos 
+    O método `normalizar` faz um upsert silencioso dos órgãos encontrados nos
     eventos utilizando `casa_padrao` em caso de sigla nova. Isso é aceitável para o R1,
-    mas no futuro pode-se adicionar um ponto de extensão para disparar alertas 
+    mas no futuro pode-se adicionar um ponto de extensão para disparar alertas
     ao time de dados quando siglas desconhecidas forem cadastradas.
     """
 
@@ -60,10 +60,10 @@ class NormalizarTramitacaoService:
 
         for item in dados_brutos:
             descricao = item.get("descricao", "")
-            
+
             # 1. Classificar o tipo
             tipo_evento = classificar_tipo_evento(descricao)
-            
+
             # 2. Determinar a fase
             codigo_fase = determinar_fase_analitica(tipo_evento, fase_anterior)
             codigo_fase_str = codigo_fase.value if codigo_fase else None
@@ -81,15 +81,25 @@ class NormalizarTramitacaoService:
             if tipo_evento == TipoEvento.NAO_CLASSIFICADO:
                 mudou_fase = False
             else:
-                mudou_fase = (fase_anterior is not None) and (codigo_fase != fase_anterior)
+                mudou_fase = (fase_anterior is not None) and (
+                    codigo_fase != fase_anterior
+                )
 
             sigla_orgao = item.get("sigla_orgao")
-            mudou_orgao = (orgao_anterior is not None) and (sigla_orgao != orgao_anterior)
+            mudou_orgao = (orgao_anterior is not None) and (
+                sigla_orgao != orgao_anterior
+            )
 
             remessa_ou_retorno: Optional[str] = None
-            if tipo_evento in {TipoEvento.REMESSA_OUTRA_CASA, TipoEvento.ENVIO_EXECUTIVO}:
+            if tipo_evento in {
+                TipoEvento.REMESSA_OUTRA_CASA,
+                TipoEvento.ENVIO_EXECUTIVO,
+            }:
                 remessa_ou_retorno = "REMESSA"
-            elif tipo_evento in {TipoEvento.RETORNO_INICIADORA, TipoEvento.RECEBIMENTO_OUTRA_CASA}:
+            elif tipo_evento in {
+                TipoEvento.RETORNO_INICIADORA,
+                TipoEvento.RECEBIMENTO_OUTRA_CASA,
+            }:
                 remessa_ou_retorno = "RETORNO"
 
             # 4. Resolver órgão (upsert para garantir que existe) apenas 1 vez por lote
