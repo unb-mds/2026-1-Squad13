@@ -5,6 +5,7 @@ from sqlmodel import Session
 from infrastructure.database import get_session
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import decode_access_token
+from infrastructure.adapters.redis_blacklist_adapter import RedisTokenBlacklistAdapter
 from application.services.auth_service import AuthService
 from domain.exceptions import TokenRevogadoError
 
@@ -14,11 +15,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 def get_auth_service(session: Session = Depends(get_session)) -> AuthService:
     """
     Injeção de dependência para o AuthService.
-    Por enquanto, o token_blacklist é None até implementarmos o adaptador Redis.
+    Instancia o RedisTokenBlacklistAdapter e o injeta.
     """
     repository = SQLUserRepository(session)
-    # Aqui poderíamos injetar o provedor real no futuro
-    return AuthService(repository, token_blacklist=None)
+    blacklist_adapter = RedisTokenBlacklistAdapter()
+    return AuthService(repository, token_blacklist=blacklist_adapter)
 
 
 def get_current_user(
