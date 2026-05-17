@@ -1,6 +1,8 @@
-from typing import Dict, List
+import json
+from typing import Dict, List, Optional, Any
 from datetime import datetime, date
 
+from application.ports.cache_provider import CacheProvider
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
@@ -21,9 +23,31 @@ class DashboardService:
         self,
         repository: SQLProposicaoRepository,
         evento_repo: SQLEventoTramitacaoRepository,
+        cache_provider: Optional[CacheProvider] = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
+        self.cache_provider = cache_provider
+        self.cache_ttl = 86400  # 24 horas em segundos
+
+    def _get_cached(self, key: str) -> Optional[Any]:
+        if not self.cache_provider:
+            return None
+        
+        cached = self.cache_provider.get(key)
+        if not cached:
+            return None
+            
+        if isinstance(cached, str):
+            try:
+                return json.loads(cached)
+            except json.JSONDecodeError:
+                return None
+        return cached
+
+    def _set_cache(self, key: str, value: Any) -> None:
+        if self.cache_provider:
+            self.cache_provider.set(key, json.dumps(value), self.cache_ttl)
 
     def _calcular_tempo_total(self, eventos: List[EventoTramitacao], fallback_tempo: int) -> int:
         if not eventos:
@@ -182,10 +206,16 @@ class DashboardService:
         return "Outros"
 
     def obter_metricas(self) -> Dict:
+        cache_key = "dashboard:metricas"
+        
+        cached = self._get_cached(cache_key)
+        if cached:
+            return cached
+                    
         todas = self.repository.filtrar()
 
         if not todas:
-            return {
+            resultado_vazio = {
                 "tempoMedioTramitacao": 0,
                 "totalProposicoes": 0,
                 "proposicoesComAtraso": 0,
@@ -195,6 +225,8 @@ class DashboardService:
                 "comissaoMaiorTempo": "N/A",
                 "comissaoMaiorTempoMedia": 0,
             }
+            self._set_cache(cache_key, resultado_vazio)
+            return resultado_vazio
 
         dados = self._obter_dados_em_lote(todas)
 
@@ -227,7 +259,7 @@ class DashboardService:
         )
         pior_media = medias_orgaos.get(pior_orgao, 0)
 
-        return {
+        resultado = {
             "tempoMedioTramitacao": int(tempo_medio),
             "totalProposicoes": total,
             "proposicoesComAtraso": len(com_atraso),
@@ -237,8 +269,17 @@ class DashboardService:
             "comissaoMaiorTempo": pior_orgao,
             "comissaoMaiorTempoMedia": int(pior_media),
         }
+        
+        self._set_cache(cache_key, resultado)
+            
+        return resultado
 
     def obter_dados_tipo(self) -> List[Dict]:
+        cache_key = "dashboard:dados_tipo"
+        cached = self._get_cached(cache_key)
+        if cached:
+            return cached
+
         todas = self.repository.filtrar()
         dados = self._obter_dados_em_lote(todas)
         
@@ -262,9 +303,16 @@ class DashboardService:
                     "quantidade": info["quantidade"],
                 }
             )
-        return sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+        resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+        self._set_cache(cache_key, resultado)
+        return resultado
 
     def obter_dados_comissao(self) -> List[Dict]:
+        cache_key = "dashboard:dados_comissao"
+        cached = self._get_cached(cache_key)
+        if cached:
+            return cached
+
         todas = self.repository.filtrar()
         dados = self._obter_dados_em_lote(todas)
         
@@ -289,9 +337,16 @@ class DashboardService:
                     "quantidade": info["quantidade"],
                 }
             )
-        return sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
+        resultado = sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
+        self._set_cache(cache_key, resultado)
+        return resultado
 
     def obter_dados_status(self) -> List[Dict]:
+        cache_key = "dashboard:dados_status"
+        cached = self._get_cached(cache_key)
+        if cached:
+            return cached
+
         todas = self.repository.filtrar()
         if not todas:
             return []
@@ -311,9 +366,16 @@ class DashboardService:
             }
             for status, qtd in contagem.items()
         ]
-        return sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+        resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+        self._set_cache(cache_key, resultado)
+        return resultado
 
     def obter_gargalos(self) -> List[Dict]:
+        cache_key = "dashboard:gargalos"
+        cached = self._get_cached(cache_key)
+        if cached:
+            return cached
+
         todas = self.repository.filtrar()
         dados = self._obter_dados_em_lote(todas)
         
@@ -357,9 +419,16 @@ class DashboardService:
                 }
             )
 
-        return sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
+        resultado = sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
+        self._set_cache(cache_key, resultado)
+        return resultado
 
     def obter_comparacao_temas(self) -> List[Dict]:
+        cache_key = "dashboard:comparacao_temas"
+        cached = self._get_cached(cache_key)
+        if cached:
+            return cached
+
         todas = self.repository.filtrar()
         dados = self._obter_dados_em_lote(todas)
         
@@ -410,4 +479,6 @@ class DashboardService:
                 }
             )
 
-        return sorted(resultado, key=lambda x: x["tempoMedioDias"])
+        resultado = sorted(resultado, key=lambda x: x["tempoMedioDias"])
+        self._set_cache(cache_key, resultado)
+        return resultado
