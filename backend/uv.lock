@@ -930,6 +930,7 @@ dependencies = [
     { name = "python-jose", extra = ["cryptography"] },
     { name = "redis" },
     { name = "requests" },
+    { name = "sqlalchemy" },
     { name = "sqlmodel" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -959,6 +960,7 @@ requires-dist = [
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0" },
     { name = "redis", specifier = ">=7.4.0" },
     { name = "requests", specifier = ">=2.33.1" },
+    { name = "sqlalchemy", specifier = ">=2.0.49" },
     { name = "sqlmodel", specifier = ">=0.0.16" },
     { name = "uvicorn", extras = ["standard"] },
 ]
