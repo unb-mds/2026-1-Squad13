@@ -12,14 +12,8 @@ class RedisLoginAttemptAdapter(LoginAttemptProvider):
     Armazena o contador de falhas com um tempo de expiração (TTL).
     """
 
-    def __init__(self):
-        self.redis = redis.Redis(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            db=settings.REDIS_DB,
-            decode_responses=True,
-            socket_timeout=2.0,  # Evita que a aplicação trave se o Redis sumir
-        )
+    def __init__(self, redis_client: redis.Redis):
+        self.redis = redis_client
         self.prefix = "login_attempts:"
         self.ttl = settings.BLOQUEIO_MINUTOS * 60  # Converte minutos para segundos
         self.max_attempts = settings.TENTATIVAS_MAXIMAS

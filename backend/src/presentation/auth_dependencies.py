@@ -1,9 +1,8 @@
-import redis
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlmodel import Session
-from infrastructure.database import get_session
+from infrastructure.database import get_session, get_redis_connection
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import decode_access_token
 from infrastructure.adapters.redis_blacklist_adapter import RedisTokenBlacklistAdapter
@@ -16,13 +15,8 @@ from application.services.recuperacao_senha_service import (
     RedefinirSenhaUseCase,
 )
 from domain.exceptions import TokenRevogadoError
-from infrastructure.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
-
-def get_redis_client():
-    return redis.Redis.from_url(settings.redis_url, decode_responses=True)
 
 
 def get_auth_service(session: Session = Depends(get_session)) -> AuthService:
@@ -31,27 +25,28 @@ def get_auth_service(session: Session = Depends(get_session)) -> AuthService:
     Instancia o RedisTokenBlacklistAdapter, RedisLoginAttemptAdapter e o injeta.
     """
     repository = SQLUserRepository(session)
-    attempt_provider = RedisLoginAttemptAdapter()
-    blacklist_adapter = RedisTokenBlacklistAdapter()
+    redis_conn = get_redis_connection()
+    attempt_provider = RedisLoginAttemptAdapter(redis_conn)
+    blacklist_adapter = RedisTokenBlacklistAdapter(redis_conn)
     return AuthService(repository, attempt_provider=attempt_provider, token_blacklist=blacklist_adapter)
 
 
 def get_solicitar_recuperacao_usecase(
-    session: Session = Depends(get_session),
-    redis_client: redis.Redis = Depends(get_redis_client),
+    session: Session = Depends(get_session)
 ) -> SolicitarRecuperacaoSenhaUseCase:
     user_repo = SQLUserRepository(session)
-    token_provider = RedisPasswordResetTokenProvider(redis_client)
+    redis_conn = get_redis_connection()
+    token_provider = RedisPasswordResetTokenProvider(redis_conn)
     email_sender = DummyEmailSender()
     return SolicitarRecuperacaoSenhaUseCase(user_repo, token_provider, email_sender)
 
 
 def get_redefinir_senha_usecase(
-    session: Session = Depends(get_session),
-    redis_client: redis.Redis = Depends(get_redis_client),
+    session: Session = Depends(get_session)
 ) -> RedefinirSenhaUseCase:
     user_repo = SQLUserRepository(session)
-    token_provider = RedisPasswordResetTokenProvider(redis_client)
+    redis_conn = get_redis_connection()
+    token_provider = RedisPasswordResetTokenProvider(redis_conn)
     return RedefinirSenhaUseCase(user_repo, token_provider)
 
 

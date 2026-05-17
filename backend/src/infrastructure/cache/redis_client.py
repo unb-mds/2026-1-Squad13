@@ -12,11 +12,9 @@ class RedisClient(CacheProvider):
     Implementação concreta do CacheProvider usando Redis.
     """
 
-    def __init__(self, redis_url: str = None):
-        if redis_url is None:
-            redis_url = settings.redis_url
-
-        self.client = redis.Redis.from_url(redis_url, decode_responses=True)
+    def __init__(self, redis_client: redis.Redis):
+        self.client = redis_client
+        self.cache_ttl = 86400  # 24 horas em segundos
 
     def get(self, key: str) -> Optional[Any]:
         """Recupera um valor do cache."""

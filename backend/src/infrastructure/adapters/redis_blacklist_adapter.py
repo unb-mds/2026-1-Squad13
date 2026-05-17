@@ -12,13 +12,8 @@ class RedisTokenBlacklistAdapter(TokenBlacklistProvider):
     Implementa a porta TokenBlacklistProvider.
     """
 
-    def __init__(self, redis_client: redis.Redis = None):
-        # Permite injetar um mock para testes, ou usa a conexão padrão
-        if redis_client is None:
-            self.redis = redis.Redis.from_url(settings.redis_url, decode_responses=True)
-        else:
-            self.redis = redis_client
-
+    def __init__(self, redis_client: redis.Redis):
+        self.redis = redis_client
         self.prefix = "blacklist:token:"
 
     def adicionar_na_blacklist(self, token: str, expires_in_seconds: int) -> None:
