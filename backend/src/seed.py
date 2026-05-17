@@ -26,6 +26,7 @@ from infrastructure.repositories.sql_orgao_legislativo_repository import (
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
+from infrastructure.cache.redis_client import RedisClient
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.dashboard_service import DashboardService
 from init_db import seed_demo_user
@@ -155,16 +156,20 @@ def run() -> None:
                 session.commit()
                 print(f"[UPDATE] {prop_db.nome_canonico} (id={prop_db.id})")
                 pulados += 1
-                
+
             # --- Etapa Analítica (Duração On-the-fly) ---
             try:
                 # 1. Baixa e normaliza os eventos
                 eventos = listar_service.executar(str(prop_db.id))
-                
+
                 # 2. Calcula métricas na hora
-                tempo = dashboard_service._calcular_tempo_total(eventos, prop_db.tempo_total_dias or 0)
-                status = dashboard_service._extrair_status_atual(eventos, prop_db.status)
-                
+                tempo = dashboard_service._calcular_tempo_total(
+                    eventos, prop_db.tempo_total_dias or 0
+                )
+                status = dashboard_service._extrair_status_atual(
+                    eventos, prop_db.status
+                )
+
                 # 3. Atualiza cache da Proposicao para queries rápidas no endpoint de Listagem
                 prop_db.tempo_total_dias = tempo
                 prop_db.tem_atraso = tempo > 180
@@ -173,6 +178,16 @@ def run() -> None:
                 session.commit()
             except Exception as e:
                 print(f"  [ERRO] Falha ao sincronizar eventos de {prop_db.id}: {e}")
+
+    # Invalidação do cache após a carga em lote
+    print("\nInvalidando cache do dashboard...")
+
+    try:
+        redis_client = RedisClient()
+        redis_client.invalidate("dashboard:")
+        print("  Cache invalidado com sucesso.")
+    except Exception as e:
+        print(f"  [AVISO] Falha ao invalidar cache: {e}")
 
     print(f"\nSeed concluído — inseridos: {inseridos}, atualizados: {pulados}")
 
