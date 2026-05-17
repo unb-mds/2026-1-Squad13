@@ -6,6 +6,11 @@ class FiltroInvalidoError(Exception):
     pass
 
 
+class TokenRevogadoError(Exception):
+    """Lançada quando um token JWT já foi invalidado (logout)."""
+    pass
+
+
 class UsuarioNaoEncontradoError(Exception):
     pass
 
@@ -28,12 +33,12 @@ class ContaBloqueadaError(Exception):
 class CredenciaisInvalidasError(Exception):
     """Exceção lançada quando as credenciais de login são inválidas."""
 
-    def __init__(self):
-        super().__init__("E-mail ou senha incorretos")
+    def __init__(self, message="E-mail ou senha incorretos"):
+        super().__init__(message)
 
 
 class EmailJaCadastradoError(Exception):
     """Exceção lançada quando tenta-se registrar um e-mail já existente."""
 
-    def __init__(self):
-        super().__init__("E-mail já cadastrado")
+    def __init__(self, message="E-mail já cadastrado"):
+        super().__init__(message)
