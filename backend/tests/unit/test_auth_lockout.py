@@ -78,43 +78,64 @@ def test_login_sucesso_reseta_tentativas(
         assert not attempt_provider.esta_bloqueado(email)
 
 
-def test_login_falha_incrementa_tentativas(
+def test_login_falha_email_inexistente_nao_deve_tocar_no_redis(
     auth_service, user_repository, attempt_provider
 ):
     # Setup
-    email = "test@example.com"
+    email = "inexistente@example.com"
     user_repository.buscar_por_email.return_value = None  # Usuário não encontrado
 
     # Ação & Verificação
     with pytest.raises(CredenciaisInvalidasError):
-        auth_service.login(UserLogin(email=email, password="wrong"))
+        auth_service.login(UserLogin(email=email, password="any"))
 
-    assert attempt_provider.attempts[email] == 1
+    # Não deve haver registro no mock de tentativas
+    assert email not in attempt_provider.attempts
 
 
-def test_bloqueio_apos_cinco_falhas(auth_service, user_repository, attempt_provider):
+def test_login_falha_senha_errada_deve_incrementar_tentativas(
+    auth_service, user_repository, attempt_provider
+):
     # Setup
     email = "test@example.com"
-    user_repository.buscar_por_email.return_value = None
+    user = User(
+        id=1, nome="Test", email=email, hashed_password="hashed", perfil="analista"
+    )
+    user_repository.buscar_por_email.return_value = user
 
-    # Simula 4 falhas
-    for _ in range(4):
+    with MagicMock():
+        import application.services.auth_service as auth_mod
+        auth_mod.verify_password = MagicMock(return_value=False)
+
+        # Ação & Verificação
         with pytest.raises(CredenciaisInvalidasError):
             auth_service.login(UserLogin(email=email, password="wrong"))
 
-    assert attempt_provider.attempts[email] == 4
-    assert not attempt_provider.esta_bloqueado(email)
+        assert attempt_provider.attempts[email] == 1
 
-    # 5ª falha: Deve bloquear
-    with pytest.raises(CredenciaisInvalidasError):
-        auth_service.login(UserLogin(email=email, password="wrong"))
 
-    assert attempt_provider.attempts[email] == 5
-    assert attempt_provider.esta_bloqueado(email)
+def test_bloqueio_apos_cinco_falhas_usuario_existente(
+    auth_service, user_repository, attempt_provider
+):
+    # Setup
+    email = "test@example.com"
+    user = User(
+        id=1, nome="Test", email=email, hashed_password="hashed", perfil="analista"
+    )
+    user_repository.buscar_por_email.return_value = user
 
-    # 6ª tentativa: Deve lançar ContaBloqueadaError ANTES de buscar no banco
-    user_repository.buscar_por_email.reset_mock()
-    with pytest.raises(ContaBloqueadaError):
-        auth_service.login(UserLogin(email=email, password="any"))
+    with MagicMock():
+        import application.services.auth_service as auth_mod
+        auth_mod.verify_password = MagicMock(return_value=False)
 
-    user_repository.buscar_por_email.assert_not_called()
+        # Simula 5 falhas
+        for _ in range(5):
+            with pytest.raises(CredenciaisInvalidasError):
+                auth_service.login(UserLogin(email=email, password="wrong"))
+
+        assert attempt_provider.attempts[email] == 5
+        assert attempt_provider.esta_bloqueado(email)
+
+        # 6ª tentativa: Deve lançar ContaBloqueadaError
+        with pytest.raises(ContaBloqueadaError):
+            auth_service.login(UserLogin(email=email, password="any"))
