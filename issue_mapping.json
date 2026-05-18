@@ -1,0 +1,338 @@
+[
+  {
+    "number": 102,
+    "title": "chore: Corrigir init_db para registrar entidades antes de criar tabelas",
+    "currentStatus": "status:todo",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 97,
+    "title": "feat: Validar arquivos personas.md, risks.md e contributing.md",
+    "currentStatus": "status:todo",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 96,
+    "title": "feat: estimativa de tempo de aprovação baseada em histórico",
+    "currentStatus": "status:backlog",
+    "realStatus": "review",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 95,
+    "title": "chore: documentar mapeamento de campos em ADR-005",
+    "currentStatus": "status:backlog",
+    "realStatus": "review",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 94,
+    "title": "chore: cache Redis para métricas do dashboard",
+    "currentStatus": "status:backlog",
+    "realStatus": "review",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 93,
+    "title": "feat: bloqueio de conta após 5 tentativas falhas",
+    "currentStatus": "status:backlog",
+    "realStatus": "review",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 92,
+    "title": "feat: logout com invalidação de token no servidor",
+    "currentStatus": "status:backlog",
+    "realStatus": "review",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 91,
+    "title": "feat: filtros ativos afetando o dashboard",
+    "currentStatus": "status:backlog",
+    "realStatus": "todo",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 90,
+    "title": "feat: endpoints de breakdown para gráficos do dashboard",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 89,
+    "title": "feat: tempo por fase com dados reais",
+    "currentStatus": "status:backlog",
+    "realStatus": "in_progress",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 88,
+    "title": "feat: modelo analítico EventoTramitacao e endpoint de movimentações",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 87,
+    "title": "chore: worker de coleta batch diária (Câmara + Senado)",
+    "currentStatus": "status:backlog",
+    "realStatus": "todo",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 86,
+    "title": "feat: recuperação de senha por e-mail",
+    "currentStatus": "status:backlog",
+    "realStatus": "review",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 83,
+    "title": "feat(auth): implementar middleware de proteção de rotas via Depends",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 82,
+    "title": "feat(auth): criar endpoints /auth/login e /auth/register",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 81,
+    "title": "feat(auth): implementar serviço de hashing (Bcrypt) e geração de tokens JWT",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 80,
+    "title": "feat(auth): implementar entidade Usuario e migrations de banco de dados",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 78,
+    "title": "chore: Isolar chamadas externas nos testes do endpoint de detalhe de proposição",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 58,
+    "title": "feat: gerar gráfico de Burndown real via série temporal de issues",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 57,
+    "title": "refactor: remover fallbacks de mock e implementar Strict Mode para integridade de dados",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 56,
+    "title": "feat: automatizar métricas de contribuição individual na Team Page",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 55,
+    "title": "feat: extrair Milestones e cronograma de Sprints diretamente da API do GitHub",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 54,
+    "title": "docs: documentar logica de extracao e calculo de progresso do script de dados do Dashboard",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 53,
+    "title": "ci: adicionar step de Type-checking (tsc) ao workflow de Pull Request do Dashboard",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 52,
+    "title": "test: configurar Vitest e React Testing Library no Squad Dashboard",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 50,
+    "title": "refactor: remover dependência de mocks e implementar Skeletons de carregamento no Dashboard",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 49,
+    "title": "ci: automatizar exportação de métricas de cobertura de código para o Squad Dashboard",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 48,
+    "title": "feat: calcular progresso de Épicos/Features automaticamente baseado em labels de issues",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 47,
+    "title": "feat: implementar extração dinâmica de Burndown e Velocity no script de dados do GitHub",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 46,
+    "title": "fix: corrigir extração de data_ultima_movimentacao no SenadoAdapter",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 45,
+    "title": "chore: desenvolver script de seed para população idempotente do banco com dados reais",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 44,
+    "title": "feat: implementar autenticação JWT e segurança de rotas no endpoint /auth/login",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 43,
+    "title": "feat: implementar endpoint GET /proposicoes/{id} para exibição de detalhes reais",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 42,
+    "title": "perf: implementar paginação SQL (LIMIT/OFFSET) em /proposicoes para otimização de memória",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 41,
+    "title": "refactor: normalizar texto e usar ILIKE em SQLProposicaoRepository para busca case-insensitive",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 40,
+    "title": "feat: conectar busca e filtros de /proposicoes ao backend real",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 39,
+    "title": "docs: finalizar code review e documentação técnica da integração de Proposições",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 38,
+    "title": "fix: habilitar CORSMiddleware para resolver bloqueio de integração local",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 37,
+    "title": "feat: implementar feedbacks visuais de loading e estados de erro na Consulta",
+    "currentStatus": "status:done",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 36,
+    "title": "feat: integrar componente de listagem de proposições com os serviços da API real",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 35,
+    "title": "infra: implementar adapters de infraestrutura com suporte a mocks normalizados",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 34,
+    "title": "feat: expor endpoint de busca paginada com suporte a filtros cumulativos",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 33,
+    "title": "chore: estabelecer regras de proteção e revisão obrigatória na branch main",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 32,
+    "title": "ci: automatizar linting, type-checking e build do Frontend via GitHub Actions",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 31,
+    "title": "ci: automatizar validação de sintaxe, linting (Ruff) e testes do Backend",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 30,
+    "title": "docs: formalizar padrões de arquitetura em camadas na ADR-001",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 29,
+    "title": "refactor: decompor backend em camadas de Domain, Application e Infrastructure",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  },
+  {
+    "number": 28,
+    "title": "chore: inicializar projeto FastAPI com gerenciamento de dependências via uv",
+    "currentStatus": "status:backlog",
+    "realStatus": "done",
+    "githubState": "CLOSED"
+  }
+]

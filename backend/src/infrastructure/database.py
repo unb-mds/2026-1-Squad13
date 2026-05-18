@@ -8,6 +8,7 @@ from domain.entities.user import User  # noqa: F401
 from domain.entities.fase_analitica import FaseAnalitica  # noqa: F401
 from domain.entities.orgao_legislativo import OrgaoLegislativo  # noqa: F401
 from domain.entities.evento_tramitacao import EventoTramitacao  # noqa: F401
+from domain.entities.apensamento import Apensamento  # noqa: F401
 
 # O motor de conexão (Engine)
 # echo=True faz com que o SQLModel imprima os comandos SQL no console (útil para aprender)

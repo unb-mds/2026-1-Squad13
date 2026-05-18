@@ -6,6 +6,9 @@ from application.services.buscar_proposicoes_service import BuscarProposicoesSer
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.gerar_estimativa_service import GerarEstimativaUseCase
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
+)
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
@@ -44,6 +47,8 @@ class EventoTramitacaoResponse(BaseModel):
     mudouFase: bool = Field(alias="mudouFase")
     mudouOrgao: bool = Field(alias="mudouOrgao")
     remessaOuRetorno: Optional[str] = Field(default=None, alias="remessaOuRetorno")
+    diasNaEtapa: int = Field(alias="diasNaEtapa")
+    temAtraso: bool = Field(alias="temAtraso")
 
 
 class ProposicaoResponse(BaseModel):
@@ -146,6 +151,8 @@ def _to_evento_response(e) -> dict:
         "mudouFase": e.mudou_fase,
         "mudouOrgao": e.mudou_orgao,
         "remessaOuRetorno": e.remessa_ou_retorno,
+        "diasNaEtapa": e.dias_na_etapa,
+        "temAtraso": e.tem_atraso,
     }
 
 
@@ -164,6 +171,7 @@ def listar_movimentacoes(id: str, session: Session = Depends(get_session)):
 
     fase_repo = SQLFaseAnaliticaRepository(session)
     orgao_repo = SQLOrgaoLegislativoRepository(session)
+    apensamento_repo = SQLApensamentoRepository(session)
 
     service = ListarMovimentacoesService(
         evento_repo,
@@ -172,6 +180,7 @@ def listar_movimentacoes(id: str, session: Session = Depends(get_session)):
         orgao_repo,
         camara_adapter,
         senado_adapter,
+        apensamento_repo,
     )
 
     try:

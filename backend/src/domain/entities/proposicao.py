@@ -57,6 +57,9 @@ class Proposicao(SQLModel, table=True):
         if "VETAD" in raw:
             self.status = "Vetada"
             return
+        if "APENSAD" in raw:
+            self.status = "Arquivada (Apensada)"
+            return
         if (
             "REJEITAD" in raw
             or "ARQUIVAD" in raw
