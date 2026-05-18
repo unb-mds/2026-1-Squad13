@@ -8,6 +8,7 @@ class FiltroInvalidoError(Exception):
 
 class TokenRevogadoError(Exception):
     """Lançada quando um token JWT já foi invalidado (logout)."""
+
     pass
 
 

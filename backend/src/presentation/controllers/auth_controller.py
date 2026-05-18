@@ -85,11 +85,14 @@ def solicitar_recuperacao_senha(
     ),
 ):
     """Solicita a recuperação de senha e envia o link por e-mail (processado em background)."""
+
     def background_task():
         try:
             usecase.executar(request.email)
         except UsuarioNaoEncontradoError:
-            logger.warning(f"Tentativa de recuperação de senha para e-mail não cadastrado: {request.email}")
+            logger.warning(
+                f"Tentativa de recuperação de senha para e-mail não cadastrado: {request.email}"
+            )
 
     background_tasks.add_task(background_task)
     return {

@@ -33,6 +33,16 @@ class CamaraAdapter:
             )
 
             status_info = dados.get("statusProposicao", {})
+            data_ultima_movimentacao = status_info.get("dataHora", "")
+            orgao_atual = status_info.get("siglaOrgao", "N/A")
+
+            # Tratamento para apensamento: se o órgão for o código de outra proposição
+            # (Ex: PEC22119), formatamos para ficar legível.
+            if orgao_atual and any(
+                orgao_atual.startswith(prefix)
+                for prefix in ["PL", "PEC", "MPV", "PLP", "PDL"]
+            ):
+                orgao_atual = f"Apensada ao {orgao_atual}"
 
             # Normalização para a entidade Proposicao
             return Proposicao(
@@ -48,8 +58,8 @@ class CamaraAdapter:
                 or "Sem status",
                 ementa=dados.get("ementa", "") or "Sem ementa",
                 data_apresentacao=dados.get("dataApresentacao", ""),
-                data_ultima_movimentacao=status_info.get("dataHora", ""),
-                orgao_atual=status_info.get("siglaOrgao", "N/A"),
+                data_ultima_movimentacao=data_ultima_movimentacao,
+                orgao_atual=orgao_atual,
                 link_oficial=f"https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao={id_proposicao}",
                 tags=[],
             )

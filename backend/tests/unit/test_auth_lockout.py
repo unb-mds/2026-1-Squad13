@@ -108,6 +108,7 @@ def test_login_falha_senha_errada_deve_incrementar_tentativas(
 
     with MagicMock():
         import application.services.auth_service as auth_mod
+
         auth_mod.verify_password = MagicMock(return_value=False)
 
         # Ação & Verificação
@@ -129,6 +130,7 @@ def test_bloqueio_apos_cinco_falhas_usuario_existente(
 
     with MagicMock():
         import application.services.auth_service as auth_mod
+
         auth_mod.verify_password = MagicMock(return_value=False)
 
         # Simula 5 falhas
