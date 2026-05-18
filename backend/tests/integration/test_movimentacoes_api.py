@@ -73,6 +73,8 @@ def test_listar_movimentacoes_camara_retorna200(http_client: TestClient):
     assert dados[0]["proposicaoId"] == id_prop
     assert dados[0]["siglaOrgao"] == "CCJ"
     assert "tipoEvento" in dados[0]
+    assert "diasNaEtapa" in dados[0]
+    assert "temAtraso" in dados[0]
 
 
 def test_listar_movimentacoes_senado_retorna200(http_client: TestClient):

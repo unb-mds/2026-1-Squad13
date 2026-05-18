@@ -28,11 +28,13 @@ def get_auth_service(session: Session = Depends(get_session)) -> AuthService:
     redis_conn = get_redis_connection()
     attempt_provider = RedisLoginAttemptAdapter(redis_conn)
     blacklist_adapter = RedisTokenBlacklistAdapter(redis_conn)
-    return AuthService(repository, attempt_provider=attempt_provider, token_blacklist=blacklist_adapter)
+    return AuthService(
+        repository, attempt_provider=attempt_provider, token_blacklist=blacklist_adapter
+    )
 
 
 def get_solicitar_recuperacao_usecase(
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ) -> SolicitarRecuperacaoSenhaUseCase:
     user_repo = SQLUserRepository(session)
     redis_conn = get_redis_connection()
@@ -42,7 +44,7 @@ def get_solicitar_recuperacao_usecase(
 
 
 def get_redefinir_senha_usecase(
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ) -> RedefinirSenhaUseCase:
     user_repo = SQLUserRepository(session)
     redis_conn = get_redis_connection()

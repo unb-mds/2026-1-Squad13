@@ -33,11 +33,11 @@ class DashboardService:
     def _get_cached(self, key: str) -> Optional[Any]:
         if not self.cache_provider:
             return None
-        
+
         cached = self.cache_provider.get(key)
         if not cached:
             return None
-            
+
         if isinstance(cached, str):
             try:
                 return json.loads(cached)
@@ -217,11 +217,11 @@ class DashboardService:
 
     def obter_metricas(self) -> Dict:
         cache_key = "dashboard:metricas"
-        
+
         cached = self._get_cached(cache_key)
         if cached:
             return cached
-                    
+
         todas = self.repository.filtrar()
 
         if not todas:
@@ -285,9 +285,9 @@ class DashboardService:
             "comissaoMaiorTempo": pior_orgao,
             "comissaoMaiorTempoMedia": int(pior_media),
         }
-        
+
         self._set_cache(cache_key, resultado)
-            
+
         return resultado
 
     def obter_dados_tipo(self) -> List[Dict]:

@@ -96,7 +96,21 @@ class EventoTramitacao(SQLModel, table=True):
     )
     remessa_ou_retorno: Optional[str] = Field(
         default=None,
-        description="'REMESSA' ou 'RETORNO' quando há trânsito entre Casas",
+        description="'REMESSA' ou 'RETORNO' when there's transit between Houses",
+    )
+
+    # Campos de análise temporal
+    dias_na_etapa: int = Field(
+        default=0,
+        description="Dias decorridos entre este evento e o próximo (ou hoje)",
+    )
+    tem_atraso: bool = Field(
+        default=False,
+        description="True se o tempo de permanência nesta etapa ultrapassa o limite esperado",
+    )
+    marca_apensacao: bool = Field(
+        default=False,
+        description="Indica se este evento criou uma ligação de apensamento",
     )
 
     # Auditoria
