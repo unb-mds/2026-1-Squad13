@@ -7,34 +7,62 @@ from infrastructure.database import get_session
 from domain.entities.proposicao import Proposicao
 
 
-# Banco de dados SQLite em memória para cada teste
-@pytest.fixture(name="db_session")
-def session_fixture():
-    # Usamos StaticPool para manter a conexão aberta em memória durante o teste
+# Engine único para cada worker (processo) do xdist
+# Como o xdist usa processos separados, o escopo session aqui 
+# cria um engine por processo, o que é ideal para SQLite em memória.
+@pytest.fixture(scope="session")
+def engine():
     engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        # Popular com dados básicos para os testes de busca funcionarem
-        session.add(
-            Proposicao(
-                id="1",
-                tipo="PL",
-                numero="1",
-                ano=2024,
-                autor="A",
-                uf_autor="DF",
-                status="X",
-                orgao_atual="O",
-                ementa="E",
-                data_apresentacao="D",
-                data_ultima_movimentacao="D",
-                tags=[],
+    return engine
+
+
+@pytest.fixture(name="db_session")
+def session_fixture(engine):
+    """
+    Fixture que fornece uma sessão de banco de dados com rollback automático.
+    Isso evita a recriação de tabelas a cada teste.
+    """
+    connection = engine.connect()
+    # Inicia uma transação externa
+    transaction = connection.begin()
+    
+    # Cria a sessão vinculada à conexão
+    # join_transaction_mode="create_savepoint" permite que o código da aplicação 
+    # use commit() internamente (via SAVEPOINT) sem afetar a transação externa.
+    with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
+        # 1. Verificar se a proposição ID '1' já existe para evitar IntegrityError
+        # (Em tese, o rollback deveria limpar, mas se algo falhou no rollback anterior
+        # ou se a sessão de transação for compartilhada de forma imprevista, isso protege)
+        existing = session.get(Proposicao, "1")
+        if not existing:
+            session.add(
+                Proposicao(
+                    id="1",
+                    tipo="PL",
+                    numero="1",
+                    ano=2024,
+                    autor="A",
+                    uf_autor="DF",
+                    status="X",
+                    orgao_atual="O",
+                    ementa="E",
+                    data_apresentacao="D",
+                    data_ultima_movimentacao="D",
+                    tags=[],
+                )
             )
-        )
-        session.commit()
+            session.commit()
+        
         yield session
+    
+    # Rollback de TUDO o que aconteceu no teste
+    transaction.rollback()
+    connection.close()
 
 
 @pytest.fixture
