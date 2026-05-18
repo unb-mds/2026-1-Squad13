@@ -58,21 +58,15 @@ def test_obterDetalheProposicao_adaptadorCamara_retorna200(http_client: TestClie
     assert dados["tempoTotalDias"] > 0
 
 
-def test_obterDetalheProposicao_slug_retorna200(http_client: TestClient, db_session):
-    from infrastructure.repositories.sql_proposicao_repository import (
-        SQLProposicaoRepository,
-    )
-
-    repo = SQLProposicaoRepository(db_session)
-    proposicao = _proposicao_camara()
-    repo.salvar(proposicao)
-
-    response = http_client.get("/proposicoes/PL-21-2020")
+def test_obterDetalheProposicao_slug_retorna200(http_client: TestClient):
+    # O banco já contém a proposição ID '1' via conftest.py
+    # Vamos usar o ID '1' que é PL-1-2024 (calculado pelo slug)
+    response = http_client.get("/proposicoes/PL-1-2024")
 
     assert response.status_code == 200
     dados = response.json()
-    assert dados["id"] == "2236353"
-    assert dados["codigoNormalizado"] == "PL-21-2020"
+    assert dados["id"] == "1"
+    assert dados["codigoNormalizado"] == "PL-1-2024"
 
 
 def test_obterDetalheProposicao_adaptadorSenado_retorna200(http_client: TestClient):
