@@ -112,7 +112,9 @@ class NormalizarTramitacaoService:
                     match = re.search(r"([A-Z]{2,3})\s*(\d+)/(\d{4})", descricao)
                     if match:
                         sigla, numero, ano = match.groups()
-                        principal_id = f"{sigla}{numero}{ano}"  # Formato simplificado da Câmara
+                        principal_id = (
+                            f"{sigla}{numero}{ano}"  # Formato simplificado da Câmara
+                        )
                         from domain.entities.apensamento import Apensamento
 
                         apensamento = Apensamento(

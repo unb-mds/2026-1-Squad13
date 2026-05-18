@@ -32,11 +32,11 @@ class Proposicao(SQLModel, table=True):
     data_encerramento: Optional[str] = None
     previsao_aprovacao_dias: Optional[int] = None
 
-    # Armazenar lista como JSONB no Postgres para busca eficiente (@>), 
+    # Armazenar lista como JSONB no Postgres para busca eficiente (@>),
     # mas mantendo JSON genérico para compatibilidade com SQLite nos testes.
     tags: List[str] = Field(
-        default_factory=list, 
-        sa_column=Column(JSON().with_variant(postgresql.JSONB(), "postgresql"))
+        default_factory=list,
+        sa_column=Column(JSON().with_variant(postgresql.JSONB(), "postgresql")),
     )
 
     def normalizar_campo_status(self):
