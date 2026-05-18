@@ -48,11 +48,15 @@ class TestDeterminarFaseMapeamentoDireto:
 
 class TestDeterminarFaseNaoClassificado:
     def test_preserva_analise_comissoes(self):
-        r = determinar_fase_analitica(TipoEvento.NAO_CLASSIFICADO, FaseCodigo.ANALISE_COMISSOES)
+        r = determinar_fase_analitica(
+            TipoEvento.NAO_CLASSIFICADO, FaseCodigo.ANALISE_COMISSOES
+        )
         assert r == FaseCodigo.ANALISE_COMISSOES
 
     def test_preserva_deliberacao_plenario(self):
-        r = determinar_fase_analitica(TipoEvento.NAO_CLASSIFICADO, FaseCodigo.DELIBERACAO_PLENARIO)
+        r = determinar_fase_analitica(
+            TipoEvento.NAO_CLASSIFICADO, FaseCodigo.DELIBERACAO_PLENARIO
+        )
         assert r == FaseCodigo.DELIBERACAO_PLENARIO
 
     def test_preserva_encerrada(self):
@@ -66,15 +70,21 @@ class TestDeterminarFaseNaoClassificado:
 
 class TestDeterminarFaseAprovacao:
     def test_mantem_analise_comissoes(self):
-        r = determinar_fase_analitica(TipoEvento.APROVACAO, FaseCodigo.ANALISE_COMISSOES)
+        r = determinar_fase_analitica(
+            TipoEvento.APROVACAO, FaseCodigo.ANALISE_COMISSOES
+        )
         assert r == FaseCodigo.ANALISE_COMISSOES
 
     def test_mantem_deliberacao_plenario(self):
-        r = determinar_fase_analitica(TipoEvento.APROVACAO, FaseCodigo.DELIBERACAO_PLENARIO)
+        r = determinar_fase_analitica(
+            TipoEvento.APROVACAO, FaseCodigo.DELIBERACAO_PLENARIO
+        )
         assert r == FaseCodigo.DELIBERACAO_PLENARIO
 
     def test_mantem_revisao_outra_casa(self):
-        r = determinar_fase_analitica(TipoEvento.APROVACAO, FaseCodigo.REVISAO_OUTRA_CASA)
+        r = determinar_fase_analitica(
+            TipoEvento.APROVACAO, FaseCodigo.REVISAO_OUTRA_CASA
+        )
         assert r == FaseCodigo.REVISAO_OUTRA_CASA
 
     def test_fase_none_usa_fallback(self):
@@ -84,22 +94,35 @@ class TestDeterminarFaseAprovacao:
 
 class TestDeterminarFaseNone:
     def test_apresentacao_com_fase_none(self):
-        assert determinar_fase_analitica(TipoEvento.APRESENTACAO, None) == FaseCodigo.PROTOCOLO_INICIAL
+        assert (
+            determinar_fase_analitica(TipoEvento.APRESENTACAO, None)
+            == FaseCodigo.PROTOCOLO_INICIAL
+        )
 
     def test_despacho_com_fase_none(self):
-        assert determinar_fase_analitica(TipoEvento.DESPACHO, None) == FaseCodigo.PROTOCOLO_INICIAL
+        assert (
+            determinar_fase_analitica(TipoEvento.DESPACHO, None)
+            == FaseCodigo.PROTOCOLO_INICIAL
+        )
 
     def test_recebimento_orgao_com_fase_none(self):
-        assert determinar_fase_analitica(TipoEvento.RECEBIMENTO_ORGAO, None) == FaseCodigo.ANALISE_COMISSOES
+        assert (
+            determinar_fase_analitica(TipoEvento.RECEBIMENTO_ORGAO, None)
+            == FaseCodigo.ANALISE_COMISSOES
+        )
 
 
 class TestDeterminarFaseRegressao:
     def test_retorno_de_revisao_para_analise(self):
-        r = determinar_fase_analitica(TipoEvento.RETORNO_INICIADORA, FaseCodigo.REVISAO_OUTRA_CASA)
+        r = determinar_fase_analitica(
+            TipoEvento.RETORNO_INICIADORA, FaseCodigo.REVISAO_OUTRA_CASA
+        )
         assert r == FaseCodigo.ANALISE_COMISSOES
 
     def test_retorno_de_tramite_para_analise(self):
-        r = determinar_fase_analitica(TipoEvento.RETORNO_INICIADORA, FaseCodigo.TRAMITE_ENTRE_CASAS)
+        r = determinar_fase_analitica(
+            TipoEvento.RETORNO_INICIADORA, FaseCodigo.TRAMITE_ENTRE_CASAS
+        )
         assert r == FaseCodigo.ANALISE_COMISSOES
 
 

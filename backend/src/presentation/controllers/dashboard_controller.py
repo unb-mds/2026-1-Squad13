@@ -2,10 +2,11 @@ from typing import List
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from application.services.dashboard_service import DashboardService
+from infrastructure.cache.redis_client import RedisClient
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
-from infrastructure.database import get_session
+from infrastructure.database import get_session, get_redis_connection
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
@@ -72,7 +73,9 @@ def get_dashboard_service(session: Session = Depends(get_session)) -> DashboardS
     repository = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
     fase_repo = SQLFaseAnaliticaRepository(session)
-    return DashboardService(repository, evento_repo, fase_repo)
+    redis_conn = get_redis_connection()
+    cache_provider = RedisClient(redis_conn)
+    return DashboardService(repository, evento_repo, fase_repo=fase_repo, cache_provider=cache_provider)
 
 
 @router.get("/dashboard/metricas", response_model=DashboardMetricasResponse)
