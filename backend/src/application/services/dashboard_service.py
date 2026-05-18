@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 from datetime import datetime, date
 
 from infrastructure.repositories.sql_proposicao_repository import (
@@ -181,8 +181,8 @@ class DashboardService:
 
         return "Outros"
 
-    def obter_metricas(self) -> Dict:
-        todas = self.repository.filtrar()
+    def obter_metricas(self, filtros: Optional[Dict] = None) -> Dict:
+        todas = self.repository.filtrar(**(filtros or {}))
 
         if not todas:
             return {
@@ -238,8 +238,8 @@ class DashboardService:
             "comissaoMaiorTempoMedia": int(pior_media),
         }
 
-    def obter_dados_tipo(self) -> List[Dict]:
-        todas = self.repository.filtrar()
+    def obter_dados_tipo(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
         
         tipos: Dict[str, Dict] = {}
@@ -264,8 +264,8 @@ class DashboardService:
             )
         return sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
 
-    def obter_dados_comissao(self) -> List[Dict]:
-        todas = self.repository.filtrar()
+    def obter_dados_comissao(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
         
         orgaos: Dict[str, Dict] = {}
@@ -291,8 +291,8 @@ class DashboardService:
             )
         return sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
 
-    def obter_dados_status(self) -> List[Dict]:
-        todas = self.repository.filtrar()
+    def obter_dados_status(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        todas = self.repository.filtrar(**(filtros or {}))
         if not todas:
             return []
 
@@ -313,8 +313,8 @@ class DashboardService:
         ]
         return sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
 
-    def obter_gargalos(self) -> List[Dict]:
-        todas = self.repository.filtrar()
+    def obter_gargalos(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
         
         orgaos: Dict[str, Dict] = {}
@@ -359,8 +359,8 @@ class DashboardService:
 
         return sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
 
-    def obter_comparacao_temas(self) -> List[Dict]:
-        todas = self.repository.filtrar()
+    def obter_comparacao_temas(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
         
         temas: Dict[str, Dict] = {}

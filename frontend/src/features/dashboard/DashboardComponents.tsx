@@ -7,7 +7,7 @@ import {
 import {
   obterMetricas, obterDadosTipo, obterDadosComissao, obterDadosStatus,
 } from '@/shared/lib/api'
-import type { MetricasDashboard, DadosGraficoTipo, DadosGraficoComissao, DadosGraficoStatus } from '@/shared/types'
+import type { MetricasDashboard, DadosGraficoTipo, DadosGraficoComissao, DadosGraficoStatus, FiltrosProposicao } from '@/shared/types'
 import { formatarTempo } from '@/shared/lib/utils'
 import { KpiCard, Card, CardHeader, CardBody } from '@/shared/ui'
 
@@ -21,13 +21,14 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   )
 }
 
-export function DashboardMetricas() {
+export function DashboardMetricas({ filtros }: { filtros?: Partial<FiltrosProposicao> }) {
   const [metricas, setMetricas] = useState<MetricasDashboard | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    obterMetricas().then(setMetricas).finally(() => setLoading(false))
-  }, [])
+    setLoading(true)
+    obterMetricas(filtros).then(setMetricas).finally(() => setLoading(false))
+  }, [filtros])
 
   if (loading) return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -79,21 +80,22 @@ const STATUS_COLORS: Record<string, string> = {
 
 const DEFAULT_COLORS = ['#6366f1', '#f59e0b', '#22d3ee', '#a78bfa']
 
-export function DashboardGraficos() {
+export function DashboardGraficos({ filtros }: { filtros?: Partial<FiltrosProposicao> }) {
   const [dadosTipo, setDadosTipo] = useState<DadosGraficoTipo[]>([])
   const [dadosComissao, setDadosComissao] = useState<DadosGraficoComissao[]>([])
   const [dadosStatus, setDadosStatus] = useState<DadosGraficoStatus[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([obterDadosTipo(), obterDadosComissao(), obterDadosStatus()])
+    setLoading(true)
+    Promise.all([obterDadosTipo(filtros), obterDadosComissao(filtros), obterDadosStatus(filtros)])
       .then(([tipo, comissao, status]) => {
         setDadosTipo(tipo)
         setDadosComissao(comissao)
         setDadosStatus(status)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [filtros])
 
   if (loading) return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -190,12 +192,12 @@ export function DashboardGraficos() {
   )
 }
 
-export function DashboardResumoStatus() {
+export function DashboardResumoStatus({ filtros }: { filtros?: Partial<FiltrosProposicao> }) {
   const [metricas, setMetricas] = useState<MetricasDashboard | null>(null)
 
   useEffect(() => {
-    obterMetricas().then(setMetricas)
-  }, [])
+    obterMetricas(filtros).then(setMetricas)
+  }, [filtros])
 
   if (!metricas) return null
 

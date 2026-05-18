@@ -126,26 +126,39 @@ export async function obterMovimentacoes(proposicaoId: string): Promise<Moviment
 }
 
 // --- Dashboard ---
-export async function obterMetricas(): Promise<MetricasDashboard> {
-  const response = await fetch(`${API_BASE}/dashboard/metricas`)
+function _filtrosParaParams(filtros?: Partial<FiltrosProposicao>): string {
+  if (!filtros) return ''
+  const params = new URLSearchParams()
+  if (filtros.busca) params.append('busca', filtros.busca)
+  if (filtros.tipo) params.append('tipo', filtros.tipo)
+  if (filtros.status) params.append('status', filtros.status)
+  if (filtros.orgaoOrigem) params.append('orgaoOrigem', filtros.orgaoOrigem)
+  if (filtros.dataInicio) params.append('dataInicio', filtros.dataInicio)
+  if (filtros.dataFim) params.append('dataFim', filtros.dataFim)
+  const qs = params.toString()
+  return qs ? `?${qs}` : ''
+}
+
+export async function obterMetricas(filtros?: Partial<FiltrosProposicao>): Promise<MetricasDashboard> {
+  const response = await fetch(`${API_BASE}/dashboard/metricas${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar métricas da API')
   return await response.json()
 }
 
-export async function obterDadosTipo(): Promise<DadosGraficoTipo[]> {
-  const response = await fetch(`${API_BASE}/dashboard/grafico-tipo`)
+export async function obterDadosTipo(filtros?: Partial<FiltrosProposicao>): Promise<DadosGraficoTipo[]> {
+  const response = await fetch(`${API_BASE}/dashboard/grafico-tipo${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar dados por tipo')
   return await response.json()
 }
 
-export async function obterDadosComissao(): Promise<DadosGraficoComissao[]> {
-  const response = await fetch(`${API_BASE}/dashboard/grafico-comissao`)
+export async function obterDadosComissao(filtros?: Partial<FiltrosProposicao>): Promise<DadosGraficoComissao[]> {
+  const response = await fetch(`${API_BASE}/dashboard/grafico-comissao${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar dados por comissão')
   return await response.json()
 }
 
-export async function obterDadosStatus(): Promise<DadosGraficoStatus[]> {
-  const response = await fetch(`${API_BASE}/dashboard/grafico-status`)
+export async function obterDadosStatus(filtros?: Partial<FiltrosProposicao>): Promise<DadosGraficoStatus[]> {
+  const response = await fetch(`${API_BASE}/dashboard/grafico-status${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar dados por status')
   return await response.json()
 }
