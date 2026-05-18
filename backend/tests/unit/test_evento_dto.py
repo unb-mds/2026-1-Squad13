@@ -14,6 +14,8 @@ def test_evento_dto_campos_nulos_permitidos():
         "deliberativo": False,
         "mudouFase": False,
         "mudouOrgao": False,
+        "diasNaEtapa": 10,
+        "temAtraso": False,
     }
     # Como siglaOrgao, faseAnaliticaId e remessaOuRetorno não foram fornecidos, devem ser None
     obj = EventoTramitacaoResponse(**payload)
@@ -46,6 +48,8 @@ def test_evento_dto_aliases_camel_case():
         "mudouFase": True,
         "mudouOrgao": True,
         "remessaOuRetorno": "REMESSA",
+        "diasNaEtapa": 100,
+        "temAtraso": True,
     }
     obj = EventoTramitacaoResponse(**payload)
 
