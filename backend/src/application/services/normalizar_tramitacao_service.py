@@ -4,6 +4,8 @@ Serviço de aplicação para normalização de tramitações brutas.
 Transforma dados das APIs (Câmara/Senado) em eventos analíticos estruturados.
 """
 
+import re
+from datetime import datetime, date
 from typing import List, Optional
 
 from domain.entities.evento_tramitacao import EventoTramitacao
@@ -21,25 +23,26 @@ from infrastructure.repositories.sql_orgao_legislativo_repository import (
 )
 
 
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
+)
+
+
 class NormalizarTramitacaoService:
     """
     Orquestra a transformação de tramitações brutas em EventoTramitacao.
-
-    Nota sobre Órgãos Legislativos:
-    O método `normalizar` faz um upsert silencioso dos órgãos encontrados nos
-    eventos utilizando `casa_padrao` em caso de sigla nova. Isso é aceitável para o R1,
-    mas no futuro pode-se adicionar um ponto de extensão para disparar alertas
-    ao time de dados quando siglas desconhecidas forem cadastradas.
     """
 
     def __init__(
         self,
         fase_repo: SQLFaseAnaliticaRepository,
         orgao_repo: SQLOrgaoLegislativoRepository,
+        apensamento_repo: Optional[SQLApensamentoRepository] = None,
         casa_padrao: CasaLegislativa = CasaLegislativa.CAMARA,
     ):
         self.fase_repo = fase_repo
         self.orgao_repo = orgao_repo
+        self.apensamento_repo = apensamento_repo
         self.casa_padrao = casa_padrao
 
         # Pre-cache das fases para não bater no banco a cada evento
@@ -91,6 +94,7 @@ class NormalizarTramitacaoService:
             )
 
             remessa_ou_retorno: Optional[str] = None
+            marca_apensacao = False
             if tipo_evento in {
                 TipoEvento.REMESSA_OUTRA_CASA,
                 TipoEvento.ENVIO_EXECUTIVO,
@@ -101,6 +105,26 @@ class NormalizarTramitacaoService:
                 TipoEvento.RECEBIMENTO_OUTRA_CASA,
             }:
                 remessa_ou_retorno = "RETORNO"
+            elif tipo_evento == TipoEvento.APENSAMENTO:
+                marca_apensacao = True
+                # Tenta extrair ID da principal (Heurística: busca padrões como PEC 221/2019)
+                if self.apensamento_repo:
+                    match = re.search(r"([A-Z]{2,3})\s*(\d+)/(\d{4})", descricao)
+                    if match:
+                        sigla, numero, ano = match.groups()
+                        principal_id = f"{sigla}{numero}{ano}"  # Formato simplificado da Câmara
+                        from domain.entities.apensamento import Apensamento
+
+                        apensamento = Apensamento(
+                            materia_apensada_id=proposicao_id,
+                            materia_principal_id=principal_id,
+                            data_apensacao=item.get("data_hora", "")[:10],
+                            casa=self.casa_padrao.value,
+                            fonte_endpoint="CamaraAPI/Tramitacoes",
+                            payload_bruto=item.get("payload_bruto"),
+                            confianca=0.9,
+                        )
+                        self.apensamento_repo.salvar(apensamento)
 
             # 4. Resolver órgão (upsert para garantir que existe) apenas 1 vez por lote
             if sigla_orgao and sigla_orgao not in orgaos_cacheados:
@@ -123,6 +147,7 @@ class NormalizarTramitacaoService:
                 mudou_fase=mudou_fase,
                 mudou_orgao=mudou_orgao,
                 remessa_ou_retorno=remessa_ou_retorno,
+                marca_apensacao=marca_apensacao,
                 payload_bruto=item.get("payload_bruto"),
             )
             eventos.append(evento)
@@ -131,5 +156,25 @@ class NormalizarTramitacaoService:
             if tipo_evento != TipoEvento.NAO_CLASSIFICADO:
                 fase_anterior = codigo_fase
             orgao_anterior = sigla_orgao
+
+        # 6. Cálculo de tempos (dias_na_etapa) e atrasos
+        # Como os eventos vêm em ordem cronológica ASC, o tempo na etapa de um evento
+        # é a diferença para o evento seguinte.
+        hoje = date.today()
+        for i in range(len(eventos)):
+            atual = eventos[i]
+            data_atual = datetime.fromisoformat(atual.data_evento[:10]).date()
+
+            if i + 1 < len(eventos):
+                proximo = eventos[i + 1]
+                data_prox = datetime.fromisoformat(proximo.data_evento[:10]).date()
+                dias = (data_prox - data_atual).days
+            else:
+                # Último evento: tempo acumulado até hoje
+                dias = (hoje - data_atual).days
+
+            atual.dias_na_etapa = max(0, dias)
+            # Regra de negócio: mais de 180 dias sem movimentação é considerado atraso
+            atual.tem_atraso = atual.dias_na_etapa > 180
 
         return eventos

@@ -41,6 +41,7 @@ _PATTERNS: list[tuple[re.Pattern, TipoEvento]] = [
     (re.compile(r"prejudicad", re.IGNORECASE), TipoEvento.PREJUDICIALIDADE),
     (re.compile(r"arquiv", re.IGNORECASE), TipoEvento.ARQUIVAMENTO),
     (re.compile(r"rejeit", re.IGNORECASE), TipoEvento.REJEICAO),
+    (re.compile(r"apensad", re.IGNORECASE), TipoEvento.APENSAMENTO),
     # --- Deliberação ---
     (
         re.compile(r"votaç.*plen[aá]rio|plen[aá]rio.*votaç", re.IGNORECASE),
@@ -178,6 +179,7 @@ _TIPO_PARA_FASE: dict[TipoEvento, FaseCodigo] = {
     TipoEvento.ARQUIVAMENTO: FaseCodigo.ENCERRADA,
     TipoEvento.PREJUDICIALIDADE: FaseCodigo.ENCERRADA,
     TipoEvento.REJEICAO: FaseCodigo.ENCERRADA,
+    TipoEvento.APENSAMENTO: FaseCodigo.ENCERRADA,
     # APROVACAO e NAO_CLASSIFICADO NÃO estão no mapeamento
     # porque possuem lógica especial (ver determinar_fase_analitica)
 }

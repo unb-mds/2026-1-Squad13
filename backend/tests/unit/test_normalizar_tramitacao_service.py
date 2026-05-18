@@ -121,3 +121,48 @@ def test_normalizar_nao_classificado_preserva_fase(service, mocks):
     assert eventos[1].tipo_evento == TipoEvento.NAO_CLASSIFICADO.value
     assert eventos[1].fase_analitica_id == 1
     assert eventos[1].mudou_fase is False
+
+
+def test_normalizar_calcula_dias_na_etapa_e_atraso(service, mocks):
+    # Arrange
+    dados_brutos = [
+        {
+            "data_hora": "2024-01-01",
+            "sequencia": 1,
+            "sigla_orgao": "MESA",
+            "descricao": "Apresentação",
+        },
+        {
+            "data_hora": "2024-01-11",  # 10 dias depois
+            "sequencia": 2,
+            "sigla_orgao": "CCJ",
+            "descricao": "Recebimento",
+        },
+        {
+            "data_hora": "2024-01-11",  # Mesmo dia
+            "sequencia": 3,
+            "sigla_orgao": "CCJ",
+            "descricao": "Parecer",
+        },
+    ]
+
+    # Act
+    eventos = service.normalizar("123", dados_brutos)
+
+    # Assert
+    assert eventos[0].dias_na_etapa == 10
+    assert eventos[0].tem_atraso is False
+
+    assert eventos[1].dias_na_etapa == 0
+    assert eventos[1].tem_atraso is False
+
+    # O último evento depende da data atual (hoje)
+    from datetime import date, datetime
+
+    hoje = date.today()
+    data_ultimo = datetime.fromisoformat(dados_brutos[2]["data_hora"]).date()
+    dias_esperados = (hoje - data_ultimo).days
+
+    assert eventos[2].dias_na_etapa == dias_esperados
+    # Se dias_esperados > 180, deve marcar atraso
+    assert eventos[2].tem_atraso == (dias_esperados > 180)

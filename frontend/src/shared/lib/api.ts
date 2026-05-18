@@ -108,20 +108,22 @@ export async function obterMovimentacoes(proposicaoId: string): Promise<Moviment
   const rawData = await response.json()
   // Normalização das propriedades do Backend para a interface do Frontend
   return (rawData as Array<{
-    sequencia?: number;
     proposicaoId: string;
-    dataHora?: string;
-    siglaOrgao?: string;
-    descricaoTramitacao?: string;
-  }>).map((d, index) => ({
-    id: d.sequencia ? String(d.sequencia) : String(index),
+    dataEvento: string;
+    sequencia: int;
+    siglaOrgao: string;
+    descricaoOriginal: string;
+    diasNaEtapa: number;
+    temAtraso: boolean;
+  }>).map((d) => ({
+    id: String(d.sequencia),
     proposicaoId: d.proposicaoId,
-    data: d.dataHora || new Date().toISOString(),
+    data: d.dataEvento,
     orgao: d.siglaOrgao || 'N/A',
-    descricao: d.descricaoTramitacao || 'Tramitação registrada',
+    descricao: d.descricaoOriginal || 'Movimentação registrada',
     responsavel: undefined,
-    diasNaEtapa: 0,
-    temAtraso: false,
+    diasNaEtapa: d.diasNaEtapa,
+    temAtraso: d.temAtraso,
   }))
 }
 
