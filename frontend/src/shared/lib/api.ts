@@ -99,32 +99,36 @@ export async function obterProposicao(id: string): Promise<Proposicao | null> {
 }
 
 export async function obterMovimentacoes(proposicaoId: string): Promise<MovimentacaoTramitacao[]> {
-  const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes`)
+  try {
+    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes`)
 
-  if (!response.ok) {
-    throw new Error('Falha ao buscar movimentações')
+    if (!response.ok) {
+      return []
+    }
+
+    const rawData = await response.json()
+    // Normalização das propriedades do Backend para a interface do Frontend
+    return (rawData as Array<{
+      proposicaoId: string;
+      dataEvento: string;
+      sequencia: number;
+      siglaOrgao: string;
+      descricaoOriginal: string;
+      diasNaEtapa: number;
+      temAtraso: boolean;
+    }>).map((d) => ({
+      id: String(d.sequencia),
+      proposicaoId: d.proposicaoId,
+      data: d.dataEvento,
+      orgao: d.siglaOrgao || 'N/A',
+      descricao: d.descricaoOriginal || 'Movimentação registrada',
+      responsavel: undefined,
+      diasNaEtapa: d.diasNaEtapa,
+      temAtraso: d.temAtraso,
+    }))
+  } catch {
+    return []
   }
-
-  const rawData = await response.json()
-  // Normalização das propriedades do Backend para a interface do Frontend
-  return (rawData as Array<{
-    proposicaoId: string;
-    dataEvento: string;
-    sequencia: int;
-    siglaOrgao: string;
-    descricaoOriginal: string;
-    diasNaEtapa: number;
-    temAtraso: boolean;
-  }>).map((d) => ({
-    id: String(d.sequencia),
-    proposicaoId: d.proposicaoId,
-    data: d.dataEvento,
-    orgao: d.siglaOrgao || 'N/A',
-    descricao: d.descricaoOriginal || 'Movimentação registrada',
-    responsavel: undefined,
-    diasNaEtapa: d.diasNaEtapa,
-    temAtraso: d.temAtraso,
-  }))
 }
 
 // --- Dashboard ---
