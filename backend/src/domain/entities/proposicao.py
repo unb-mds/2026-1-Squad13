@@ -1,6 +1,7 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional, List
 from sqlalchemy import Column, JSON
+from sqlalchemy.dialects import postgresql
 from datetime import datetime, date
 
 
@@ -31,8 +32,12 @@ class Proposicao(SQLModel, table=True):
     data_encerramento: Optional[str] = None
     previsao_aprovacao_dias: Optional[int] = None
 
-    # Armazenar lista como JSON no Postgres
-    tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+    # Armazenar lista como JSONB no Postgres para busca eficiente (@>),
+    # mas mantendo JSON genérico para compatibilidade com SQLite nos testes.
+    tags: List[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON().with_variant(postgresql.JSONB(), "postgresql")),
+    )
 
     def normalizar_campo_status(self):
         """Normaliza o campo status para algo mais conciso e legível."""
@@ -51,6 +56,9 @@ class Proposicao(SQLModel, table=True):
             return
         if "VETAD" in raw:
             self.status = "Vetada"
+            return
+        if "APENSAD" in raw:
+            self.status = "Arquivada (Apensada)"
             return
         if (
             "REJEITAD" in raw

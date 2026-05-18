@@ -55,7 +55,12 @@ class EventoTramitacao(SQLModel, table=True):
 
     __tablename__ = "evento_tramitacao"
     __table_args__ = (
-        Index("ix_evento_tramitacao_prop_data_seq", "proposicao_id", "data_evento", "sequencia"),
+        Index(
+            "ix_evento_tramitacao_prop_data_seq",
+            "proposicao_id",
+            "data_evento",
+            "sequencia",
+        ),
     )
 
     evento_id: Optional[int] = Field(default=None, primary_key=True)
@@ -91,7 +96,21 @@ class EventoTramitacao(SQLModel, table=True):
     )
     remessa_ou_retorno: Optional[str] = Field(
         default=None,
-        description="'REMESSA' ou 'RETORNO' quando há trânsito entre Casas",
+        description="'REMESSA' ou 'RETORNO' when there's transit between Houses",
+    )
+
+    # Campos de análise temporal
+    dias_na_etapa: int = Field(
+        default=0,
+        description="Dias decorridos entre este evento e o próximo (ou hoje)",
+    )
+    tem_atraso: bool = Field(
+        default=False,
+        description="True se o tempo de permanência nesta etapa ultrapassa o limite esperado",
+    )
+    marca_apensacao: bool = Field(
+        default=False,
+        description="Indica se este evento criou uma ligação de apensamento",
     )
 
     # Auditoria
@@ -130,9 +149,7 @@ class EventoTramitacao(SQLModel, table=True):
 
         # 3. sequencia >= 1
         if self.sequencia < 1:
-            raise ValueError(
-                f"sequencia deve ser >= 1, recebido: {self.sequencia}"
-            )
+            raise ValueError(f"sequencia deve ser >= 1, recebido: {self.sequencia}")
 
         # 4. data_evento em formato ISO
         if not _ISO_DATE_RE.match(self.data_evento):

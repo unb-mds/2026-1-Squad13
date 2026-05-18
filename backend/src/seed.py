@@ -13,7 +13,7 @@ Ordem de execução:
 from sqlmodel import text
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import init_db, get_session
+from infrastructure.database import init_db, get_session, get_redis_connection
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
@@ -26,6 +26,10 @@ from infrastructure.repositories.sql_orgao_legislativo_repository import (
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
+)
+from infrastructure.cache.redis_client import RedisClient
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.dashboard_service import DashboardService
 from init_db import seed_demo_user
@@ -106,65 +110,76 @@ def run() -> None:
         evento_repo = SQLEventoTramitacaoRepository(session)
         fase_repo = SQLFaseAnaliticaRepository(session)
         orgao_repo = SQLOrgaoLegislativoRepository(session)
+        apensamento_repo = SQLApensamentoRepository(session)
         listar_service = ListarMovimentacoesService(
-            evento_repo, repo, fase_repo, orgao_repo, camara, senado
+            evento_repo,
+            repo,
+            fase_repo,
+            orgao_repo,
+            camara,
+            senado,
+            apensamento_repo=apensamento_repo,
         )
         dashboard_service = DashboardService(repo, evento_repo)
 
         for p in proposicoes:
-            # Gerar ementa resumida se não houver
-            if not p.ementa_resumida and p.ementa:
-                p.ementa_resumida = (
-                    p.ementa[:100] + "..." if len(p.ementa) > 100 else p.ementa
-                )
-
-            # Gerar tags simples baseadas no conteúdo (Exemplo)
-            if not p.tags or any(t.lower() in ["pl", "pec"] for t in p.tags):
-                tags = []
-                palavras_chave = [
-                    "saúde",
-                    "educação",
-                    "economia",
-                    "tributo",
-                    "indígena",
-                    "mulher",
-                    "segurança",
-                    "trabalho",
-                    "ambiente",
-                ]
-                for palavra in palavras_chave:
-                    if palavra in p.ementa.lower():
-                        tags.append(palavra)
-
-                # Se não achou nenhuma palavra chave, coloca uma tag genérica útil ou deixa vazio
-                p.tags = tags[:3]
-
-            prop_db = repo.buscar_por_id(p.id)
-            if prop_db is None:
-                repo.salvar(p)
-                print(f"[INSERT] {p.nome_canonico} (id={p.id})")
-                inseridos += 1
-                prop_db = p
-            else:
-                # Se já existe, atualizamos para incluir as novas tags, ementa e status normalizado
-                prop_db.ementa_resumida = p.ementa_resumida
-                prop_db.tags = p.tags
-                prop_db.status = p.status
-                prop_db.normalizar_campo_status()
-                session.add(prop_db)
-                session.commit()
-                print(f"[UPDATE] {prop_db.nome_canonico} (id={prop_db.id})")
-                pulados += 1
-                
-            # --- Etapa Analítica (Duração On-the-fly) ---
             try:
+                # Gerar ementa resumida se não houver
+                if not p.ementa_resumida and p.ementa:
+                    p.ementa_resumida = (
+                        p.ementa[:100] + "..." if len(p.ementa) > 100 else p.ementa
+                    )
+
+                # Gerar tags simples baseadas no conteúdo (Exemplo)
+                if not p.tags or any(t.lower() in ["pl", "pec"] for t in p.tags):
+                    tags = []
+                    palavras_chave = [
+                        "saúde",
+                        "educação",
+                        "economia",
+                        "tributo",
+                        "indígena",
+                        "mulher",
+                        "segurança",
+                        "trabalho",
+                        "ambiente",
+                    ]
+                    for palavra in palavras_chave:
+                        if palavra in p.ementa.lower():
+                            tags.append(palavra)
+
+                    # Se não achou nenhuma palavra chave, coloca uma tag genérica útil ou deixa vazio
+                    p.tags = tags[:3]
+
+                prop_db = repo.buscar_por_id(p.id)
+                if prop_db is None:
+                    repo.salvar(p)
+                    print(f"[INSERT] {p.nome_canonico} (id={p.id})")
+                    inseridos += 1
+                    prop_db = p
+                else:
+                    # Se já existe, atualizamos para incluir as novas tags, ementa e status normalizado
+                    prop_db.ementa_resumida = p.ementa_resumida
+                    prop_db.tags = p.tags
+                    prop_db.status = p.status
+                    prop_db.normalizar_campo_status()
+                    session.add(prop_db)
+                    session.commit()
+                    print(f"[UPDATE] {prop_db.nome_canonico} (id={prop_db.id})")
+                    pulados += 1
+
+                # --- Etapa Analítica (Duração On-the-fly) ---
                 # 1. Baixa e normaliza os eventos
                 eventos = listar_service.executar(str(prop_db.id))
-                
+
                 # 2. Calcula métricas na hora
-                tempo = dashboard_service._calcular_tempo_total(eventos, prop_db.tempo_total_dias or 0)
-                status = dashboard_service._extrair_status_atual(eventos, prop_db.status)
-                
+                tempo = dashboard_service._calcular_tempo_total(
+                    eventos, prop_db.tempo_total_dias or 0
+                )
+                status = dashboard_service._extrair_status_atual(
+                    eventos, prop_db.status
+                )
+
                 # 3. Atualiza cache da Proposicao para queries rápidas no endpoint de Listagem
                 prop_db.tempo_total_dias = tempo
                 prop_db.tem_atraso = tempo > 180
@@ -172,7 +187,23 @@ def run() -> None:
                 session.add(prop_db)
                 session.commit()
             except Exception as e:
-                print(f"  [ERRO] Falha ao sincronizar eventos de {prop_db.id}: {e}")
+                session.rollback()
+                print(
+                    f"  [ERRO CRÍTICO] Falha ao processar proposição ID {p.id} ({p.tipo} {p.numero}/{p.ano}):"
+                )
+                print(f"    Causa: {type(e).__name__} - {str(e)}")
+                # Opcional: print(traceback.format_exc()) # Descomente para debug profundo
+
+    # Invalidação do cache após a carga em lote
+    print("\nInvalidando cache do dashboard...")
+
+    try:
+        redis_conn = get_redis_connection()
+        redis_client = RedisClient(redis_conn)
+        redis_client.invalidate("dashboard:")
+        print("  Cache invalidado com sucesso.")
+    except Exception as e:
+        print(f"  [AVISO] Falha ao invalidar cache: {e}")
 
     print(f"\nSeed concluído — inseridos: {inseridos}, atualizados: {pulados}")
 
