@@ -60,9 +60,9 @@ export function DetalheProposicaoPage() {
   )
 
   const emTramitacao = ['Em tramitação', 'Em análise', 'Aguardando votação'].includes(proposicao.status)
-  const diasAcumulados = emTramitacao
-    ? calcularDiasEntreatas(proposicao.dataApresentacao)
-    : proposicao.tempoTotalDias
+  const diasAcumulados = (proposicao.tempoTotalDias && proposicao.tempoTotalDias > 0)
+    ? proposicao.tempoTotalDias
+    : calcularDiasEntreatas(proposicao.dataApresentacao)
 
   return (
     <div className="p-6 animate-fade-in">
