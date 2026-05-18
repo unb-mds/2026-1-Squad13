@@ -82,10 +82,7 @@ class TestClassificarCasosNormais:
         )
 
     def test_rejeicao(self):
-        assert (
-            classificar_tipo_evento("Rejeitada pelo plenário")
-            == TipoEvento.REJEICAO
-        )
+        assert classificar_tipo_evento("Rejeitada pelo plenário") == TipoEvento.REJEICAO
 
     def test_remessa_outra_casa(self):
         assert (
@@ -146,23 +143,17 @@ class TestClassificarCasosAmbiguos:
 
     def test_aprovada_e_remetida_prioriza_aprovacao(self):
         """'Aprovada' vem antes de 'remetid' na prioridade."""
-        resultado = classificar_tipo_evento(
-            "Aprovada e remetida ao Senado Federal"
-        )
+        resultado = classificar_tipo_evento("Aprovada e remetida ao Senado Federal")
         assert resultado == TipoEvento.APROVACAO
 
     def test_parecer_aprovado_prioriza_parecer(self):
         """'Parecer' vem antes de 'aprovad' na prioridade."""
-        resultado = classificar_tipo_evento(
-            "Parecer do relator aprovado pela Comissão"
-        )
+        resultado = classificar_tipo_evento("Parecer do relator aprovado pela Comissão")
         assert resultado == TipoEvento.PARECER
 
     def test_sancionada_e_promulgada_prioriza_promulgacao(self):
         """'Promulgação' é mais específico e vem primeiro."""
-        resultado = classificar_tipo_evento(
-            "Promulgação após sanção presidencial"
-        )
+        resultado = classificar_tipo_evento("Promulgação após sanção presidencial")
         assert resultado == TipoEvento.PROMULGACAO
 
     def test_veto_parcial_classifica_como_sancao_ou_veto(self):
@@ -171,16 +162,12 @@ class TestClassificarCasosAmbiguos:
 
     def test_arquivada_e_prejudicada_prioriza_prejudicialidade(self):
         """'Prejudicad' vem antes de 'arquiv' na prioridade."""
-        resultado = classificar_tipo_evento(
-            "Declarada prejudicada e arquivada"
-        )
+        resultado = classificar_tipo_evento("Declarada prejudicada e arquivada")
         assert resultado == TipoEvento.PREJUDICIALIDADE
 
     def test_distribuicao_as_comissoes_classifica_como_despacho(self):
         """'Distribuição' casa com DESPACHO."""
-        resultado = classificar_tipo_evento(
-            "Distribuição às comissões permanentes"
-        )
+        resultado = classificar_tipo_evento("Distribuição às comissões permanentes")
         assert resultado == TipoEvento.DESPACHO
 
     def test_voto_relator_classifica_como_parecer(self):
@@ -196,15 +183,11 @@ class TestClassificarCasosAmbiguos:
         assert resultado == TipoEvento.INCLUSAO_PAUTA
 
     def test_enviado_ao_senado_classifica_como_remessa(self):
-        resultado = classificar_tipo_evento(
-            "Enviado ao Senado Federal para revisão"
-        )
+        resultado = classificar_tipo_evento("Enviado ao Senado Federal para revisão")
         assert resultado == TipoEvento.REMESSA_OUTRA_CASA
 
     def test_remetida_a_camara_classifica_como_remessa(self):
-        resultado = classificar_tipo_evento(
-            "Remetida à Câmara dos Deputados"
-        )
+        resultado = classificar_tipo_evento("Remetida à Câmara dos Deputados")
         assert resultado == TipoEvento.REMESSA_OUTRA_CASA
 
     def test_encaminhada_a_comissao_classifica_como_recebimento(self):
@@ -214,9 +197,7 @@ class TestClassificarCasosAmbiguos:
         assert resultado == TipoEvento.RECEBIMENTO_ORGAO
 
     def test_remetida_ao_presidente_classifica_como_envio_executivo(self):
-        resultado = classificar_tipo_evento(
-            "Remetida ao Presidente da República"
-        )
+        resultado = classificar_tipo_evento("Remetida ao Presidente da República")
         assert resultado == TipoEvento.ENVIO_EXECUTIVO
 
 
@@ -229,14 +210,10 @@ class TestClassificarCasosBorda:
     """Casos extremos: vazios, None, acentos, casing."""
 
     def test_string_vazia_retorna_nao_classificado(self):
-        assert (
-            classificar_tipo_evento("") == TipoEvento.NAO_CLASSIFICADO
-        )
+        assert classificar_tipo_evento("") == TipoEvento.NAO_CLASSIFICADO
 
     def test_somente_espacos_retorna_nao_classificado(self):
-        assert (
-            classificar_tipo_evento("   ") == TipoEvento.NAO_CLASSIFICADO
-        )
+        assert classificar_tipo_evento("   ") == TipoEvento.NAO_CLASSIFICADO
 
     def test_none_levanta_type_error(self):
         with pytest.raises(TypeError, match="descricao deve ser str"):
@@ -279,19 +256,14 @@ class TestClassificarCasosBorda:
 
     def test_acento_na_sancao(self):
         assert (
-            classificar_tipo_evento("Sanção presidencial")
-            == TipoEvento.SANCAO_OU_VETO
+            classificar_tipo_evento("Sanção presidencial") == TipoEvento.SANCAO_OU_VETO
         )
 
     def test_descricao_muito_longa(self):
         """Descrição longa com keyword no meio deve funcionar."""
         texto = "a" * 500 + " arquivamento " + "b" * 500
-        assert (
-            classificar_tipo_evento(texto) == TipoEvento.ARQUIVAMENTO
-        )
+        assert classificar_tipo_evento(texto) == TipoEvento.ARQUIVAMENTO
 
     def test_descricao_com_quebra_de_linha(self):
-        resultado = classificar_tipo_evento(
-            "Apresentação\ndo projeto de lei"
-        )
+        resultado = classificar_tipo_evento("Apresentação\ndo projeto de lei")
         assert resultado == TipoEvento.APRESENTACAO

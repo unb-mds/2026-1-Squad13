@@ -1,3 +1,4 @@
+import redis
 from sqlmodel import SQLModel, create_engine, Session
 from .config import settings
 
@@ -7,6 +8,7 @@ from domain.entities.user import User  # noqa: F401
 from domain.entities.fase_analitica import FaseAnalitica  # noqa: F401
 from domain.entities.orgao_legislativo import OrgaoLegislativo  # noqa: F401
 from domain.entities.evento_tramitacao import EventoTramitacao  # noqa: F401
+from domain.entities.apensamento import Apensamento  # noqa: F401
 
 # O motor de conexão (Engine)
 # echo=True faz com que o SQLModel imprima os comandos SQL no console (útil para aprender)
@@ -25,3 +27,15 @@ def get_session():
     """
     with Session(engine) as session:
         yield session
+
+
+def get_redis_connection():
+    """
+    Retorna uma instância do cliente Redis configurada.
+    Utiliza decode_responses=True por padrão para facilitar o uso de strings.
+    """
+    return redis.Redis.from_url(
+        settings.redis_url,
+        decode_responses=True,
+        socket_timeout=2.0,  # Previne travamentos se o Redis estiver lento
+    )

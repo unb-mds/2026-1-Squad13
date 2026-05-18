@@ -5,7 +5,7 @@ Substitui o antigo ListarTramitacoesService. Orquestra a busca no banco (cache),
 fallback para a API externa via adapter, e normalização de tramitações.
 """
 
-from typing import List
+from typing import List, Optional
 
 from application.services.normalizar_tramitacao_service import (
     NormalizarTramitacaoService,
@@ -14,6 +14,9 @@ from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
+)
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
@@ -39,6 +42,7 @@ class ListarMovimentacoesService:
         orgao_repo: SQLOrgaoLegislativoRepository,
         camara_adapter: CamaraAdapter,
         senado_adapter: SenadoAdapter,
+        apensamento_repo: Optional[SQLApensamentoRepository] = None,
     ):
         self.evento_repo = evento_repo
         self.proposicao_repo = proposicao_repo
@@ -46,6 +50,7 @@ class ListarMovimentacoesService:
         self.orgao_repo = orgao_repo
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
+        self.apensamento_repo = apensamento_repo
 
     def executar(self, proposicao_id: str) -> List[EventoTramitacao]:
         """
@@ -73,7 +78,7 @@ class ListarMovimentacoesService:
 
         # 2. Se não está no cache, precisa saber a origem
         proposicao = self.proposicao_repo.buscar_por_id(real_id)
-        
+
         # Determina o adapter e a casa padrão com base na proposição ou tenta fallback
         dados_brutos = []
         casa_padrao = CasaLegislativa.CAMARA
@@ -85,14 +90,20 @@ class ListarMovimentacoesService:
 
             dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
             if not dados_brutos:
-                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(int(real_id))
+                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
+                    int(real_id)
+                )
                 casa_padrao = CasaLegislativa.SENADO
         else:
             if "Câmara" in (proposicao.orgao_origem or ""):
-                dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
+                dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(
+                    int(real_id)
+                )
                 casa_padrao = CasaLegislativa.CAMARA
             else:
-                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(int(real_id))
+                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
+                    int(real_id)
+                )
                 casa_padrao = CasaLegislativa.SENADO
 
         if not dados_brutos:
@@ -102,6 +113,7 @@ class ListarMovimentacoesService:
         normalizer = NormalizarTramitacaoService(
             fase_repo=self.fase_repo,
             orgao_repo=self.orgao_repo,
+            apensamento_repo=self.apensamento_repo,
             casa_padrao=casa_padrao,
         )
         eventos_novos = normalizer.normalizar(real_id, dados_brutos)
