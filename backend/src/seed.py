@@ -188,7 +188,9 @@ def run() -> None:
                 session.commit()
             except Exception as e:
                 session.rollback()
-                print(f"  [ERRO CRÍTICO] Falha ao processar proposição ID {p.id} ({p.tipo} {p.numero}/{p.ano}):")
+                print(
+                    f"  [ERRO CRÍTICO] Falha ao processar proposição ID {p.id} ({p.tipo} {p.numero}/{p.ano}):"
+                )
                 print(f"    Causa: {type(e).__name__} - {str(e)}")
                 # Opcional: print(traceback.format_exc()) # Descomente para debug profundo
 

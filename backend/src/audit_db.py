@@ -40,17 +40,24 @@ def audit_db() -> None:
         tipos = Counter(e.tipo_evento for e in eventos)
         nao_classificados = tipos.get("NAO_CLASSIFICADO", 0)
         print("\n[Tipos de Eventos]")
-        print(f"NAO_CLASSIFICADO: {nao_classificados} ({(nao_classificados/len(eventos)*100 if eventos else 0):.1f}%)")
-        print(f"Diversidade de tipos mapeados: {len([t for t in tipos if t != 'NAO_CLASSIFICADO'])}")
+        print(
+            f"NAO_CLASSIFICADO: {nao_classificados} ({(nao_classificados / len(eventos) * 100 if eventos else 0):.1f}%)"
+        )
+        print(
+            f"Diversidade de tipos mapeados: {len([t for t in tipos if t != 'NAO_CLASSIFICADO'])}"
+        )
 
         # 4. Uso de Fases Analíticas
         fases_banco = session.exec(select(FaseAnalitica)).all()
         print("\n[Fases Analíticas]")
         print(f"Total de fases mapeadas: {len(fases_banco)}")
         com_fase = sum(1 for e in eventos if e.fase_analitica_id is not None)
-        print(f"Eventos vinculados a uma fase: {com_fase} ({(com_fase/len(eventos)*100 if eventos else 0):.1f}%)")
+        print(
+            f"Eventos vinculados a uma fase: {com_fase} ({(com_fase / len(eventos) * 100 if eventos else 0):.1f}%)"
+        )
 
         print("\n=== Fim da Auditoria ===")
+
 
 if __name__ == "__main__":
     audit_db()

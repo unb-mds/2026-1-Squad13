@@ -1,5 +1,6 @@
 from typing import Protocol, Any, Optional
 
+
 class CacheProvider(Protocol):
     """
     Interface para o provedor de cache.

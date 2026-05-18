@@ -50,7 +50,7 @@ def test_verificar_token_blacklist_lanca_excecao(auth_service, mock_blacklist):
 
     with pytest.raises(TokenRevogadoError) as excinfo:
         auth_service.verificar_token_blacklist(token)
-    
+
     assert "Token foi revogado" in str(excinfo.value)
 
 
@@ -65,6 +65,7 @@ def test_logout_calcula_ttl_corretamente(auth_service, mock_blacklist, monkeypat
             return now_fixed
 
     import application.services.auth_service
+
     monkeypatch.setattr(application.services.auth_service, "datetime", MockDatetime)
 
     # Criar token que expira em 10 minutos (600 segundos à frente do tempo fixado)
@@ -76,6 +77,7 @@ def test_logout_calcula_ttl_corretamente(auth_service, mock_blacklist, monkeypat
     )
 
     captured_ttl = []
+
     def mock_adicionar(token_str, ttl):
         captured_ttl.append(ttl)
 

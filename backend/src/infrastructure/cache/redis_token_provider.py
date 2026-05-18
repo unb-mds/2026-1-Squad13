@@ -27,7 +27,7 @@ class RedisPasswordResetTokenProvider(PasswordResetTokenProvider):
                 # Se o cliente já usa decode_responses=True, token_antigo já é str
                 if isinstance(token_antigo, bytes):
                     token_antigo = token_antigo.decode("utf-8")
-                
+
                 chave_token_antigo = f"{self.prefix_token_to_email}{token_antigo}"
                 self.redis_client.delete(chave_token_antigo)
 
@@ -40,7 +40,9 @@ class RedisPasswordResetTokenProvider(PasswordResetTokenProvider):
 
             return novo_token
         except redis.RedisError as e:
-            logger.error(f"Erro ao gerar token de recuperação no Redis para {email}: {e}")
+            logger.error(
+                f"Erro ao gerar token de recuperação no Redis para {email}: {e}"
+            )
             raise
 
     def validar_token(self, token: str) -> Optional[str]:
@@ -66,7 +68,7 @@ class RedisPasswordResetTokenProvider(PasswordResetTokenProvider):
             if email:
                 if isinstance(email, bytes):
                     email = email.decode("utf-8")
-                
+
                 chave_email = f"{self.prefix_email_to_token}{email}"
                 self.redis_client.delete(chave_token)
                 self.redis_client.delete(chave_email)
