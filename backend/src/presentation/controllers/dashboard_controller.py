@@ -9,6 +9,9 @@ from infrastructure.database import get_session
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
+from infrastructure.repositories.sql_fase_analitica_repository import (
+    SQLFaseAnaliticaRepository,
+)
 from sqlmodel import Session
 
 router = APIRouter()
@@ -57,11 +60,19 @@ class ComparacaoTemaResponse(BaseModel):
     velocidade: str
 
 
+class TempoPorFaseResponse(BaseModel):
+    fase: str
+    codigoFase: str
+    ordemLogica: int
+    tempoMedioDias: int
+    quantidadeProposicoes: int
+
 
 def get_dashboard_service(session: Session = Depends(get_session)) -> DashboardService:
     repository = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
-    return DashboardService(repository, evento_repo)
+    fase_repo = SQLFaseAnaliticaRepository(session)
+    return DashboardService(repository, evento_repo, fase_repo)
 
 
 @router.get("/dashboard/metricas", response_model=DashboardMetricasResponse)
@@ -96,3 +107,8 @@ def obter_gargalos(service: DashboardService = Depends(get_dashboard_service)):
 @router.get("/dashboard/comparacao-temas", response_model=List[ComparacaoTemaResponse])
 def obter_comparacao_temas(service: DashboardService = Depends(get_dashboard_service)):
     return service.obter_comparacao_temas()
+
+
+@router.get("/dashboard/tempo-por-fase", response_model=List[TempoPorFaseResponse])
+def obter_tempo_por_fase(service: DashboardService = Depends(get_dashboard_service)):
+    return service.obter_tempo_por_fase()
