@@ -1,4 +1,5 @@
 import redis
+from typing import Optional
 from sqlmodel import SQLModel, create_engine, Session
 from ..config import settings
 
@@ -29,13 +30,36 @@ def get_session():
         yield session
 
 
-def get_redis_connection():
+# Cliente Redis único (Singleton) para gerenciar o pool de conexões
+redis_client: Optional[redis.Redis] = None
+
+
+def init_redis():
+    """Inicializa o cliente Redis único se ainda não estiver configurado."""
+    global redis_client
+    if redis_client is None:
+        redis_client = redis.Redis.from_url(
+            settings.redis_url,
+            decode_responses=True,
+            socket_timeout=2.0,
+            socket_connect_timeout=2.0,
+        )
+    return redis_client
+
+
+def close_redis():
+    """Fecha a conexão com o Redis de forma segura."""
+    global redis_client
+    if redis_client:
+        redis_client.close()
+        redis_client = None
+
+
+def get_redis_client() -> redis.Redis:
     """
-    Retorna uma instância do cliente Redis configurada.
-    Utiliza decode_responses=True por padrão para facilitar o uso de strings.
+    Retorna a instância global do cliente Redis.
+    Se não estiver inicializada, inicializa.
     """
-    return redis.Redis.from_url(
-        settings.redis_url,
-        decode_responses=True,
-        socket_timeout=2.0,  # Previne travamentos se o Redis estiver lento
-    )
+    if redis_client is None:
+        return init_redis()
+    return redis_client

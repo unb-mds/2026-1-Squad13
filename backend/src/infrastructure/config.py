@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     As variáveis são lidas do ambiente ou de um arquivo .env.
     """
 
+    # Limite para relevância estatística na estimativa (MVP = 50)
+    THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA: int = 50
+
     model_config = SettingsConfigDict(
         env_file=".env",  # Procura na pasta atual
         env_file_encoding="utf-8",

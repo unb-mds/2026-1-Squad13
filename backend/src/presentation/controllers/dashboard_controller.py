@@ -6,9 +6,12 @@ from infrastructure.cache.redis_client import RedisClient
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
-from infrastructure.database import get_session, get_redis_connection
+from infrastructure.database import get_session, get_redis_client
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
+)
+from infrastructure.repositories.sql_fase_analitica_repository import (
+    SQLFaseAnaliticaRepository,
 )
 from sqlmodel import Session
 
@@ -58,12 +61,23 @@ class ComparacaoTemaResponse(BaseModel):
     velocidade: str
 
 
+class TempoPorFaseResponse(BaseModel):
+    fase: str
+    codigoFase: str
+    ordemLogica: int
+    tempoMedioDias: int
+    quantidadeProposicoes: int
+
+
 def get_dashboard_service(session: Session = Depends(get_session)) -> DashboardService:
     repository = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
-    redis_conn = get_redis_connection()
+    fase_repo = SQLFaseAnaliticaRepository(session)
+    redis_conn = get_redis_client()
     cache_provider = RedisClient(redis_conn)
-    return DashboardService(repository, evento_repo, cache_provider=cache_provider)
+    return DashboardService(
+        repository, evento_repo, fase_repo=fase_repo, cache_provider=cache_provider
+    )
 
 
 def _montar_filtros(
@@ -176,3 +190,8 @@ def obter_comparacao_temas(
 ):
     filtros = _montar_filtros(busca, tipo, status, orgao_origem, data_inicio, data_fim)
     return service.obter_comparacao_temas(filtros or None)
+
+
+@router.get("/dashboard/tempo-por-fase", response_model=List[TempoPorFaseResponse])
+def obter_tempo_por_fase(service: DashboardService = Depends(get_dashboard_service)):
+    return service.obter_tempo_por_fase()

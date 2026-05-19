@@ -1,12 +1,10 @@
 import re
 from typing import Optional
 from sqlmodel import SQLModel
+from pydantic import field_validator
 
 # Regex para validar formato ISO: YYYY-MM-DD com hora opcional
-_ISO_DATE_RE = re.compile(
-    r"^\d{4}-\d{2}-\d{2}"  # YYYY-MM-DD obrigatório
-    r"([T ]\d{2}:\d{2}(:\d{2})?)?$"  # Thh:mm(:ss) opcional
-)
+_ISO_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?$"
 
 _REMESSA_RETORNO_VALIDOS = {None, "REMESSA", "RETORNO"}
 
@@ -41,40 +39,46 @@ class EventoTramitacao(SQLModel):
     # Auditoria
     payload_bruto: Optional[dict] = None
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._validar_invariantes()
-
-    def _validar_invariantes(self):
-        """Valida regras de negócio na criação do evento."""
-        from domain.entities.tipo_evento import TipoEvento
-
-        # 1. tipo_evento deve ser membro válido do enum
-        valores_validos = {membro.value for membro in TipoEvento}
-        if self.tipo_evento not in valores_validos:
-            raise ValueError(
-                f"tipo_evento '{self.tipo_evento}' não é membro de TipoEvento. "
-                f"Valores válidos: {sorted(valores_validos)}"
-            )
-
-        # 2. remessa_ou_retorno restrito
-        if self.remessa_ou_retorno not in _REMESSA_RETORNO_VALIDOS:
-            raise ValueError(
-                f"remessa_ou_retorno deve ser None, 'REMESSA' ou 'RETORNO', "
-                f"recebido: '{self.remessa_ou_retorno}'"
-            )
-
-        # 3. sequencia >= 1
-        if self.sequencia < 1:
-            raise ValueError(f"sequencia deve ser >= 1, recebido: {self.sequencia}")
-
-        # 4. data_evento em formato ISO
-        if not _ISO_DATE_RE.match(self.data_evento):
+    @field_validator("data_evento")
+    @classmethod
+    def validar_data_evento(cls, v: str) -> str:
+        if not re.match(_ISO_DATE_PATTERN, v):
             raise ValueError(
                 f"data_evento deve estar no formato ISO "
                 f"(YYYY-MM-DD[Thh:mm[:ss]]), "
-                f"recebido: '{self.data_evento}'"
+                f"recebido: '{v}'"
             )
+        return v
+
+    @field_validator("sequencia")
+    @classmethod
+    def validar_sequencia(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError(f"sequencia deve ser >= 1, recebido: {v}")
+        return v
+
+    @field_validator("tipo_evento")
+    @classmethod
+    def validar_tipo_evento(cls, v: str) -> str:
+        from domain.entities.tipo_evento import TipoEvento
+
+        valores_validos = {membro.value for membro in TipoEvento}
+        if v not in valores_validos:
+            raise ValueError(
+                f"tipo_evento '{v}' não é membro de TipoEvento. "
+                f"Valores válidos: {sorted(valores_validos)}"
+            )
+        return v
+
+    @field_validator("remessa_ou_retorno")
+    @classmethod
+    def validar_remessa_ou_retorno(cls, v: Optional[str]) -> Optional[str]:
+        if v not in _REMESSA_RETORNO_VALIDOS:
+            raise ValueError(
+                f"remessa_ou_retorno deve ser None, 'REMESSA' ou 'RETORNO', "
+                f"recebido: '{v}'"
+            )
+        return v
 
     @property
     def data_formatada(self) -> str:
