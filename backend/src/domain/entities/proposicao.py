@@ -1,18 +1,16 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel
 from typing import Optional, List
-from sqlalchemy import Column, JSON
-from sqlalchemy.dialects import postgresql
 from datetime import datetime, date
 
 
-class Proposicao(SQLModel, table=True):
+class Proposicao(SQLModel):
     """
-    Entidade de Domínio e Modelo de Banco de Dados.
+    Entidade de Domínio Pura.
     Representa uma Proposição Legislativa (PL, PEC, etc).
-    Combina a estrutura robusta da 'main' com a persistência da 'develop'.
+    Não possui dependências diretas de persistência (table=True).
     """
 
-    id: Optional[str] = Field(default=None, primary_key=True)
+    id: Optional[str] = None
     tipo: str
     numero: str
     ano: int
@@ -31,13 +29,7 @@ class Proposicao(SQLModel, table=True):
     link_oficial: Optional[str] = None
     data_encerramento: Optional[str] = None
     previsao_aprovacao_dias: Optional[int] = None
-
-    # Armazenar lista como JSONB no Postgres para busca eficiente (@>),
-    # mas mantendo JSON genérico para compatibilidade com SQLite nos testes.
-    tags: List[str] = Field(
-        default_factory=list,
-        sa_column=Column(JSON().with_variant(postgresql.JSONB(), "postgresql")),
-    )
+    tags: List[str] = []
 
     def normalizar_campo_status(self):
         """Normaliza o campo status para algo mais conciso e legível."""
@@ -101,9 +93,6 @@ class Proposicao(SQLModel, table=True):
             return
 
         try:
-            # Formatos podem variar entre APIs (T ou espaço)
-            # Câmara: 2020-02-04T13:26
-            # Senado: 2021-09-30
             fmt = "%Y-%m-%d"
             data_apresentacao = datetime.strptime(
                 self.data_apresentacao[:10], fmt
