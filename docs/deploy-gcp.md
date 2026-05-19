@@ -67,8 +67,9 @@ cd 2026-1-Squad13
 
 ---
 
-## 4. Criar o arquivo `backend/.env`
+## 4. Criar arquivos de ambiente (`.env`)
 
+### Backend (`backend/.env`)
 Copie o exemplo e ajuste os valores:
 
 ```bash
@@ -89,6 +90,14 @@ PGADMIN_DEFAULT_PASSWORD=<senha-pgadmin>
 
 # Substitua IP_EXTERNO pelo IP público da sua VM GCP
 ALLOWED_ORIGINS=http://IP_EXTERNO:5173
+```
+
+### Raiz (`.env`)
+Crie um arquivo `.env` na raiz do projeto para configurar o endereço da API que o Frontend (Vite) irá consumir:
+
+```bash
+# Substitua IP_EXTERNO pelo IP público da sua VM GCP
+echo "VITE_API_URL=http://IP_EXTERNO:8000" > .env
 ```
 
 > `ALLOWED_ORIGINS` também pode ser passado pelo override GCP (o `start_gcp.sh` faz isso automaticamente).
