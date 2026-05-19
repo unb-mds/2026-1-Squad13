@@ -2,11 +2,29 @@ import re
 from typing import Optional
 from sqlmodel import SQLModel
 from pydantic import field_validator
+from domain.entities.tipo_evento import TipoEvento
 
 # Regex para validar formato ISO: YYYY-MM-DD com hora opcional
 _ISO_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?$"
 
 _REMESSA_RETORNO_VALIDOS = {None, "REMESSA", "RETORNO"}
+
+TIPOS_SEMPRE_RELEVANTES = {
+    TipoEvento.APRESENTACAO.value,
+    TipoEvento.RECEBIMENTO_ORGAO.value,
+    TipoEvento.DESIGNACAO_RELATOR.value,
+    TipoEvento.VOTACAO_PLENARIO.value,
+    TipoEvento.VOTACAO_COMISSAO.value,
+    TipoEvento.APROVACAO.value,
+    TipoEvento.REJEICAO.value,
+    TipoEvento.REMESSA_OUTRA_CASA.value,
+    TipoEvento.RECEBIMENTO_OUTRA_CASA.value,
+    TipoEvento.RETORNO_INICIADORA.value,
+    TipoEvento.SANCAO_OU_VETO.value,
+    TipoEvento.ARQUIVAMENTO.value,
+    TipoEvento.PREJUDICIALIDADE.value,
+    TipoEvento.PROMULGACAO.value,
+}
 
 
 class EventoTramitacao(SQLModel):
@@ -35,6 +53,7 @@ class EventoTramitacao(SQLModel):
     dias_na_etapa: int = 0
     tem_atraso: bool = False
     marca_apensacao: bool = False
+    relevante: bool = False
 
     # Auditoria
     payload_bruto: Optional[dict] = None
@@ -111,3 +130,16 @@ class EventoTramitacao(SQLModel):
             TipoEvento.REJEICAO.value,
         }
         return self.tipo_evento in deliberativos
+
+    @property
+    def eh_relevante(self) -> bool:
+        """
+        Regra de negócio para definir se um evento deve ser exibido em visões resumidas.
+        """
+        return (
+            self.tipo_evento in TIPOS_SEMPRE_RELEVANTES
+            or self.mudou_fase
+            or self.deliberativo
+            or (self.dias_na_etapa is not None and self.dias_na_etapa > 30)
+            or self.marca_apensacao
+        )

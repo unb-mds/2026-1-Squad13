@@ -152,6 +152,8 @@ class NormalizarTramitacaoService:
                 marca_apensacao=marca_apensacao,
                 payload_bruto=item.get("payload_bruto"),
             )
+            # Define relevância antes de adicionar à lista (calculado via @property)
+            evento.relevante = evento.eh_relevante
             eventos.append(evento)
 
             # Atualiza o estado para o próximo evento (apenas se não for NAO_CLASSIFICADO para fase)
