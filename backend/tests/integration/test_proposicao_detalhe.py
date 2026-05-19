@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 from domain.entities.proposicao import Proposicao
 
@@ -45,6 +45,7 @@ def test_obterDetalheProposicao_adaptadorCamara_retorna200(http_client: TestClie
     proposicao = _proposicao_camara()
     with patch(
         "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
+        new_callable=AsyncMock,
         return_value=proposicao,
     ):
         response = http_client.get("/proposicoes/2236353")
@@ -74,10 +75,12 @@ def test_obterDetalheProposicao_adaptadorSenado_retorna200(http_client: TestClie
     with (
         patch(
             "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
+            new_callable=AsyncMock,
             return_value=None,
         ),
         patch(
             "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_por_id",
+            new_callable=AsyncMock,
             return_value=proposicao,
         ),
     ):
@@ -98,10 +101,12 @@ def test_obterDetalheProposicao_nenhumAdaptadorEncontra_retorna404(
     with (
         patch(
             "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_por_id",
+            new_callable=AsyncMock,
             return_value=None,
         ),
         patch(
             "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_por_id",
+            new_callable=AsyncMock,
             return_value=None,
         ),
     ):

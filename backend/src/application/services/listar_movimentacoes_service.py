@@ -56,7 +56,7 @@ class ListarMovimentacoesService:
         self.apensamento_repo = apensamento_repo
         self._agregar_service = AgregarPorFaseService(fase_repo)
 
-    def executar(
+    async def executar(
         self, proposicao_id: str, modo: ModoMovimentacao = ModoMovimentacao.RESUMIDO
     ) -> Union[List[PeriodoFase], List[EventoTramitacao]]:
         """
@@ -93,20 +93,20 @@ class ListarMovimentacoesService:
                 if not real_id.isdigit():
                     return []
 
-                dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
+                dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
                 if not dados_brutos:
-                    dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
+                    dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
                         int(real_id)
                     )
                     casa_padrao = CasaLegislativa.SENADO
             else:
                 if "Câmara" in (proposicao.orgao_origem or ""):
-                    dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(
+                    dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(
                         int(real_id)
                     )
                     casa_padrao = CasaLegislativa.CAMARA
                 else:
-                    dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
+                    dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
                         int(real_id)
                     )
                     casa_padrao = CasaLegislativa.SENADO
@@ -119,8 +119,7 @@ class ListarMovimentacoesService:
                     fase_repo=self.fase_repo,
                     orgao_repo=self.orgao_repo,
                     apensamento_repo=self.apensamento_repo,
-                    casa_padrao=casa_padrao,
-                )
+                    casa_padrao=casa_padrao,                )
                 eventos = normalizer.normalizar(real_id, dados_brutos)
 
                 # 4. Salvar no cache
