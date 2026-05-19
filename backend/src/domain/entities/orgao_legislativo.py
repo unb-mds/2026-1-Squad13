@@ -1,20 +1,6 @@
-"""
-Cadastro normalizado de órgãos legislativos (comissões, plenário, mesa).
-
-Estratégia de persistência: upsert automático.
-Os adapters criam/atualizam órgãos conforme encontram novas siglas nas APIs.
-
-Chave de upsert: (id_origem, casa) quando disponível, com fallback (sigla, casa).
-Isso evita duplicatas quando um órgão é recriado com novo ID entre legislaturas.
-
-Seed fixo mínimo: apenas para órgãos implícitos que os adapters nunca retornam
-explicitamente (PLEN, MESA, SECCJ).
-"""
-
 from enum import Enum
 from typing import Optional
-
-from sqlmodel import Field, SQLModel
+from sqlmodel import SQLModel
 
 
 class CasaLegislativa(str, Enum):
@@ -25,25 +11,16 @@ class CasaLegislativa(str, Enum):
     AMBAS = "AMBAS"
 
 
-class OrgaoLegislativo(SQLModel, table=True):
+class OrgaoLegislativo(SQLModel):
     """
-    Órgão legislativo normalizado.
-
-    Representa comissões permanentes, temporárias, plenário e mesa diretora.
-    Criado automaticamente via upsert pelos adapters.
+    Entidade de Domínio Pura para Órgão Legislativo.
     """
 
-    __tablename__ = "orgaolegislativo"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    sigla: str = Field(index=True)
+    id: Optional[int] = None
+    sigla: str
     nome: Optional[str] = None
     casa: CasaLegislativa
-    id_origem: Optional[str] = Field(
-        default=None,
-        index=True,
-        description="ID do órgão na API de origem (Câmara ou Senado)",
-    )
+    id_origem: Optional[str] = None
 
 
 # Seed mínimo para órgãos implícitos

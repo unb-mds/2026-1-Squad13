@@ -1,19 +1,20 @@
 """
 Seed do banco de dados com dados reais das APIs legislativas.
+Versão aprimorada com diversidade histórica (anos variados) e detecção de base já povoada.
 
 Ordem de execução:
-1. Criar tabelas (init_db)
-2. Criar usuário demo
-3. Seed de fases analíticas (8 registros fixos)
-4. Seed de órgãos legislativos (3 registros mínimos)
-5. Limpar proposições fora de escopo (apenas PL e PEC)
-6. Buscar e inserir/atualizar proposições via adapters
+1. Criar tabelas e usuário demo (via init_db)
+2. Seed de tabelas de lookup (fases e órgãos)
+3. Buscar proposições históricas e recentes (Câmara e Senado)
+4. Processar eventos de tramitação para gerar massa de dados analítica
 """
 
-from sqlmodel import text
+import argparse
+from sqlmodel import Session, select, func
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import init_db, get_session, get_redis_connection
+from infrastructure.database import init_db, get_session, get_redis_connection, engine
+from infrastructure.database.models.proposicao_model import ProposicaoModel
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
@@ -35,82 +36,105 @@ from application.services.dashboard_service import DashboardService
 from init_db import seed_demo_user
 
 
-def run() -> None:
-    print("Inicializando tabelas e realizando seed com dados reais...")
+def seed_lookup_tables():
+    print("📋 Inserindo tabelas de referência...")
+    with next(get_session()) as session:
+        SQLFaseAnaliticaRepository(session).seed_fases()
+        SQLOrgaoLegislativoRepository(session).seed_orgaos()
+
+
+def get_varied_ids(camara, senado):
+    anos = [2021, 2023, 2025, 2026]
+    tipos = ["PL", "PEC"]
+    qtd_por_lote = 8
+
+    ids_c = []
+    ids_s = []
+
+    print(f"🔍 Coletando IDs da Câmara e Senado para os anos {anos}...")
+    for ano in anos:
+        for tipo in tipos:
+            ids_c.extend(camara.listar_recentes(tipo, qtd_por_lote, ano))
+            ids_s.extend(senado.listar_recentes(tipo, qtd_por_lote, ano))
+
+    return list(dict.fromkeys(ids_c)), list(dict.fromkeys(ids_s))
+
+
+def generate_tags(ementa):
+    temas = {
+        "saúde": ["Saúde", "SUS", "Hospitais"],
+        "educação": ["Educação", "Ensino", "Escolas"],
+        "economia": ["Economia", "Financeiro", "Mercado"],
+        "tribut": ["Tributário", "Impostos", "Fiscomania"],
+        "ambiente": ["Meio Ambiente", "Ecologia", "Sustentabilidade"],
+        "mulher": ["Direitos Humanos", "Mulheres", "Gênero"],
+        "segurança": ["Segurança Pública", "Polícia", "Justiça"],
+        "trabalho": ["Trabalhista", "Emprego", "Previdência"],
+        "tecnologia": ["Tecnologia", "Digital", "Inovação"],
+        "indígena": ["Social", "Indígenas", "Minorias"],
+        "agro": ["Agronegócio", "Rural", "Terra"],
+    }
+    tags = []
+    ementa_lower = ementa.lower()
+    for chave, valores in temas.items():
+        if chave in ementa_lower:
+            tags.extend(valores)
+    return list(set(tags))[:5] or ["Geral", "Legislativo"]
+
+
+def run(force=False) -> None:
+    print("🚀 Iniciando Seed Estruturado...")
+
+    # 1. Preparação
     init_db()
     seed_demo_user()
 
-    # --- Seed de lookup tables ---
-    print("Inserindo fases analíticas...")
-    with next(get_session()) as session:
-        fase_repo = SQLFaseAnaliticaRepository(session)
-        fase_repo.seed_fases()
-        fases = fase_repo.buscar_todas()
-        print(f"  {len(fases)} fases analíticas no banco.")
-
-    print("Inserindo órgãos legislativos básicos...")
-    with next(get_session()) as session:
-        orgao_repo = SQLOrgaoLegislativoRepository(session)
-        orgao_repo.seed_orgaos()
-        print("  Órgãos legislativos básicos inseridos.")
-
-    # --- Limpeza de proposições fora de escopo ---
-    print("Limpando dados fora de escopo (apenas PL e PEC são permitidos)...")
-    with next(get_session()) as session:
-        # Limpar eventos de tramitação de proposições fora de escopo
-        session.exec(
-            text(
-                "DELETE FROM evento_tramitacao WHERE proposicao_id IN "
-                "(SELECT id FROM proposicao WHERE tipo NOT IN ('PL', 'PEC'))"
+    with Session(engine) as session:
+        count = session.exec(select(func.count(ProposicaoModel.id))).one()
+        if count > 50 and not force:
+            print(
+                f"✅ O banco já possui {count} proposições. Pulando seed (use --force para atualizar)."
             )
-        )
-        # Deletar proposições que não são PL ou PEC
-        session.exec(text("DELETE FROM proposicao WHERE tipo NOT IN ('PL', 'PEC')"))
-        session.commit()
+            return
 
-    # --- Busca de proposições via adapters ---
+    seed_lookup_tables()
+
     camara = CamaraAdapter()
     senado = SenadoAdapter()
 
-    print("Obtendo IDs recentes da Câmara (PL e PEC)...")
-    ids_camara_pl = camara.listar_recentes("PL", 15)
-    ids_camara_pec = camara.listar_recentes("PEC", 10)
-    ids_camara = list(set(ids_camara_pl + ids_camara_pec))
+    # 2. Coleta de IDs
+    ids_c, ids_s = get_varied_ids(camara, senado)
 
-    print("Obtendo IDs recentes do Senado (PL e PEC)...")
-    ids_senado_pl = senado.listar_recentes("PL", 15)
-    ids_senado_pec = senado.listar_recentes("PEC", 10)
-    ids_senado = list(set(ids_senado_pl + ids_senado_pec))
-
+    # 3. Busca de detalhes
     proposicoes = []
+    print(f"📥 Buscando detalhes de {len(ids_c)} (Câmara) e {len(ids_s)} (Senado)...")
 
-    print(f"Buscando detalhes de {len(ids_camara)} proposições na Câmara...")
-    for id_p in ids_camara:
+    for id_p in ids_c:
         p = camara.buscar_por_id(id_p)
         if p and p.tipo in ["PL", "PEC"]:
             p.atualizar_metricas()
             p.normalizar_campo_status()
             proposicoes.append(p)
-            print(f"  [OK] Câmara ID {id_p} - {p.nome_canonico}")
 
-    print(f"Buscando detalhes de {len(ids_senado)} matérias no Senado...")
-    for id_p in ids_senado:
+    for id_p in ids_s:
         p = senado.buscar_por_id(id_p)
         if p and p.tipo in ["PL", "PEC"]:
             p.atualizar_metricas()
             p.normalizar_campo_status()
             proposicoes.append(p)
-            print(f"  [OK] Senado ID {id_p} - {p.nome_canonico}")
-    inseridos = 0
-    pulados = 0
 
-    print("\nProcessando e salvando proposições...")
+    # 4. Persistência e Processamento Analítico
+    inseridos = 0
+    atualizados = 0
+
+    print("\n💾 Processando e populando eventos (isso pode levar alguns minutos)...")
     with next(get_session()) as session:
         repo = SQLProposicaoRepository(session)
         evento_repo = SQLEventoTramitacaoRepository(session)
         fase_repo = SQLFaseAnaliticaRepository(session)
         orgao_repo = SQLOrgaoLegislativoRepository(session)
         apensamento_repo = SQLApensamentoRepository(session)
+
         listar_service = ListarMovimentacoesService(
             evento_repo,
             repo,
@@ -124,89 +148,60 @@ def run() -> None:
 
         for p in proposicoes:
             try:
-                # Gerar ementa resumida se não houver
-                if not p.ementa_resumida and p.ementa:
+                p.tags = generate_tags(p.ementa)
+                if not p.ementa_resumida:
                     p.ementa_resumida = (
-                        p.ementa[:100] + "..." if len(p.ementa) > 100 else p.ementa
+                        p.ementa[:150] + "..." if len(p.ementa) > 150 else p.ementa
                     )
-
-                # Gerar tags simples baseadas no conteúdo (Exemplo)
-                if not p.tags or any(t.lower() in ["pl", "pec"] for t in p.tags):
-                    tags = []
-                    palavras_chave = [
-                        "saúde",
-                        "educação",
-                        "economia",
-                        "tributo",
-                        "indígena",
-                        "mulher",
-                        "segurança",
-                        "trabalho",
-                        "ambiente",
-                    ]
-                    for palavra in palavras_chave:
-                        if palavra in p.ementa.lower():
-                            tags.append(palavra)
-
-                    # Se não achou nenhuma palavra chave, coloca uma tag genérica útil ou deixa vazio
-                    p.tags = tags[:3]
 
                 prop_db = repo.buscar_por_id(p.id)
                 if prop_db is None:
-                    repo.salvar(p)
-                    print(f"[INSERT] {p.nome_canonico} (id={p.id})")
+                    prop_db = repo.salvar(p)
                     inseridos += 1
-                    prop_db = p
                 else:
-                    # Se já existe, atualizamos para incluir as novas tags, ementa e status normalizado
                     prop_db.ementa_resumida = p.ementa_resumida
                     prop_db.tags = p.tags
                     prop_db.status = p.status
                     prop_db.normalizar_campo_status()
-                    session.add(prop_db)
-                    session.commit()
-                    print(f"[UPDATE] {prop_db.nome_canonico} (id={prop_db.id})")
-                    pulados += 1
+                    repo.salvar(prop_db)
+                    atualizados += 1
 
-                # --- Etapa Analítica (Duração On-the-fly) ---
-                # 1. Baixa e normaliza os eventos
+                # Massa de dados: Eventos
                 eventos = listar_service.executar(str(prop_db.id))
 
-                # 2. Calcula métricas na hora
-                tempo = dashboard_service._calcular_tempo_total(
-                    eventos, prop_db.tempo_total_dias or 0
-                )
-                status = dashboard_service._extrair_status_atual(
-                    eventos, prop_db.status
-                )
+                # Atualiza métricas reais baseadas no histórico completo
+                tempo = dashboard_service._calcular_tempo_total(eventos, prop_db.tempo_total_dias or 0, prop_db)
+                status = dashboard_service._extrair_status_atual(eventos, prop_db.status)
 
-                # 3. Atualiza cache da Proposicao para queries rápidas no endpoint de Listagem
                 prop_db.tempo_total_dias = tempo
-                prop_db.tem_atraso = tempo > 180
+                prop_db.tem_atraso = (tempo > 180) and (prop_db.data_encerramento is None)
                 prop_db.status = status
-                session.add(prop_db)
-                session.commit()
+
+                repo.salvar(prop_db)
+
+                print(f"  [OK] {p.nome_canonico}", end="\r")
+
             except Exception as e:
                 session.rollback()
-                print(
-                    f"  [ERRO CRÍTICO] Falha ao processar proposição ID {p.id} ({p.tipo} {p.numero}/{p.ano}):"
-                )
-                print(f"    Causa: {type(e).__name__} - {str(e)}")
-                # Opcional: print(traceback.format_exc()) # Descomente para debug profundo
+                print(f"\n❌ Erro em {p.id}: {str(e)}")
 
-    # Invalidação do cache após a carga em lote
-    print("\nInvalidando cache do dashboard...")
+    print(f"\n\n✨ Seed Finalizado! Inseridos: {inseridos}, Atualizados: {atualizados}")
 
+    # 5. Invalidação de Cache
     try:
         redis_conn = get_redis_connection()
-        redis_client = RedisClient(redis_conn)
-        redis_client.invalidate("dashboard:")
-        print("  Cache invalidado com sucesso.")
-    except Exception as e:
-        print(f"  [AVISO] Falha ao invalidar cache: {e}")
-
-    print(f"\nSeed concluído — inseridos: {inseridos}, atualizados: {pulados}")
+        RedisClient(redis_conn).invalidate("dashboard:")
+        print("✅ Cache limpo.")
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Força a execução mesmo se o banco já estiver povoado",
+    )
+    args = parser.parse_args()
+    run(force=args.force)

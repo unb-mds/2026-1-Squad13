@@ -23,7 +23,7 @@ def test_senado_adapter_normalizacao_sucesso(adapter):
         ],
     }
 
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_dados
         mock_response.raise_for_status.return_value = None
@@ -59,7 +59,7 @@ def test_senado_adapter_data_ultima_movimentacao_sucesso(adapter):
         ],
     }
 
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_dados
         mock_get.return_value = mock_response
@@ -77,7 +77,7 @@ def test_senado_adapter_fallback_data_ultima_movimentacao(adapter):
         "autuacoes": [],
     }
 
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_dados
         mock_get.return_value = mock_response
@@ -88,7 +88,7 @@ def test_senado_adapter_fallback_data_ultima_movimentacao(adapter):
 
 
 def test_senado_adapter_erro_rede(adapter):
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         mock_get.side_effect = requests.exceptions.RequestException("Erro de conexão")
 
         # Act
@@ -124,7 +124,7 @@ def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
         ]
     }
 
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         # Duas respostas: a primeira pra buscar id do processo, a segunda pro processo em si
         mock_resp_mat = MagicMock()
         mock_resp_mat.status_code = 200
@@ -143,17 +143,17 @@ def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
         assert len(tramitacoes) == 2
 
         # A API do Senado inverte (mais antigas ganham sequencia menor)
-        assert tramitacoes[0]["descricao"] == "Situação Antiga"
+        assert tramitacoes[0]["descricao"] == "Situação antiga"
         assert tramitacoes[0]["sigla_orgao"] == "PLEN"
         assert tramitacoes[0]["sequencia"] == 1
 
-        assert tramitacoes[1]["descricao"] == "Situação Nova"
+        assert tramitacoes[1]["descricao"] == "Situação nova"
         assert tramitacoes[1]["sigla_orgao"] == "CCJ"
         assert tramitacoes[1]["sequencia"] == 2
 
 
 def test_senado_adapter_buscar_tramitacoes_brutas_erro(adapter):
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         mock_get.side_effect = requests.exceptions.RequestException("Erro")
 
         # Act

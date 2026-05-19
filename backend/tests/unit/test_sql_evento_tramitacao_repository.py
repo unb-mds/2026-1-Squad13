@@ -13,6 +13,9 @@ from sqlalchemy.pool import StaticPool
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.proposicao import Proposicao
 from domain.entities.tipo_evento import TipoEvento
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
@@ -28,7 +31,8 @@ def session_fixture():
     )
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
-        # Proposição base para FK
+        prop_repo = SQLProposicaoRepository(session)
+        # Proposição base para FK - salvando via repo para mapeamento correto
         p = Proposicao(
             id="123",
             tipo="PL",
@@ -42,7 +46,7 @@ def session_fixture():
             orgao_atual="Test",
             tags=[],
         )
-        session.add(p)
+        prop_repo.salvar(p)
         # Segunda proposição para testes de isolamento
         p2 = Proposicao(
             id="456",
@@ -57,8 +61,7 @@ def session_fixture():
             orgao_atual="Test",
             tags=[],
         )
-        session.add(p2)
-        session.commit()
+        prop_repo.salvar(p2)
         yield session
 
 

@@ -1,22 +1,17 @@
 from typing import Optional
-from sqlmodel import SQLModel, Field, Column, JSON
+from sqlmodel import SQLModel
 
 
-class Apensamento(SQLModel, table=True):
+class Apensamento(SQLModel):
     """
-    Representa a relação de apensamento entre duas proposições.
-    Conforme especificação: junção formal da tramitação de uma apensada à principal.
+    Entidade de Domínio Pura para Apensamento.
     """
 
-    __tablename__ = "apensamento"
-
-    apensamento_id: Optional[int] = Field(default=None, primary_key=True)
-    materia_apensada_id: str = Field(foreign_key="proposicao.id", index=True)
-    materia_principal_id: str = Field(index=True)  # Pode não estar no nosso banco ainda
-    data_apensacao: str = Field(description="Data em que foi formalizada a apensação")
-    casa: str = Field(description="CAMARA ou SENADO")
+    apensamento_id: Optional[int] = None
+    materia_apensada_id: str
+    materia_principal_id: str
+    data_apensacao: str
+    casa: str
     fonte_endpoint: Optional[str] = None
-    payload_bruto: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-    confianca: float = Field(
-        default=1.0, description="Score de confiança se detectado por heurística"
-    )
+    payload_bruto: Optional[dict] = None
+    confianca: float = 1.0
