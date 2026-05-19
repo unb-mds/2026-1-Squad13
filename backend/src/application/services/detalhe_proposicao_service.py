@@ -20,7 +20,7 @@ class DetalheProposicaoService:
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
 
-    def executar(self, id_proposicao: str) -> Proposicao:
+    async def executar(self, id_proposicao: str) -> Proposicao:
         # 1. Tenta identificar se é um ID numérico ou um Código Canônico (Slug)
         # Formato esperado do Slug: PL-123-2023
         if "-" in id_proposicao:
@@ -47,7 +47,7 @@ class DetalheProposicaoService:
             raise ValueError(f"Proposição não encontrada: {id_proposicao}")
 
         # Tenta na Câmara
-        proposicao = self.camara_adapter.buscar_por_id(id_int)
+        proposicao = await self.camara_adapter.buscar_por_id(id_int)
         if proposicao:
             proposicao.atualizar_metricas()
             proposicao.normalizar_campo_status()
@@ -55,7 +55,7 @@ class DetalheProposicaoService:
             return self.repository.salvar(proposicao)
 
         # Tenta no Senado
-        proposicao = self.senado_adapter.buscar_por_id(id_int)
+        proposicao = await self.senado_adapter.buscar_por_id(id_int)
         if proposicao:
             proposicao.atualizar_metricas()
             proposicao.normalizar_campo_status()
