@@ -10,8 +10,7 @@ Ordem de execução:
 """
 
 import argparse
-import sys
-from sqlmodel import text, Session, select, func
+from sqlmodel import Session, select, func
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import init_db, get_session, get_redis_connection, engine
@@ -22,7 +21,6 @@ from infrastructure.repositories.sql_orgao_legislativo_repository import SQLOrga
 from infrastructure.repositories.sql_evento_tramitacao_repository import SQLEventoTramitacaoRepository
 from infrastructure.repositories.sql_apensamento_repository import SQLApensamentoRepository
 from infrastructure.cache.redis_client import RedisClient
-from domain.entities.proposicao import Proposicao
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.dashboard_service import DashboardService
 from init_db import seed_demo_user
@@ -172,7 +170,7 @@ def run(force=False) -> None:
         redis_conn = get_redis_connection()
         RedisClient(redis_conn).invalidate("dashboard:")
         print("✅ Cache limpo.")
-    except:
+    except Exception:
         pass
 
 if __name__ == "__main__":
