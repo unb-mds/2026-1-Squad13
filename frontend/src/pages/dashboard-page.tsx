@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import { LayoutDashboard } from 'lucide-react'
 import { DashboardMetricas, DashboardGraficos, DashboardResumoStatus } from '@/features/dashboard/DashboardComponents'
+import { PainelFiltros, FILTROS_VAZIOS } from '@/features/filtros/PainelFiltros'
+import type { FiltrosProposicao } from '@/shared/types'
 
 export function DashboardPage() {
+  const [filtros, setFiltros] = useState<FiltrosProposicao>(FILTROS_VAZIOS)
+
   return (
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
@@ -20,14 +25,17 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {/* Filtros */}
+      <PainelFiltros filtros={filtros} onChange={setFiltros} />
+
       {/* KPIs */}
-      <DashboardMetricas />
+      <DashboardMetricas filtros={filtros} />
 
       {/* Status summary */}
-      <DashboardResumoStatus />
+      <DashboardResumoStatus filtros={filtros} />
 
       {/* Gráficos */}
-      <DashboardGraficos />
+      <DashboardGraficos filtros={filtros} />
     </div>
   )
 }

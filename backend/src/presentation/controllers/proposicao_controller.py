@@ -1,9 +1,14 @@
 from typing import Optional, List
+from enum import Enum
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+from application.services.gerar_estimativa_service import GerarEstimativaUseCase
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
+)
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
@@ -42,6 +47,8 @@ class EventoTramitacaoResponse(BaseModel):
     mudouFase: bool = Field(alias="mudouFase")
     mudouOrgao: bool = Field(alias="mudouOrgao")
     remessaOuRetorno: Optional[str] = Field(default=None, alias="remessaOuRetorno")
+    diasNaEtapa: int = Field(alias="diasNaEtapa")
+    temAtraso: bool = Field(alias="temAtraso")
 
 
 class ProposicaoResponse(BaseModel):
@@ -79,6 +86,25 @@ class ProposicoesListResponse(BaseModel):
     total: int
     pagina: int
     totalPaginas: int = Field(alias="totalPaginas")
+
+
+class StatusEstimativa(str, Enum):
+    CALCULADA = "CALCULADA"
+    DADOS_INSUFICIENTES = "DADOS_INSUFICIENTES"
+
+
+class EstimativaAprovacaoResponse(BaseModel):
+    """Schema para retorno da estimativa de aprovação"""
+
+    previsaoAprovacaoDias: Optional[int] = Field(
+        default=None,
+        alias="previsaoAprovacaoDias",
+        description="Estimativa em dias. null se insuficiente.",
+    )
+    status: StatusEstimativa = Field(..., description="Status do cálculo")
+    amostraUtilizada: int = Field(
+        alias="amostraUtilizada", description="Tamanho da amostra"
+    )
 
 
 # --- Helper to map snake_case to camelCase for response ---
@@ -125,6 +151,8 @@ def _to_evento_response(e) -> dict:
         "mudouFase": e.mudou_fase,
         "mudouOrgao": e.mudou_orgao,
         "remessaOuRetorno": e.remessa_ou_retorno,
+        "diasNaEtapa": e.dias_na_etapa,
+        "temAtraso": e.tem_atraso,
     }
 
 
@@ -143,9 +171,16 @@ def listar_movimentacoes(id: str, session: Session = Depends(get_session)):
 
     fase_repo = SQLFaseAnaliticaRepository(session)
     orgao_repo = SQLOrgaoLegislativoRepository(session)
+    apensamento_repo = SQLApensamentoRepository(session)
 
     service = ListarMovimentacoesService(
-        evento_repo, proposicao_repo, fase_repo, orgao_repo, camara_adapter, senado_adapter
+        evento_repo,
+        proposicao_repo,
+        fase_repo,
+        orgao_repo,
+        camara_adapter,
+        senado_adapter,
+        apensamento_repo,
     )
 
     try:
@@ -210,3 +245,30 @@ def obter_detalhe_proposicao(id: str, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+
+@router.get(
+    "/proposicoes/estimativa/{tipo}/{tema}", response_model=EstimativaAprovacaoResponse
+)
+def obter_estimativa_aprovacao(
+    tipo: str, tema: str, session: Session = Depends(get_session)
+):
+    """
+    Retorna a estimativa de tempo de aprovação para um tipo e tema específicos.
+    A lógica de negócio e o threshold de 50 registros estão isolados no Domínio.
+    """
+    repository = SQLProposicaoRepository(session)
+    use_case = GerarEstimativaUseCase(repository)
+
+    try:
+        resultado = use_case.executar(tipo, tema)
+
+        return {
+            "previsaoAprovacaoDias": resultado.dias,
+            "status": StatusEstimativa(resultado.status),
+            "amostraUtilizada": resultado.amostra,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao calcular estimativa: {str(e)}"
+        )

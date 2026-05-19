@@ -4,6 +4,7 @@ from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
 from domain.entities.proposicao import Proposicao
 
+
 def _evento_mock(id_prop: str) -> EventoTramitacao:
     return EventoTramitacao(
         proposicao_id=id_prop,
@@ -16,7 +17,6 @@ def _evento_mock(id_prop: str) -> EventoTramitacao:
         mudou_fase=False,
         mudou_orgao=False,
     )
-
 
 
 def _proposicao_mock(id_prop: str, orgao: str) -> Proposicao:
@@ -39,13 +39,13 @@ def _proposicao_mock(id_prop: str, orgao: str) -> Proposicao:
 def test_listar_movimentacoes_camara_retorna200(http_client: TestClient):
     id_prop = "123456"
     prop = _proposicao_mock(id_prop, "Câmara dos Deputados")
-    
+
     tram_bruta = {
         "data_hora": "2024-05-14T10:00:00",
         "sequencia": 1,
         "sigla_orgao": "CCJ",
         "descricao": "Recebimento na CCJ",
-        "payload_bruto": {}
+        "payload_bruto": {},
     }
 
     with (
@@ -73,18 +73,20 @@ def test_listar_movimentacoes_camara_retorna200(http_client: TestClient):
     assert dados[0]["proposicaoId"] == id_prop
     assert dados[0]["siglaOrgao"] == "CCJ"
     assert "tipoEvento" in dados[0]
+    assert "diasNaEtapa" in dados[0]
+    assert "temAtraso" in dados[0]
 
 
 def test_listar_movimentacoes_senado_retorna200(http_client: TestClient):
     id_prop = "654321"
     prop = _proposicao_mock(id_prop, "Senado Federal")
-    
+
     tram_bruta = {
         "data_hora": "2024-05-14T10:00:00",
         "sequencia": 1,
         "sigla_orgao": "CCJ",
         "descricao": "Recebimento na CCJ",
-        "payload_bruto": {}
+        "payload_bruto": {},
     }
 
     with (
