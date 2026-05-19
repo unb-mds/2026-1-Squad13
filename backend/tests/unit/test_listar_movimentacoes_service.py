@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch, AsyncMock
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
@@ -12,8 +12,8 @@ def mocks():
         "proposicao_repo": MagicMock(),
         "fase_repo": MagicMock(),
         "orgao_repo": MagicMock(),
-        "camara_adapter": MagicMock(),
-        "senado_adapter": MagicMock(),
+        "camara_adapter": AsyncMock(),
+        "senado_adapter": AsyncMock(),
     }
 
 
@@ -29,7 +29,8 @@ def service(mocks):
     )
 
 
-def test_listar_retorna_do_cache_se_existir(service, mocks):
+@pytest.mark.asyncio
+async def test_listar_retorna_do_cache_se_existir(service, mocks):
     # Arrange
     evento_mock = EventoTramitacao(
         proposicao_id="123",
@@ -45,7 +46,7 @@ def test_listar_retorna_do_cache_se_existir(service, mocks):
     mocks["evento_repo"].buscar_por_proposicao.return_value = [evento_mock]
 
     # Act
-    resultado = service.executar("123")
+    resultado = await service.executar("123")
 
     # Assert
     assert resultado == [evento_mock]
@@ -53,8 +54,9 @@ def test_listar_retorna_do_cache_se_existir(service, mocks):
     mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_not_called()
 
 
+@pytest.mark.asyncio
 @patch("application.services.listar_movimentacoes_service.NormalizarTramitacaoService")
-def test_listar_busca_api_camara_salva_no_cache(MockNormalizar, service, mocks):
+async def test_listar_busca_api_camara_salva_no_cache(MockNormalizar, service, mocks):
     # Arrange
     mocks["evento_repo"].buscar_por_proposicao.return_value = []
 
@@ -80,7 +82,7 @@ def test_listar_busca_api_camara_salva_no_cache(MockNormalizar, service, mocks):
     mock_normalizer_instance.normalizar.return_value = [evento_normalizado]
 
     # Act
-    resultado = service.executar("123")
+    resultado = await service.executar("123")
 
     # Assert
     assert resultado == [evento_normalizado]
@@ -91,7 +93,8 @@ def test_listar_busca_api_camara_salva_no_cache(MockNormalizar, service, mocks):
     mocks["evento_repo"].salvar_lote.assert_called_once_with([evento_normalizado])
 
 
-def test_listar_fallback_senado_sem_proposicao_no_banco(service, mocks):
+@pytest.mark.asyncio
+async def test_listar_fallback_senado_sem_proposicao_no_banco(service, mocks):
     # Arrange
     mocks["evento_repo"].buscar_por_proposicao.return_value = []
     mocks["proposicao_repo"].buscar_por_id.return_value = None
@@ -118,7 +121,7 @@ def test_listar_fallback_senado_sem_proposicao_no_banco(service, mocks):
             mudou_orgao=False,
         )
         mock_normalizer_instance.normalizar.return_value = [evento_mock]
-        resultado = service.executar("123")
+        resultado = await service.executar("123")
 
     # Assert
     assert resultado == [evento_mock]
@@ -126,7 +129,8 @@ def test_listar_fallback_senado_sem_proposicao_no_banco(service, mocks):
     mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_called_once_with(123)
 
 
-def test_resolucao_slug_pl(service, mocks):
+@pytest.mark.asyncio
+async def test_resolucao_slug_pl(service, mocks):
     # Arrange
     mocks["evento_repo"].buscar_por_proposicao.return_value = []
 
@@ -140,9 +144,9 @@ def test_resolucao_slug_pl(service, mocks):
     mocks["camara_adapter"].buscar_tramitacoes_brutas.return_value = []
 
     # Act
-    service.executar("PL-1-2024")
+    await service.executar("PL-1-2024")
 
     # Assert
     mocks["proposicao_repo"].buscar_por_codigo.assert_called_once_with("PL", "1", 2024)
     # Even if it returns empty, it should have tried with "999"
-    mocks["evento_repo"].buscar_por_proposicao.assert_called_once_with("999")
+    mocks["evento_repo"].buscar_por_proposicao.assert_called_with("999")

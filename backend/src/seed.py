@@ -10,6 +10,7 @@ Ordem de execução:
 """
 
 import argparse
+import asyncio
 from sqlmodel import Session, select, func
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
@@ -43,19 +44,25 @@ def seed_lookup_tables():
         SQLOrgaoLegislativoRepository(session).seed_orgaos()
 
 
-def get_varied_ids(camara, senado):
+async def get_varied_ids(camara, senado):
     anos = [2021, 2023, 2025, 2026]
     tipos = ["PL", "PEC"]
     qtd_por_lote = 8
 
-    ids_c = []
-    ids_s = []
-
     print(f"🔍 Coletando IDs da Câmara e Senado para os anos {anos}...")
+    tasks_c = []
+    tasks_s = []
+
     for ano in anos:
         for tipo in tipos:
-            ids_c.extend(camara.listar_recentes(tipo, qtd_por_lote, ano))
-            ids_s.extend(senado.listar_recentes(tipo, qtd_por_lote, ano))
+            tasks_c.append(camara.listar_recentes(tipo, qtd_por_lote, ano))
+            tasks_s.append(senado.listar_recentes(tipo, qtd_por_lote, ano))
+
+    results_c = await asyncio.gather(*tasks_c)
+    results_s = await asyncio.gather(*tasks_s)
+
+    ids_c = [id_p for sublist in results_c for id_p in sublist]
+    ids_s = [id_p for sublist in results_s for id_p in sublist]
 
     return list(dict.fromkeys(ids_c)), list(dict.fromkeys(ids_s))
 
@@ -82,7 +89,7 @@ def generate_tags(ementa):
     return list(set(tags))[:5] or ["Geral", "Legislativo"]
 
 
-def run(force=False) -> None:
+async def run(force=False) -> None:
     print("🚀 Iniciando Seed Estruturado...")
 
     # 1. Preparação
@@ -103,21 +110,21 @@ def run(force=False) -> None:
     senado = SenadoAdapter()
 
     # 2. Coleta de IDs
-    ids_c, ids_s = get_varied_ids(camara, senado)
+    ids_c, ids_s = await get_varied_ids(camara, senado)
 
     # 3. Busca de detalhes
     proposicoes = []
     print(f"📥 Buscando detalhes de {len(ids_c)} (Câmara) e {len(ids_s)} (Senado)...")
 
     for id_p in ids_c:
-        p = camara.buscar_por_id(id_p)
+        p = await camara.buscar_por_id(id_p)
         if p and p.tipo in ["PL", "PEC"]:
             p.atualizar_metricas()
             p.normalizar_campo_status()
             proposicoes.append(p)
 
     for id_p in ids_s:
-        p = senado.buscar_por_id(id_p)
+        p = await senado.buscar_por_id(id_p)
         if p and p.tipo in ["PL", "PEC"]:
             p.atualizar_metricas()
             p.normalizar_campo_status()
@@ -167,7 +174,7 @@ def run(force=False) -> None:
                     atualizados += 1
 
                 # Massa de dados: Eventos
-                eventos = listar_service.executar(str(prop_db.id))
+                eventos = await listar_service.executar(str(prop_db.id))
 
                 # Atualiza métricas reais baseadas no histórico completo
                 tempo = dashboard_service._calcular_tempo_total(eventos, prop_db.tempo_total_dias or 0, prop_db)
@@ -204,4 +211,4 @@ if __name__ == "__main__":
         help="Força a execução mesmo se o banco já estiver povoado",
     )
     args = parser.parse_args()
-    run(force=args.force)
+    asyncio.run(run(force=args.force))

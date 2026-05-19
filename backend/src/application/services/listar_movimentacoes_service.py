@@ -52,7 +52,7 @@ class ListarMovimentacoesService:
         self.senado_adapter = senado_adapter
         self.apensamento_repo = apensamento_repo
 
-    def executar(self, proposicao_id: str) -> List[EventoTramitacao]:
+    async def executar(self, proposicao_id: str) -> List[EventoTramitacao]:
         """
         Retorna a lista de eventos normalizados para a proposição solicitada.
         Se não existirem no cache, busca na API, normaliza e salva.
@@ -88,20 +88,20 @@ class ListarMovimentacoesService:
             if not real_id.isdigit():
                 return []
 
-            dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
+            dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
             if not dados_brutos:
-                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
+                dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
                     int(real_id)
                 )
                 casa_padrao = CasaLegislativa.SENADO
         else:
             if "Câmara" in (proposicao.orgao_origem or ""):
-                dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(
+                dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(
                     int(real_id)
                 )
                 casa_padrao = CasaLegislativa.CAMARA
             else:
-                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
+                dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
                     int(real_id)
                 )
                 casa_padrao = CasaLegislativa.SENADO
