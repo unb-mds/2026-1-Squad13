@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,11 +28,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Monitor Legislativo API", lifespan=lifespan)
 
-# Configuração de CORS
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+# Origens permitidas: configurável via ALLOWED_ORIGINS (comma-separated) para suporte a ambientes remotos
+_default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
