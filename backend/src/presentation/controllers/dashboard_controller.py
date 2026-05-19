@@ -6,7 +6,7 @@ from infrastructure.cache.redis_client import RedisClient
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
-from infrastructure.database import get_session, get_redis_connection
+from infrastructure.database import get_session, get_redis_client
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
@@ -61,7 +61,7 @@ class ComparacaoTemaResponse(BaseModel):
 def get_dashboard_service(session: Session = Depends(get_session)) -> DashboardService:
     repository = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
-    redis_conn = get_redis_connection()
+    redis_conn = get_redis_client()
     cache_provider = RedisClient(redis_conn)
     return DashboardService(repository, evento_repo, cache_provider=cache_provider)
 
