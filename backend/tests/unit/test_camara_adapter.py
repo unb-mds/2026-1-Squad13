@@ -1,6 +1,6 @@
 import pytest
-import requests
-from unittest.mock import MagicMock, patch
+import httpx
+from unittest.mock import MagicMock, patch, AsyncMock
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 
 
@@ -9,7 +9,8 @@ def adapter():
     return CamaraAdapter()
 
 
-def test_camara_adapter_normalizacao_sucesso(adapter):
+@pytest.mark.asyncio
+async def test_camara_adapter_normalizacao_sucesso(adapter):
     # Mock das respostas da API
     mock_dados_prop = {
         "dados": {
@@ -28,20 +29,22 @@ def test_camara_adapter_normalizacao_sucesso(adapter):
 
     mock_dados_autores = {"dados": [{"nome": "Deputado Exemplo", "siglaUf": "SP"}]}
 
-    with patch.object(adapter.session, "get") as mock_get:
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         # Configura as respostas sequenciais para as duas chamadas GET
         mock_response_prop = MagicMock()
+        mock_response_prop.status_code = 200
         mock_response_prop.json.return_value = mock_dados_prop
         mock_response_prop.raise_for_status.return_value = None
 
         mock_response_autores = MagicMock()
+        mock_response_autores.status_code = 200
         mock_response_autores.json.return_value = mock_dados_autores
         mock_response_autores.raise_for_status.return_value = None
 
         mock_get.side_effect = [mock_response_prop, mock_response_autores]
 
         # Act
-        proposicao = adapter.buscar_por_id(12345)
+        proposicao = await adapter.buscar_por_id(12345)
 
         # Assert
         assert proposicao is not None
@@ -52,17 +55,19 @@ def test_camara_adapter_normalizacao_sucesso(adapter):
         assert proposicao.status == "Aguardando Parecer"
 
 
-def test_camara_adapter_erro_rede(adapter):
-    with patch.object(adapter.session, "get") as mock_get:
-        mock_get.side_effect = requests.exceptions.RequestException("Erro de conexão")
+@pytest.mark.asyncio
+async def test_camara_adapter_erro_rede(adapter):
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_get.side_effect = httpx.RequestError("Erro de conexão")
 
         # Act
-        proposicao = adapter.buscar_por_id(12345)
+        proposicao = await adapter.buscar_por_id(12345)
 
         assert proposicao is None
 
 
-def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
+@pytest.mark.asyncio
+async def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
     mock_dados = {
         "dados": [
             {
@@ -82,14 +87,15 @@ def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
         ]
     }
 
-    with patch.object(adapter.session, "get") as mock_get:
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.json.return_value = mock_dados
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
         # Act
-        tramitacoes = adapter.buscar_tramitacoes_brutas(123)
+        tramitacoes = await adapter.buscar_tramitacoes_brutas(123)
 
         # Assert
         assert len(tramitacoes) == 2
@@ -100,12 +106,13 @@ def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
         assert tramitacoes[1]["payload_bruto"] == mock_dados["dados"][1]
 
 
-def test_camara_adapter_buscar_tramitacoes_brutas_erro(adapter):
-    with patch.object(adapter.session, "get") as mock_get:
-        mock_get.side_effect = requests.exceptions.RequestException("Erro")
+@pytest.mark.asyncio
+async def test_camara_adapter_buscar_tramitacoes_brutas_erro(adapter):
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_get.side_effect = httpx.RequestError("Erro")
 
         # Act
-        tramitacoes = adapter.buscar_tramitacoes_brutas(123)
+        tramitacoes = await adapter.buscar_tramitacoes_brutas(123)
 
         # Assert
         assert tramitacoes == []

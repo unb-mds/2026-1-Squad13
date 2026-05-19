@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
@@ -59,6 +59,7 @@ def test_listar_movimentacoes_camara_retorna200(http_client: TestClient):
         ),
         patch(
             "infrastructure.adapters.camara_adapter.CamaraAdapter.buscar_tramitacoes_brutas",
+            new_callable=AsyncMock,
             return_value=[tram_bruta],
         ),
         patch(
@@ -100,6 +101,7 @@ def test_listar_movimentacoes_senado_retorna200(http_client: TestClient):
         ),
         patch(
             "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_tramitacoes_brutas",
+            new_callable=AsyncMock,
             return_value=[tram_bruta],
         ),
         patch(
