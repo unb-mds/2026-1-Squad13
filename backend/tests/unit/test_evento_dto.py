@@ -53,7 +53,7 @@ def test_evento_dto_aliases_camel_case():
         "temAtraso": True,
         "relevante": False,
     }
-    
+
     obj = EventoTramitacaoResponse(**payload)
 
     # Valida que as chaves mapeiam pros atributos Python

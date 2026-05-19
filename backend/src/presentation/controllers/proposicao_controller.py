@@ -25,6 +25,7 @@ from infrastructure.repositories.sql_orgao_legislativo_repository import (
 )
 from infrastructure.database import get_session
 from sqlmodel import Session
+from domain.value_objects.modo_movimentacao import ModoMovimentacao
 
 router = APIRouter()
 
@@ -88,8 +89,6 @@ class ProposicoesListResponse(BaseModel):
     pagina: int
     totalPaginas: int = Field(alias="totalPaginas")
 
-
-from domain.value_objects.modo_movimentacao import ModoMovimentacao
 
 class StatusEstimativa(str, Enum):
     CALCULADA = "CALCULADA"
@@ -247,11 +246,11 @@ async def listar_movimentacoes(
             return [_to_evento_response(e) for e in resultado]
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         raise HTTPException(
             status_code=500, detail=f"Erro ao buscar movimentações: {str(e)}"
         )
-
 
 
 @router.get("/proposicoes", response_model=ProposicoesListResponse)

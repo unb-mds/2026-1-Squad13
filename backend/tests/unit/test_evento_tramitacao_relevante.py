@@ -1,6 +1,6 @@
-import pytest
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
+
 
 def test_eh_relevante_tipo_sempre_relevante():
     evento = EventoTramitacao(
@@ -11,9 +11,10 @@ def test_eh_relevante_tipo_sempre_relevante():
         descricao_original="Teste",
         mudou_fase=False,
         deliberativo=False,
-        dias_na_etapa=0
+        dias_na_etapa=0,
     )
     assert evento.eh_relevante is True
+
 
 def test_eh_relevante_mudou_fase():
     evento = EventoTramitacao(
@@ -24,9 +25,10 @@ def test_eh_relevante_mudou_fase():
         descricao_original="Teste",
         mudou_fase=True,
         deliberativo=False,
-        dias_na_etapa=0
+        dias_na_etapa=0,
     )
     assert evento.eh_relevante is True
+
 
 def test_eh_relevante_deliberativo():
     evento = EventoTramitacao(
@@ -37,9 +39,10 @@ def test_eh_relevante_deliberativo():
         descricao_original="Teste",
         mudou_fase=False,
         deliberativo=True,
-        dias_na_etapa=0
+        dias_na_etapa=0,
     )
     assert evento.eh_relevante is True
+
 
 def test_eh_relevante_tempo_longo():
     evento = EventoTramitacao(
@@ -50,9 +53,10 @@ def test_eh_relevante_tempo_longo():
         descricao_original="Teste",
         mudou_fase=False,
         deliberativo=False,
-        dias_na_etapa=31
+        dias_na_etapa=31,
     )
     assert evento.eh_relevante is True
+
 
 def test_eh_relevante_marca_apensacao():
     evento = EventoTramitacao(
@@ -64,9 +68,10 @@ def test_eh_relevante_marca_apensacao():
         mudou_fase=False,
         deliberativo=False,
         dias_na_etapa=0,
-        marca_apensacao=True
+        marca_apensacao=True,
     )
     assert evento.eh_relevante is True
+
 
 def test_eh_relevante_ruido_puro():
     evento = EventoTramitacao(
@@ -78,6 +83,6 @@ def test_eh_relevante_ruido_puro():
         mudou_fase=False,
         deliberativo=False,
         dias_na_etapa=0,
-        marca_apensacao=False
+        marca_apensacao=False,
     )
     assert evento.eh_relevante is False

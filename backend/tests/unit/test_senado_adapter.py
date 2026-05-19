@@ -42,9 +42,7 @@ async def test_senado_adapter_normalizacao_sucesso(adapter):
         assert proposicao.autor == "Senador Exemplo"
         assert proposicao.status == "Em tramitação"
         assert proposicao.data_apresentacao == "2023-01-01"
-        assert (
-            proposicao.data_ultima_movimentacao == "2023-01-01"
-        )
+        assert proposicao.data_ultima_movimentacao == "2023-01-01"
 
 
 @pytest.mark.asyncio
