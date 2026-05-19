@@ -177,11 +177,17 @@ async def run(force=False) -> None:
                 eventos = await listar_service.executar(str(prop_db.id))
 
                 # Atualiza métricas reais baseadas no histórico completo
-                tempo = dashboard_service._calcular_tempo_total(eventos, prop_db.tempo_total_dias or 0, prop_db)
-                status = dashboard_service._extrair_status_atual(eventos, prop_db.status)
+                tempo = dashboard_service._calcular_tempo_total(
+                    eventos, prop_db.tempo_total_dias or 0, prop_db
+                )
+                status = dashboard_service._extrair_status_atual(
+                    eventos, prop_db.status
+                )
 
                 prop_db.tempo_total_dias = tempo
-                prop_db.tem_atraso = (tempo > 180) and (prop_db.data_encerramento is None)
+                prop_db.tem_atraso = (tempo > 180) and (
+                    prop_db.data_encerramento is None
+                )
                 prop_db.status = status
 
                 repo.salvar(prop_db)

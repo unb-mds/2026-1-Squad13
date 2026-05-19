@@ -5,6 +5,9 @@ from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
 
 
+from domain.value_objects.modo_movimentacao import ModoMovimentacao
+
+
 @pytest.fixture
 def mocks():
     return {
@@ -46,7 +49,7 @@ async def test_listar_retorna_do_cache_se_existir(service, mocks):
     mocks["evento_repo"].buscar_por_proposicao.return_value = [evento_mock]
 
     # Act
-    resultado = await service.executar("123")
+    resultado = await service.executar("123", modo=ModoMovimentacao.COMPLETO)
 
     # Assert
     assert resultado == [evento_mock]
@@ -82,7 +85,7 @@ async def test_listar_busca_api_camara_salva_no_cache(MockNormalizar, service, m
     mock_normalizer_instance.normalizar.return_value = [evento_normalizado]
 
     # Act
-    resultado = await service.executar("123")
+    resultado = await service.executar("123", modo=ModoMovimentacao.COMPLETO)
 
     # Assert
     assert resultado == [evento_normalizado]
@@ -121,7 +124,7 @@ async def test_listar_fallback_senado_sem_proposicao_no_banco(service, mocks):
             mudou_orgao=False,
         )
         mock_normalizer_instance.normalizar.return_value = [evento_mock]
-        resultado = await service.executar("123")
+        resultado = await service.executar("123", modo=ModoMovimentacao.COMPLETO)
 
     # Assert
     assert resultado == [evento_mock]
@@ -144,7 +147,7 @@ async def test_resolucao_slug_pl(service, mocks):
     mocks["camara_adapter"].buscar_tramitacoes_brutas.return_value = []
 
     # Act
-    await service.executar("PL-1-2024")
+    await service.executar("PL-1-2024", modo=ModoMovimentacao.COMPLETO)
 
     # Assert
     mocks["proposicao_repo"].buscar_por_codigo.assert_called_once_with("PL", "1", 2024)
