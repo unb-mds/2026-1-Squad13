@@ -52,6 +52,6 @@ pnpm-debug.log*
 # IA / Claude Code
 GEMINI.md
 .claude/
-
-# Local docs/build artifacts
-docs/_build/
+.gemini/*
+!.gemini/skills/
+gha-creds-*.json
