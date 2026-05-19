@@ -1,6 +1,11 @@
 import requests
+import logging
 from typing import Optional, List
 from domain.entities.proposicao import Proposicao
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+logger = logging.getLogger(__name__)
 
 
 class SenadoAdapter:
@@ -11,6 +16,19 @@ class SenadoAdapter:
 
     def __init__(self):
         self.base_url = "https://legis.senado.leg.br/dadosabertos"
+        self.session = requests.Session()
+
+        # Configuração de retry para resiliência (5 tentativas com backoff exponencial)
+        retry_strategy = Retry(
+            total=5,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+        self.timeout = 25  # Timeout aumentado para lidar com lentidão da API
 
     def buscar_por_id(self, id_materia: int) -> Optional[Proposicao]:
         """
@@ -18,22 +36,18 @@ class SenadoAdapter:
         Tenta primeiro o endpoint de matéria (legado mas compatível com idMateria)
         e depois o de processo se necessário.
         """
-        # A API de matéria é tecnicamente legada mas é a que aceita o CodigoMateria diretamente.
         url = f"{self.base_url}/materia/{id_materia}"
         headers = {"Accept": "application/json"}
 
         try:
-            resp = requests.get(url, headers=headers, timeout=10)
+            resp = self.session.get(url, headers=headers, timeout=self.timeout)
             if resp.status_code == 404:
-                # Se não encontrou em materia/, tenta em processo/ (pode ser um idProcesso)
                 url = f"{self.base_url}/processo/{id_materia}?v=1"
-                resp = requests.get(url, headers=headers, timeout=10)
+                resp = self.session.get(url, headers=headers, timeout=self.timeout)
 
             resp.raise_for_status()
             dados_brutos = resp.json()
 
-            # Normaliza a estrutura: a API de matéria vem aninhada em DetalheMateria/Materia,
-            # a de processo vem flat no topo.
             if (
                 "DetalheMateria" in dados_brutos
                 and "Materia" in dados_brutos["DetalheMateria"]
@@ -44,23 +58,21 @@ class SenadoAdapter:
                     "DescricaoIdentificacaoMateria", ""
                 )
 
-                # Se tiver IdentificacaoProcesso, chama a API de processo para dados mais ricos (status real)
                 id_processo = identificacao_obj.get("IdentificacaoProcesso")
                 if id_processo:
                     try:
-                        resp_proc = requests.get(
+                        resp_proc = self.session.get(
                             f"{self.base_url}/processo/{id_processo}?v=1",
                             headers=headers,
-                            timeout=5,
+                            timeout=10,
                         )
                         if resp_proc.status_code == 200:
-                            # Recorre à estrutura flat do processo
                             dados_proc = resp_proc.json()
                             return self._processar_dados_processo(
                                 dados_proc, str(id_materia)
                             )
                     except Exception:
-                        pass  # Fallback para o que já temos se falhar
+                        pass
 
                 ementa = dados.get("DadosBasicosMateria", {}).get(
                     "EmentaMateria", "Sem ementa"
@@ -71,7 +83,6 @@ class SenadoAdapter:
                 autor_nome = dados.get("DadosBasicosMateria", {}).get(
                     "Autor", "Não informado"
                 )
-                # No DetalheMateria, a situação fica em SituacaoAtual
                 situacao_atual_obj = (
                     dados.get("SituacaoAtual", {})
                     .get("Autuacoes", {})
@@ -88,10 +99,10 @@ class SenadoAdapter:
                 "DetalheMateria" in dados_brutos
                 and "Materia" not in dados_brutos["DetalheMateria"]
             ):
-                # Pode ser um idProcesso passado para o endpoint de materia,
-                # ou simplesmente não encontrado. Tenta endpoint de processo.
                 url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
-                resp_proc = requests.get(url_proc, headers=headers, timeout=10)
+                resp_proc = self.session.get(
+                    url_proc, headers=headers, timeout=self.timeout
+                )
                 if resp_proc.status_code == 200:
                     return self._processar_dados_processo(
                         resp_proc.json(), str(id_materia)
@@ -100,7 +111,6 @@ class SenadoAdapter:
             else:
                 return self._processar_dados_processo(dados_brutos, str(id_materia))
 
-            # Tenta extrair tipo, numero e ano do "PL 123/2023"
             tipo = ""
             numero = 0
             ano = 0
@@ -112,7 +122,6 @@ class SenadoAdapter:
                     numero = int(num_str) if num_str.isdigit() else 0
                     ano = int(ano_str) if ano_str.isdigit() else 0
 
-            # Fallback para data de apresentação se última movimentação estiver vazia
             if not data_ultima_movimentacao:
                 data_ultima_movimentacao = data_apresentacao
 
@@ -134,36 +143,47 @@ class SenadoAdapter:
             )
 
         except requests.exceptions.RequestException as e:
-            print(f"Erro de rede ao buscar matéria {id_materia} no Senado: {e}")
+            logger.error(
+                f"Erro de rede ao buscar proposição {id_materia} no Senado: {e}"
+            )
             return None
         except Exception as e:
-            print(
+            logger.error(
                 f"Erro inesperado ao processar dados do Senado para ID {id_materia}: {e}"
             )
             return None
 
-    def listar_recentes(self, tipo: str, quantidade: int = 10) -> List[int]:
-        """Busca uma lista de IDs das matérias mais recentes de um determinado tipo no Senado."""
-        # O endpoint antigo /materia/pesquisa/lista foi desativado em 2026-02-01.
-        # Usamos agora o novo endpoint /processo.
+    def listar_recentes(
+        self, tipo: str, quantidade: int = 10, ano: Optional[int] = None
+    ) -> List[int]:
+        """Busca uma lista de IDs das matérias de um determinado tipo no Senado, opcionalmente por ano."""
         url = f"{self.base_url}/processo"
+
+        if not ano:
+            from datetime import date
+
+            ano = date.today().year
+
         params = {
             "sigla": tipo,
-            "ano": 2026,  # Tenta o ano atual primeiro
+            "ano": ano,
         }
         headers = {"Accept": "application/json"}
         try:
-            resp = requests.get(url, params=params, headers=headers, timeout=10)
+            resp = self.session.get(
+                url, params=params, headers=headers, timeout=self.timeout
+            )
             resp.raise_for_status()
             dados = resp.json()
 
             if not isinstance(dados, list):
                 dados = [dados] if dados else []
 
-            # Se não vier nada de 2026, tenta 2025
-            if not dados:
-                params["ano"] = 2025
-                resp = requests.get(url, params=params, headers=headers, timeout=10)
+            if not dados and not ano:
+                params["ano"] = ano - 1
+                resp = self.session.get(
+                    url, params=params, headers=headers, timeout=self.timeout
+                )
                 if resp.status_code == 200:
                     dados = resp.json()
                     if not isinstance(dados, list):
@@ -173,36 +193,28 @@ class SenadoAdapter:
             for m in dados:
                 if "codigoMateria" in m:
                     ids.append(int(m["codigoMateria"]))
-                elif "id" in m:  # id as fallback if it's the materia id
+                elif "id" in m:
                     ids.append(int(m["id"]))
 
                 if len(ids) >= quantidade:
                     break
             return ids
         except Exception as e:
-            print(f"Erro ao listar matérias recentes no Senado: {e}")
+            logger.error(
+                f"Erro ao listar matérias no Senado (tipo={tipo}, ano={ano}): {e}"
+            )
             return []
-
-
 
     def buscar_tramitacoes_brutas(self, id_materia: int) -> List[dict]:
         """
         Retorna payload bruto de cada tramitação do Senado.
-        
-        Cada dict contém:
-            - data_hora: str
-            - sequencia: int
-            - sigla_orgao: str
-            - descricao: str (descricaoTramitacao + despacho consolidados)
-            - payload_bruto: dict (JSON original para auditoria)
         """
         headers = {"Accept": "application/json"}
 
-        # Tenta primeiro descobrir o id do processo se for id de materia
         id_processo = id_materia
         try:
             url_mat = f"{self.base_url}/materia/{id_materia}"
-            resp_mat = requests.get(url_mat, headers=headers, timeout=5)
+            resp_mat = self.session.get(url_mat, headers=headers, timeout=10)
             if resp_mat.status_code == 200:
                 dados_mat = resp_mat.json()
                 if (
@@ -221,7 +233,7 @@ class SenadoAdapter:
 
         url = f"{self.base_url}/processo/{id_processo}?v=1"
         try:
-            resp = requests.get(url, headers=headers, timeout=10)
+            resp = self.session.get(url, headers=headers, timeout=self.timeout)
             resp.raise_for_status()
             dados = resp.json()
 
@@ -230,29 +242,30 @@ class SenadoAdapter:
             seq = 1
             if autuacoes:
                 situacoes = autuacoes[0].get("situacoes", [])
-                
-                # Inverte as situacoes pois o senado retorna da mais recente para a mais antiga
-                # E queremos sequencia 1 para a primeira
+
                 for s in reversed(situacoes):
                     sigla_orgao = s.get("colegiado", {}).get("sigla") or "Senado"
                     descricao = s.get("descricao", "").strip()
+                    if descricao:
+                        descricao = descricao.capitalize()
 
-                    brutas.append({
-                        "data_hora": s.get("inicio", ""),
-                        "sequencia": seq,
-                        "sigla_orgao": sigla_orgao,
-                        "descricao": descricao,
-                        "payload_bruto": s
-                    })
+                    brutas.append(
+                        {
+                            "data_hora": s.get("inicio", ""),
+                            "sequencia": seq,
+                            "sigla_orgao": sigla_orgao,
+                            "descricao": descricao,
+                            "payload_bruto": s,
+                        }
+                    )
                     seq += 1
 
             return brutas
         except Exception as e:
-            print(
+            logger.error(
                 f"Erro ao buscar tramitações brutas do Senado para ID {id_materia} (Processo {id_processo}): {e}"
             )
             return []
-
 
     def _processar_dados_processo(self, dados: dict, id_materia: str) -> Proposicao:
         """Processa a estrutura flat retornada pelo endpoint /processo."""
@@ -270,18 +283,14 @@ class SenadoAdapter:
         data_ultima_movimentacao = ""
         autuacoes = dados.get("autuacoes", [])
         if autuacoes:
-            # Pega a autuação que tem situação atual
-            # Normalmente a primeira autuação é a principal
             situacoes = autuacoes[0].get("situacoes", [])
             if situacoes:
-                # Pega a última situação que tenha data de início
                 for s in reversed(situacoes):
                     if s.get("inicio"):
                         data_ultima_movimentacao = s["inicio"]
                         status_atual = s.get("descricao", status_atual)
                         break
 
-        # Tenta extrair tipo, numero e ano do "PL 123/2023"
         tipo = ""
         numero = 0
         ano = 0
@@ -293,7 +302,6 @@ class SenadoAdapter:
                 numero = int(num_str) if num_str.isdigit() else 0
                 ano = int(ano_str) if ano_str.isdigit() else 0
 
-        # Fallback para data de apresentação se última movimentação estiver vazia
         if not data_ultima_movimentacao:
             data_ultima_movimentacao = data_apresentacao
 

@@ -61,8 +61,9 @@ fi
 echo -e "${YELLOW}🗄️  Inicializando tabelas do banco de dados...${NC}"
 docker compose exec -T backend uv run python src/init_db.py
 
-# 6. Popular o Banco com Dados Reais
-echo -e "${YELLOW}🌱 Populando o banco com dados reais da Câmara e do Senado (Seed)...${NC}"
+# 6. Popular o Banco com Dados Reais (Variados)
+echo -e "${YELLOW}🌱 Populando o banco com dados reais (Seed Variado)...${NC}"
+echo -e "${BLUE}Nota: O script detecta se o banco já está povoado para evitar lentidão.${NC}"
 docker compose exec -T backend uv run python src/seed.py
 
 # 7. Verificar status

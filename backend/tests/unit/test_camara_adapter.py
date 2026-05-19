@@ -28,7 +28,7 @@ def test_camara_adapter_normalizacao_sucesso(adapter):
 
     mock_dados_autores = {"dados": [{"nome": "Deputado Exemplo", "siglaUf": "SP"}]}
 
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         # Configura as respostas sequenciais para as duas chamadas GET
         mock_response_prop = MagicMock()
         mock_response_prop.json.return_value = mock_dados_prop
@@ -53,7 +53,7 @@ def test_camara_adapter_normalizacao_sucesso(adapter):
 
 
 def test_camara_adapter_erro_rede(adapter):
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         mock_get.side_effect = requests.exceptions.RequestException("Erro de conexão")
 
         # Act
@@ -70,19 +70,19 @@ def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
                 "sequencia": 1,
                 "siglaOrgao": "MESA",
                 "descricaoTramitacao": "Apresentação",
-                "despacho": ""
+                "despacho": "",
             },
             {
                 "dataHora": "2024-01-02T10:00:00",
                 "sequencia": 2,
                 "siglaOrgao": "CCJ",
                 "descricaoTramitacao": "Despacho",
-                "despacho": "Às comissões"
-            }
+                "despacho": "Às comissões",
+            },
         ]
     }
 
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_dados
         mock_response.raise_for_status.return_value = None
@@ -95,13 +95,13 @@ def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
         assert len(tramitacoes) == 2
         assert tramitacoes[0]["descricao"] == "Apresentação"
         assert tramitacoes[0]["sigla_orgao"] == "MESA"
-        assert tramitacoes[1]["descricao"] == "Despacho - Às comissões"
+        assert tramitacoes[1]["descricao"] == "Despacho - às comissões"
         assert tramitacoes[1]["sigla_orgao"] == "CCJ"
         assert tramitacoes[1]["payload_bruto"] == mock_dados["dados"][1]
 
 
 def test_camara_adapter_buscar_tramitacoes_brutas_erro(adapter):
-    with patch("requests.get") as mock_get:
+    with patch.object(adapter.session, "get") as mock_get:
         mock_get.side_effect = requests.exceptions.RequestException("Erro")
 
         # Act
@@ -109,4 +109,3 @@ def test_camara_adapter_buscar_tramitacoes_brutas_erro(adapter):
 
         # Assert
         assert tramitacoes == []
-

@@ -1,0 +1,29 @@
+## 📝 Visão Geral
+Este Pull Request promove a branch `develop` para a `main`, consolidando a **Release 1 (MVP)** do Monitor Legislativo. O foco desta entrega foi a estabilização das integrações externas, robustez da camada de infraestrutura e conformidade com a *Layered Architecture*.
+
+## 🚀 Destaques Técnicos
+
+### 1. Arquitetura e Padronização
+- **Injeção de Dependência:** Refatoração completa dos adaptadores Redis em `infrastructure/`, removendo acoplamento direto e centralizando a gestão de clientes em `database.py`.
+- **Conformidade ADR-005:** Padronização das interfaces de adaptadores (Câmara e Senado), garantindo que o domínio permaneça agnóstico a mudanças em APIs externas.
+
+### 2. Resiliência e Segurança
+- **Fail-Open Auth:** Implementação de padrões de resiliência nos fluxos de autenticação para evitar que falhas no Redis bloqueiem o acesso dos usuários (degradação graciosa).
+- **Observabilidade:** Adição de logs de auditoria para operações sensíveis, como solicitações de recuperação de senha e falhas de login.
+
+### 3. Redução de Débito Técnico
+- **Saneamento de Código:** Remoção de ~2.000 linhas de código legado, importações não utilizadas e arquivos obsoletos.
+- **Refatoração de Testes:** Reestruturação da suíte de testes unitários e de integração para refletir a nova organização dos serviços de domínio.
+
+## 🧪 Validação
+- **CI/CD:** Todos os workflows (Backend, Frontend e Squad Dashboard) estão com status **Green**.
+- **Cobertura:** Testes unitários e de integração validados em ambiente de pré-produção (Docker).
+- **Manual:** Fluxos críticos de busca de proposições e listagem de movimentações verificados com as APIs reais da Câmara e Senado.
+
+## 📌 Próximos Passos
+- Tagging da versão `v0.1.0`.
+- Início do ciclo de desenvolvimento da Release 2 (Foco em análise preditiva).
+
+
+---
+**Closes #96, #95, #94, #93, #92, #86**

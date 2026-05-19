@@ -46,6 +46,7 @@ class TipoEvento(str, Enum):
     # --- Encerramento ---
     ARQUIVAMENTO = "ARQUIVAMENTO"
     PREJUDICIALIDADE = "PREJUDICIALIDADE"
+    APENSAMENTO = "APENSAMENTO"
 
     # --- Etapa executiva ---
     ENVIO_EXECUTIVO = "ENVIO_EXECUTIVO"
