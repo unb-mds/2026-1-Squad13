@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from domain.entities.user import User
 from infrastructure.adapters.security_adapter import get_password_hash
+from infrastructure.repositories.sql_user_repository import SQLUserRepository
 
 
 def test_login_caminho_feliz(http_client: TestClient, db_session):
@@ -18,9 +19,8 @@ def test_login_caminho_feliz(http_client: TestClient, db_session):
         hashed_password=get_password_hash(senha_teste),
         perfil="analista",
     )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
+    repo = SQLUserRepository(db_session)
+    repo.salvar(user)
 
     # 2. Tentar fazer login com as credenciais corretas
     login_data = {
@@ -67,8 +67,8 @@ def test_login_falha_tratada_senha_incorreta(http_client: TestClient, db_session
         hashed_password=get_password_hash(senha_correta),
         perfil="analista",
     )
-    db_session.add(user)
-    db_session.commit()
+    repo = SQLUserRepository(db_session)
+    repo.salvar(user)
 
     login_data = {
         "email": email_teste,
