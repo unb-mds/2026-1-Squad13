@@ -1,34 +1,15 @@
-"""
-Lookup das fases analíticas do processo legislativo.
-
-São 8 fases fixas, inseridas no seed antes de qualquer proposição.
-Nunca são criadas em runtime — representam o ciclo de vida canônico.
-
-A ordem lógica permite calcular progressão e regressão de uma
-proposição entre fases (ex: uma PEC que volta de REVISAO_OUTRA_CASA
-para ANALISE_COMISSOES regrediu 4 posições).
-"""
-
 from typing import Optional
+from sqlmodel import SQLModel
 
-from sqlmodel import Field, SQLModel
 
-
-class FaseAnalitica(SQLModel, table=True):
+class FaseAnalitica(SQLModel):
     """
-    Fase analítica do processo legislativo.
-
-    Cada EventoTramitacao aponta para exatamente uma fase.
-    As 8 fases formam uma sequência lógica, embora o trâmite real
-    nem sempre siga essa ordem linear.
+    Entidade de Domínio para Fase Analítica.
     """
-
-    __tablename__ = "fase_analitica"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    codigo: str = Field(unique=True, index=True)
+    id: Optional[int] = None
+    codigo: str
     nome: str
-    ordem_logica: int = Field(index=True)
+    ordem_logica: int
 
 
 # Constantes para uso interno — evita strings mágicas no código

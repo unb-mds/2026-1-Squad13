@@ -11,7 +11,8 @@ def session_fixture():
     engine = create_engine("sqlite:///:memory:")
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
-        # Adicionar dados de teste
+        repo = SQLProposicaoRepository(session)
+        # Adicionar dados de teste via repositório para garantir mapeamento correto
         p1 = Proposicao(
             id="1",
             tipo="PL",
@@ -38,9 +39,8 @@ def session_fixture():
             data_ultima_movimentacao="2024-02-01",
             orgao_origem="Senado",
         )
-        session.add(p1)
-        session.add(p2)
-        session.commit()
+        repo.salvar(p1)
+        repo.salvar(p2)
         yield session
 
 
@@ -134,7 +134,7 @@ def test_contar_sem_resultados(session: Session):
 
 def test_filtrar_todos_campos(session: Session):
     repo = SQLProposicaoRepository(session)
-    # Adiciona proposição completa
+    # Adiciona proposição completa via repositório
     p = Proposicao(
         id="full",
         tipo="PL",
@@ -150,8 +150,7 @@ def test_filtrar_todos_campos(session: Session):
         orgao_atual="Orgao X",
         tags=[],
     )
-    session.add(p)
-    session.commit()
+    repo.salvar(p)
 
     # Testa cada filtro individualmente para garantir cobertura em filtrar() e contar()
     assert len(repo.filtrar(tipo="PL")) >= 1

@@ -16,6 +16,7 @@ from domain.entities.orgao_legislativo import (
     ORGAOS_SEED,
     OrgaoLegislativo,
 )
+from infrastructure.database.models.orgao_legislativo_model import OrgaoLegislativoModel
 
 
 class SQLOrgaoLegislativoRepository:
@@ -23,6 +24,12 @@ class SQLOrgaoLegislativoRepository:
 
     def __init__(self, session: Session):
         self.session = session
+
+    def _to_entity(self, model: OrgaoLegislativoModel) -> OrgaoLegislativo:
+        return OrgaoLegislativo.model_validate(model.model_dump())
+
+    def _to_model(self, entity: OrgaoLegislativo) -> OrgaoLegislativoModel:
+        return OrgaoLegislativoModel.model_validate(entity.model_dump())
 
     def buscar_ou_criar(
         self,
@@ -33,39 +40,35 @@ class SQLOrgaoLegislativoRepository:
     ) -> OrgaoLegislativo:
         """
         Upsert por (sigla, casa).
-
-        Se o órgão já existe, retorna o existente.
-        Se não existe, cria com os dados fornecidos.
         """
-        statement = select(OrgaoLegislativo).where(
-            OrgaoLegislativo.sigla == sigla,
-            OrgaoLegislativo.casa == casa,
+        statement = select(OrgaoLegislativoModel).where(
+            OrgaoLegislativoModel.sigla == sigla,
+            OrgaoLegislativoModel.casa == casa,
         )
-        existente = self.session.exec(statement).first()
-        if existente is not None:
-            return existente
+        model = self.session.exec(statement).first()
+        if model is not None:
+            return self._to_entity(model)
 
-        orgao = OrgaoLegislativo(
+        model = OrgaoLegislativoModel(
             sigla=sigla,
             nome=nome,
             casa=casa,
             id_origem=id_origem,
         )
-        self.session.add(orgao)
+        self.session.add(model)
         self.session.commit()
-        self.session.refresh(orgao)
-        return orgao
+        self.session.refresh(model)
+        return self._to_entity(model)
 
     def buscar_por_sigla(self, sigla: str) -> List[OrgaoLegislativo]:
         """Lista todos os órgãos com a sigla fornecida (pode haver um por Casa)."""
-        statement = select(OrgaoLegislativo).where(OrgaoLegislativo.sigla == sigla)
-        return list(self.session.exec(statement).all())
+        statement = select(OrgaoLegislativoModel).where(OrgaoLegislativoModel.sigla == sigla)
+        models = self.session.exec(statement).all()
+        return [self._to_entity(m) for m in models]
 
     def seed_orgaos(self) -> None:
         """
         Upsert idempotente dos órgãos mínimos de ORGAOS_SEED.
-
-        Permite rodar o seed múltiplas vezes sem duplicar dados.
         """
         for orgao_data in ORGAOS_SEED:
             self.buscar_ou_criar(
