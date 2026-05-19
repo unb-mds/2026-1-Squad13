@@ -68,6 +68,12 @@ class EventoTramitacaoModel(SQLModel, table=True):
         description="Indica se este evento criou uma ligação de apensamento",
     )
 
+    # Relevância analítica
+    relevante: bool = Field(
+        default=False,
+        description="True se o evento é analiticamente relevante (deliberativo, muda fase, remessa/retorno ou terminal)",
+    )
+
     # Auditoria
     payload_bruto: Optional[dict] = Field(
         default=None,

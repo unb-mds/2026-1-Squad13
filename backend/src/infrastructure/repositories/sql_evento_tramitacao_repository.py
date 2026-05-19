@@ -27,7 +27,9 @@ class SQLEventoTramitacaoRepository:
         return EventoTramitacao.model_validate(model.model_dump())
 
     def _to_model(self, entity: EventoTramitacao) -> EventoTramitacaoModel:
-        return EventoTramitacaoModel.model_validate(entity.model_dump())
+        data = entity.model_dump()
+        data["relevante"] = entity.eh_relevante
+        return EventoTramitacaoModel.model_validate(data)
 
     def salvar(self, evento: EventoTramitacao) -> EventoTramitacao:
         """Persiste um único evento de tramitação."""

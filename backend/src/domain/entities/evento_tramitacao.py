@@ -111,3 +111,13 @@ class EventoTramitacao(SQLModel):
             TipoEvento.REJEICAO.value,
         }
         return self.tipo_evento in deliberativos
+
+    @property
+    def eh_relevante(self) -> bool:
+        """Retorna True se o evento representa uma movimentação analiticamente relevante."""
+        return (
+            self.deliberativo
+            or self.mudou_fase
+            or self.remessa_ou_retorno is not None
+            or self.eh_evento_terminal
+        )
