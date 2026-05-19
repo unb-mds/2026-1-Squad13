@@ -5,6 +5,7 @@ from sqlmodel import Field, SQLModel
 
 class CasaLegislativa(str, Enum):
     """Casa legislativa a que o órgão pertence."""
+
     CAMARA = "CAMARA"
     SENADO = "SENADO"
     AMBAS = "AMBAS"
@@ -14,6 +15,7 @@ class OrgaoLegislativoModel(SQLModel, table=True):
     """
     Modelo de persistência para Órgãos Legislativos.
     """
+
     __tablename__ = "orgaolegislativo"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -24,4 +26,4 @@ class OrgaoLegislativoModel(SQLModel, table=True):
         default=None,
         index=True,
         description="ID do órgão na API de origem (Câmara ou Senado)",
-        )
+    )

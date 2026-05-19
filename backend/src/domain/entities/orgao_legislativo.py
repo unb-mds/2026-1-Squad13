@@ -15,6 +15,7 @@ class OrgaoLegislativo(SQLModel):
     """
     Entidade de Domínio Pura para Órgão Legislativo.
     """
+
     id: Optional[int] = None
     sigla: str
     nome: Optional[str] = None

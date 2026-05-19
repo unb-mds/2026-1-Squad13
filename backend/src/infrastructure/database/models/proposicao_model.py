@@ -9,6 +9,7 @@ class ProposicaoModel(SQLModel, table=True):
     Modelo de persistência para Proposições Legislativas.
     Separado da entidade de domínio para respeitar a Layered Architecture.
     """
+
     __tablename__ = "proposicao"
 
     id: Optional[str] = Field(default=None, primary_key=True)

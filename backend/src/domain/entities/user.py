@@ -6,6 +6,7 @@ class User(SQLModel):
     """
     Entidade de Domínio Pura para Usuário.
     """
+
     id: Optional[int] = None
     nome: str
     email: str

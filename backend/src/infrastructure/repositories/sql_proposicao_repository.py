@@ -30,7 +30,7 @@ class SQLProposicaoRepository:
                 for key, value in model.model_dump(exclude={"id"}).items():
                     setattr(existing, key, value)
                 model = existing
-        
+
         self.session.add(model)
         self.session.commit()
         self.session.refresh(model)
@@ -70,7 +70,9 @@ class SQLProposicaoRepository:
         statement = select(ProposicaoModel)
 
         if tipo:
-            statement = statement.where(func.lower(ProposicaoModel.tipo) == tipo.lower())
+            statement = statement.where(
+                func.lower(ProposicaoModel.tipo) == tipo.lower()
+            )
         if numero:
             statement = statement.where(ProposicaoModel.numero == str(numero))
         if ano:
@@ -84,13 +86,17 @@ class SQLProposicaoRepository:
                 func.lower(ProposicaoModel.uf_autor) == uf_autor.lower()
             )
         if status:
-            statement = statement.where(func.lower(ProposicaoModel.status) == status.lower())
+            statement = statement.where(
+                func.lower(ProposicaoModel.status) == status.lower()
+            )
         if orgao_origem:
             statement = statement.where(
                 func.lower(ProposicaoModel.orgao_origem) == orgao_origem.lower()
             )
         if data_inicio:
-            statement = statement.where(ProposicaoModel.data_apresentacao >= data_inicio)
+            statement = statement.where(
+                ProposicaoModel.data_apresentacao >= data_inicio
+            )
         if data_fim:
             statement = statement.where(ProposicaoModel.data_apresentacao <= data_fim)
 
@@ -128,7 +134,9 @@ class SQLProposicaoRepository:
         statement = select(func.count()).select_from(ProposicaoModel)
 
         if tipo:
-            statement = statement.where(func.lower(ProposicaoModel.tipo) == tipo.lower())
+            statement = statement.where(
+                func.lower(ProposicaoModel.tipo) == tipo.lower()
+            )
         if numero:
             statement = statement.where(ProposicaoModel.numero == str(numero))
         if ano:
@@ -142,13 +150,17 @@ class SQLProposicaoRepository:
                 func.lower(ProposicaoModel.uf_autor) == uf_autor.lower()
             )
         if status:
-            statement = statement.where(func.lower(ProposicaoModel.status) == status.lower())
+            statement = statement.where(
+                func.lower(ProposicaoModel.status) == status.lower()
+            )
         if orgao_origem:
             statement = statement.where(
                 func.lower(ProposicaoModel.orgao_origem) == orgao_origem.lower()
             )
         if data_inicio:
-            statement = statement.where(ProposicaoModel.data_apresentacao >= data_inicio)
+            statement = statement.where(
+                ProposicaoModel.data_apresentacao >= data_inicio
+            )
         if data_fim:
             statement = statement.where(ProposicaoModel.data_apresentacao <= data_fim)
 

@@ -17,13 +17,13 @@ class SenadoAdapter:
     def __init__(self):
         self.base_url = "https://legis.senado.leg.br/dadosabertos"
         self.session = requests.Session()
-        
+
         # Configuração de retry para resiliência (5 tentativas com backoff exponencial)
         retry_strategy = Retry(
             total=5,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET"]
+            allowed_methods=["GET"],
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("https://", adapter)
@@ -100,7 +100,9 @@ class SenadoAdapter:
                 and "Materia" not in dados_brutos["DetalheMateria"]
             ):
                 url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
-                resp_proc = self.session.get(url_proc, headers=headers, timeout=self.timeout)
+                resp_proc = self.session.get(
+                    url_proc, headers=headers, timeout=self.timeout
+                )
                 if resp_proc.status_code == 200:
                     return self._processar_dados_processo(
                         resp_proc.json(), str(id_materia)
@@ -141,7 +143,9 @@ class SenadoAdapter:
             )
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Erro de rede ao buscar proposição {id_materia} no Senado: {e}")
+            logger.error(
+                f"Erro de rede ao buscar proposição {id_materia} no Senado: {e}"
+            )
             return None
         except Exception as e:
             logger.error(
@@ -149,12 +153,15 @@ class SenadoAdapter:
             )
             return None
 
-    def listar_recentes(self, tipo: str, quantidade: int = 10, ano: Optional[int] = None) -> List[int]:
+    def listar_recentes(
+        self, tipo: str, quantidade: int = 10, ano: Optional[int] = None
+    ) -> List[int]:
         """Busca uma lista de IDs das matérias de um determinado tipo no Senado, opcionalmente por ano."""
         url = f"{self.base_url}/processo"
-        
+
         if not ano:
             from datetime import date
+
             ano = date.today().year
 
         params = {
@@ -163,7 +170,9 @@ class SenadoAdapter:
         }
         headers = {"Accept": "application/json"}
         try:
-            resp = self.session.get(url, params=params, headers=headers, timeout=self.timeout)
+            resp = self.session.get(
+                url, params=params, headers=headers, timeout=self.timeout
+            )
             resp.raise_for_status()
             dados = resp.json()
 
@@ -172,7 +181,9 @@ class SenadoAdapter:
 
             if not dados and not ano:
                 params["ano"] = ano - 1
-                resp = self.session.get(url, params=params, headers=headers, timeout=self.timeout)
+                resp = self.session.get(
+                    url, params=params, headers=headers, timeout=self.timeout
+                )
                 if resp.status_code == 200:
                     dados = resp.json()
                     if not isinstance(dados, list):
@@ -189,7 +200,9 @@ class SenadoAdapter:
                     break
             return ids
         except Exception as e:
-            logger.error(f"Erro ao listar matérias no Senado (tipo={tipo}, ano={ano}): {e}")
+            logger.error(
+                f"Erro ao listar matérias no Senado (tipo={tipo}, ano={ano}): {e}"
+            )
             return []
 
     def buscar_tramitacoes_brutas(self, id_materia: int) -> List[dict]:
