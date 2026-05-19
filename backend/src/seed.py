@@ -156,37 +156,29 @@ def run(force=False) -> None:
 
                 prop_db = repo.buscar_por_id(p.id)
                 if prop_db is None:
-                    repo.salvar(p)
+                    prop_db = repo.salvar(p)
                     inseridos += 1
-                    prop_db = p
                 else:
                     prop_db.ementa_resumida = p.ementa_resumida
                     prop_db.tags = p.tags
                     prop_db.status = p.status
                     prop_db.normalizar_campo_status()
-                    session.add(prop_db)
-                    session.commit()
+                    repo.salvar(prop_db)
                     atualizados += 1
 
                 # Massa de dados: Eventos
                 eventos = listar_service.executar(str(prop_db.id))
 
                 # Atualiza métricas reais baseadas no histórico completo
-                tempo = dashboard_service._calcular_tempo_total(
-                    eventos, prop_db.tempo_total_dias or 0, prop_db
-                )
-                status = dashboard_service._extrair_status_atual(
-                    eventos, prop_db.status
-                )
+                tempo = dashboard_service._calcular_tempo_total(eventos, prop_db.tempo_total_dias or 0, prop_db)
+                status = dashboard_service._extrair_status_atual(eventos, prop_db.status)
 
                 prop_db.tempo_total_dias = tempo
-                prop_db.tem_atraso = (tempo > 180) and (
-                    prop_db.data_encerramento is None
-                )
+                prop_db.tem_atraso = (tempo > 180) and (prop_db.data_encerramento is None)
                 prop_db.status = status
 
-                session.add(prop_db)
-                session.commit()
+                repo.salvar(prop_db)
+
                 print(f"  [OK] {p.nome_canonico}", end="\r")
 
             except Exception as e:
