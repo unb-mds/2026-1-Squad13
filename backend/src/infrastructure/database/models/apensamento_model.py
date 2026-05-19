@@ -6,6 +6,7 @@ class ApensamentoModel(SQLModel, table=True):
     """
     Modelo de persistência para Apensamentos.
     """
+
     __tablename__ = "apensamento"
 
     apensamento_id: Optional[int] = Field(default=None, primary_key=True)

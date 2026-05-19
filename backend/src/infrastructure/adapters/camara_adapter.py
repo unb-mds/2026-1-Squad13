@@ -17,13 +17,13 @@ class CamaraAdapter:
     def __init__(self):
         self.base_url = "https://dadosabertos.camara.leg.br/api/v2"
         self.session = requests.Session()
-        
+
         # Configuração de retry para resiliência (5 tentativas com backoff exponencial)
         retry_strategy = Retry(
             total=5,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET"]
+            allowed_methods=["GET"],
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("https://", adapter)
@@ -80,13 +80,19 @@ class CamaraAdapter:
             )
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Erro de rede ao buscar proposição {id_proposicao} na Câmara: {e}")
+            logger.error(
+                f"Erro de rede ao buscar proposição {id_proposicao} na Câmara: {e}"
+            )
             return None
         except (KeyError, IndexError) as e:
-            logger.error(f"Erro ao processar dados da Câmara para ID {id_proposicao}: {e}")
+            logger.error(
+                f"Erro ao processar dados da Câmara para ID {id_proposicao}: {e}"
+            )
             return None
 
-    def listar_recentes(self, tipo: str, quantidade: int = 10, ano: Optional[int] = None) -> List[int]:
+    def listar_recentes(
+        self, tipo: str, quantidade: int = 10, ano: Optional[int] = None
+    ) -> List[int]:
         """Busca uma lista de IDs das proposições de um determinado tipo, opcionalmente por ano."""
         url = f"{self.base_url}/proposicoes"
         params = {
@@ -103,7 +109,9 @@ class CamaraAdapter:
             dados = resp.json()["dados"]
             return [d["id"] for d in dados]
         except Exception as e:
-            logger.error(f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}): {e}")
+            logger.error(
+                f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}): {e}"
+            )
             return []
 
     def buscar_tramitacoes_brutas(self, id_proposicao: int) -> List[dict]:

@@ -15,15 +15,26 @@ from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import init_db, get_session, get_redis_connection, engine
 from infrastructure.database.models.proposicao_model import ProposicaoModel
-from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
-from infrastructure.repositories.sql_fase_analitica_repository import SQLFaseAnaliticaRepository
-from infrastructure.repositories.sql_orgao_legislativo_repository import SQLOrgaoLegislativoRepository
-from infrastructure.repositories.sql_evento_tramitacao_repository import SQLEventoTramitacaoRepository
-from infrastructure.repositories.sql_apensamento_repository import SQLApensamentoRepository
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
+from infrastructure.repositories.sql_fase_analitica_repository import (
+    SQLFaseAnaliticaRepository,
+)
+from infrastructure.repositories.sql_orgao_legislativo_repository import (
+    SQLOrgaoLegislativoRepository,
+)
+from infrastructure.repositories.sql_evento_tramitacao_repository import (
+    SQLEventoTramitacaoRepository,
+)
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
+)
 from infrastructure.cache.redis_client import RedisClient
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.dashboard_service import DashboardService
 from init_db import seed_demo_user
+
 
 def seed_lookup_tables():
     print("📋 Inserindo tabelas de referência...")
@@ -31,11 +42,12 @@ def seed_lookup_tables():
         SQLFaseAnaliticaRepository(session).seed_fases()
         SQLOrgaoLegislativoRepository(session).seed_orgaos()
 
+
 def get_varied_ids(camara, senado):
     anos = [2021, 2023, 2025, 2026]
     tipos = ["PL", "PEC"]
     qtd_por_lote = 8
-    
+
     ids_c = []
     ids_s = []
 
@@ -46,6 +58,7 @@ def get_varied_ids(camara, senado):
             ids_s.extend(senado.listar_recentes(tipo, qtd_por_lote, ano))
 
     return list(dict.fromkeys(ids_c)), list(dict.fromkeys(ids_s))
+
 
 def generate_tags(ementa):
     temas = {
@@ -59,7 +72,7 @@ def generate_tags(ementa):
         "trabalho": ["Trabalhista", "Emprego", "Previdência"],
         "tecnologia": ["Tecnologia", "Digital", "Inovação"],
         "indígena": ["Social", "Indígenas", "Minorias"],
-        "agro": ["Agronegócio", "Rural", "Terra"]
+        "agro": ["Agronegócio", "Rural", "Terra"],
     }
     tags = []
     ementa_lower = ementa.lower()
@@ -68,31 +81,34 @@ def generate_tags(ementa):
             tags.extend(valores)
     return list(set(tags))[:5] or ["Geral", "Legislativo"]
 
+
 def run(force=False) -> None:
     print("🚀 Iniciando Seed Estruturado...")
-    
+
     # 1. Preparação
     init_db()
     seed_demo_user()
-    
+
     with Session(engine) as session:
         count = session.exec(select(func.count(ProposicaoModel.id))).one()
         if count > 50 and not force:
-            print(f"✅ O banco já possui {count} proposições. Pulando seed (use --force para atualizar).")
+            print(
+                f"✅ O banco já possui {count} proposições. Pulando seed (use --force para atualizar)."
+            )
             return
 
     seed_lookup_tables()
 
     camara = CamaraAdapter()
     senado = SenadoAdapter()
-    
+
     # 2. Coleta de IDs
     ids_c, ids_s = get_varied_ids(camara, senado)
-    
+
     # 3. Busca de detalhes
     proposicoes = []
     print(f"📥 Buscando detalhes de {len(ids_c)} (Câmara) e {len(ids_s)} (Senado)...")
-    
+
     for id_p in ids_c:
         p = camara.buscar_por_id(id_p)
         if p and p.tipo in ["PL", "PEC"]:
@@ -118,9 +134,15 @@ def run(force=False) -> None:
         fase_repo = SQLFaseAnaliticaRepository(session)
         orgao_repo = SQLOrgaoLegislativoRepository(session)
         apensamento_repo = SQLApensamentoRepository(session)
-        
+
         listar_service = ListarMovimentacoesService(
-            evento_repo, repo, fase_repo, orgao_repo, camara, senado, apensamento_repo=apensamento_repo
+            evento_repo,
+            repo,
+            fase_repo,
+            orgao_repo,
+            camara,
+            senado,
+            apensamento_repo=apensamento_repo,
         )
         dashboard_service = DashboardService(repo, evento_repo)
 
@@ -128,7 +150,9 @@ def run(force=False) -> None:
             try:
                 p.tags = generate_tags(p.ementa)
                 if not p.ementa_resumida:
-                    p.ementa_resumida = p.ementa[:150] + "..." if len(p.ementa) > 150 else p.ementa
+                    p.ementa_resumida = (
+                        p.ementa[:150] + "..." if len(p.ementa) > 150 else p.ementa
+                    )
 
                 prop_db = repo.buscar_por_id(p.id)
                 if prop_db is None:
@@ -146,13 +170,19 @@ def run(force=False) -> None:
 
                 # Massa de dados: Eventos
                 eventos = listar_service.executar(str(prop_db.id))
-                
+
                 # Atualiza métricas reais baseadas no histórico completo
-                tempo = dashboard_service._calcular_tempo_total(eventos, prop_db.tempo_total_dias or 0, prop_db)
-                status = dashboard_service._extrair_status_atual(eventos, prop_db.status)
+                tempo = dashboard_service._calcular_tempo_total(
+                    eventos, prop_db.tempo_total_dias or 0, prop_db
+                )
+                status = dashboard_service._extrair_status_atual(
+                    eventos, prop_db.status
+                )
 
                 prop_db.tempo_total_dias = tempo
-                prop_db.tem_atraso = (tempo > 180) and (prop_db.data_encerramento is None)
+                prop_db.tem_atraso = (tempo > 180) and (
+                    prop_db.data_encerramento is None
+                )
                 prop_db.status = status
 
                 session.add(prop_db)
@@ -173,8 +203,13 @@ def run(force=False) -> None:
     except Exception:
         pass
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--force", action="store_true", help="Força a execução mesmo se o banco já estiver povoado")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Força a execução mesmo se o banco já estiver povoado",
+    )
     args = parser.parse_args()
     run(force=args.force)

@@ -62,7 +62,9 @@ class SQLOrgaoLegislativoRepository:
 
     def buscar_por_sigla(self, sigla: str) -> List[OrgaoLegislativo]:
         """Lista todos os órgãos com a sigla fornecida (pode haver um por Casa)."""
-        statement = select(OrgaoLegislativoModel).where(OrgaoLegislativoModel.sigla == sigla)
+        statement = select(OrgaoLegislativoModel).where(
+            OrgaoLegislativoModel.sigla == sigla
+        )
         models = self.session.exec(statement).all()
         return [self._to_entity(m) for m in models]
 

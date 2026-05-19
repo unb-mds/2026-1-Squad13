@@ -6,6 +6,7 @@ class FaseAnalitica(SQLModel):
     """
     Entidade de Domínio para Fase Analítica.
     """
+
     id: Optional[int] = None
     codigo: str
     nome: str

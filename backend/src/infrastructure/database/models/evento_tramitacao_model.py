@@ -7,6 +7,7 @@ class EventoTramitacaoModel(SQLModel, table=True):
     """
     Modelo de persistência para Eventos de Tramitação.
     """
+
     __tablename__ = "evento_tramitacao"
     __table_args__ = (
         Index(

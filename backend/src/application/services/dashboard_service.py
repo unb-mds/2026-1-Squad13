@@ -54,14 +54,17 @@ class DashboardService:
         """Gera uma chave de cache única baseada no hash dos filtros."""
         if not filtros:
             return base_key
-        
+
         # Gera um hash MD5 determinístico dos filtros
         filtros_json = json.dumps(filtros, sort_keys=True)
         filtros_hash = hashlib.md5(filtros_json.encode()).hexdigest()
         return f"{base_key}:{filtros_hash}"
 
     def _calcular_tempo_total(
-        self, eventos: List[EventoTramitacao], fallback_tempo: int, proposicao: Optional[Any] = None
+        self,
+        eventos: List[EventoTramitacao],
+        fallback_tempo: int,
+        proposicao: Optional[Any] = None,
     ) -> int:
         if not eventos:
             return fallback_tempo
@@ -106,7 +109,7 @@ class DashboardService:
                 fim = date.today()
                 if proposicao:
                     proposicao.data_encerramento = None
-            
+
             return (fim - inicio).days
         except (ValueError, AttributeError):
             return fallback_tempo
@@ -154,7 +157,7 @@ class DashboardService:
             eventos = mapa_eventos.get(str(p.id), [])
             tempo = self._calcular_tempo_total(eventos, p.tempo_total_dias or 0, p)
             status = self._extrair_status_atual(eventos, p.status)
-            
+
             # Atraso crítico só faz sentido se a proposição ainda estiver aberta
             atraso_critico = (tempo > 180) and (p.data_encerramento is None)
 
@@ -235,7 +238,7 @@ class DashboardService:
 
     def obter_metricas(self, filtros: Optional[Dict] = None) -> Dict:
         cache_key = self._gerar_cache_key("dashboard:metricas", filtros)
-        
+
         cached = self._get_cached(cache_key)
         if cached:
             return cached

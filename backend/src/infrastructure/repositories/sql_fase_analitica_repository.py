@@ -27,13 +27,17 @@ class SQLFaseAnaliticaRepository:
 
     def buscar_por_codigo(self, codigo: str) -> Optional[FaseAnalitica]:
         """Busca uma fase pelo seu código único."""
-        statement = select(FaseAnaliticaModel).where(FaseAnaliticaModel.codigo == codigo)
+        statement = select(FaseAnaliticaModel).where(
+            FaseAnaliticaModel.codigo == codigo
+        )
         model = self.session.exec(statement).first()
         return self._to_entity(model) if model else None
 
     def buscar_todas(self) -> List[FaseAnalitica]:
         """Lista todas as fases ordenadas por ordem_logica."""
-        statement = select(FaseAnaliticaModel).order_by(FaseAnaliticaModel.ordem_logica.asc())
+        statement = select(FaseAnaliticaModel).order_by(
+            FaseAnaliticaModel.ordem_logica.asc()
+        )
         models = self.session.exec(statement).all()
         return [self._to_entity(m) for m in models]
 
