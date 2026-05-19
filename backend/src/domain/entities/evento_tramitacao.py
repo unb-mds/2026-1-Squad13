@@ -1,5 +1,6 @@
+import re
 from typing import Optional
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel
 from pydantic import field_validator
 
 # Regex para validar formato ISO: YYYY-MM-DD com hora opcional
@@ -15,8 +16,8 @@ class EventoTramitacao(SQLModel):
 
     evento_id: Optional[int] = None
     proposicao_id: str
-    data_evento: str = Field(pattern=_ISO_DATE_PATTERN)
-    sequencia: int = Field(ge=1)
+    data_evento: str
+    sequencia: int
     sigla_orgao: Optional[str] = None
     descricao_original: str
 
@@ -37,6 +38,24 @@ class EventoTramitacao(SQLModel):
 
     # Auditoria
     payload_bruto: Optional[dict] = None
+
+    @field_validator("data_evento")
+    @classmethod
+    def validar_data_evento(cls, v: str) -> str:
+        if not re.match(_ISO_DATE_PATTERN, v):
+            raise ValueError(
+                f"data_evento deve estar no formato ISO "
+                f"(YYYY-MM-DD[Thh:mm[:ss]]), "
+                f"recebido: '{v}'"
+            )
+        return v
+
+    @field_validator("sequencia")
+    @classmethod
+    def validar_sequencia(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError(f"sequencia deve ser >= 1, recebido: {v}")
+        return v
 
     @field_validator("tipo_evento")
     @classmethod

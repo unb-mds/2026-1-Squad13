@@ -55,8 +55,15 @@ class DashboardService:
         if not filtros:
             return base_key
 
-        # Gera um hash MD5 determinístico dos filtros
-        filtros_json = json.dumps(filtros, sort_keys=True)
+        # Sanitiza filtros para garantir apenas tipos serializáveis (str, int, float, bool, None)
+        filtros_sanitizados = {
+            k: v
+            for k, v in filtros.items()
+            if isinstance(v, (str, int, float, bool)) or v is None
+        }
+
+        # Gera um hash MD5 determinístico dos filtros sanitizados
+        filtros_json = json.dumps(filtros_sanitizados, sort_keys=True)
         filtros_hash = hashlib.md5(filtros_json.encode()).hexdigest()
         return f"{base_key}:{filtros_hash}"
 
