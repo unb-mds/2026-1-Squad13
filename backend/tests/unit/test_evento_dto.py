@@ -16,6 +16,7 @@ def test_evento_dto_campos_nulos_permitidos():
         "mudouOrgao": False,
         "diasNaEtapa": 10,
         "temAtraso": False,
+        "relevante": False,
     }
     # Como siglaOrgao, faseAnaliticaId e remessaOuRetorno não foram fornecidos, devem ser None
     obj = EventoTramitacaoResponse(**payload)
@@ -50,7 +51,9 @@ def test_evento_dto_aliases_camel_case():
         "remessaOuRetorno": "REMESSA",
         "diasNaEtapa": 100,
         "temAtraso": True,
+        "relevante": False,
     }
+
     obj = EventoTramitacaoResponse(**payload)
 
     # Valida que as chaves mapeiam pros atributos Python

@@ -17,15 +17,22 @@ class CamaraAdapter:
         self.base_url = "https://dadosabertos.camara.leg.br/api/v2"
         self.timeout = 20  # Timeout aumentado para lidar com lentidão eventual
 
-    async def _get_with_retry(self, client: httpx.AsyncClient, url: str, params: Optional[dict] = None) -> httpx.Response:
+    async def _get_with_retry(
+        self, client: httpx.AsyncClient, url: str, params: Optional[dict] = None
+    ) -> httpx.Response:
         """Helper para realizar GET com retry básico em caso de erros temporários."""
         max_retries = 3
         for attempt in range(max_retries):
             try:
                 resp = await client.get(url, params=params, timeout=self.timeout)
-                if resp.status_code in [429, 500, 502, 503, 504] and attempt < max_retries - 1:
+                if (
+                    resp.status_code in [429, 500, 502, 503, 504]
+                    and attempt < max_retries - 1
+                ):
                     wait_time = (attempt + 1) * 2
-                    logger.warning(f"Erro {resp.status_code} na Câmara. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s...")
+                    logger.warning(
+                        f"Erro {resp.status_code} na Câmara. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
+                    )
                     await asyncio.sleep(wait_time)
                     continue
                 resp.raise_for_status()
@@ -33,7 +40,9 @@ class CamaraAdapter:
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
                 if attempt < max_retries - 1:
                     wait_time = (attempt + 1) * 2
-                    logger.warning(f"Falha na conexão com Câmara: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s...")
+                    logger.warning(
+                        f"Falha na conexão com Câmara: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
+                    )
                     await asyncio.sleep(wait_time)
                 else:
                     raise
@@ -111,7 +120,7 @@ class CamaraAdapter:
         }
         if ano:
             params["ano"] = ano
-        
+
         async with httpx.AsyncClient(follow_redirects=True) as client:
             try:
                 resp = await self._get_with_retry(client, url, params=params)

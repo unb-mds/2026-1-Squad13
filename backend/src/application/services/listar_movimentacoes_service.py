@@ -5,13 +5,16 @@ Substitui o antigo ListarTramitacoesService. Orquestra a busca no banco (cache),
 fallback para a API externa via adapter, e normalização de tramitações.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from application.services.normalizar_tramitacao_service import (
     NormalizarTramitacaoService,
 )
+from application.services.agregar_por_fase_service import AgregarPorFaseService
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
+from domain.value_objects.periodo_fase import PeriodoFase
+from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.repositories.sql_apensamento_repository import (
@@ -51,8 +54,11 @@ class ListarMovimentacoesService:
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
         self.apensamento_repo = apensamento_repo
+        self._agregar_service = AgregarPorFaseService(fase_repo)
 
-    async def executar(self, proposicao_id: str) -> List[EventoTramitacao]:
+    async def executar(
+        self, proposicao_id: str, modo: ModoMovimentacao = ModoMovimentacao.RESUMIDO
+    ) -> Union[List[PeriodoFase], List[EventoTramitacao]]:
         """
         Retorna a lista de eventos normalizados para a proposição solicitada.
         Se não existirem no cache, busca na API, normaliza e salva.
@@ -73,53 +79,68 @@ class ListarMovimentacoesService:
 
         # 1. Tentar cache (banco de dados)
         eventos = self.evento_repo.buscar_por_proposicao(real_id)
-        if eventos:
-            return eventos
 
-        # 2. Se não está no cache, precisa saber a origem
-        proposicao = self.proposicao_repo.buscar_por_id(real_id)
+        # 2. Se não está no cache, busca na API
+        if not eventos:
+            proposicao = self.proposicao_repo.buscar_por_id(real_id)
 
-        # Determina o adapter e a casa padrão com base na proposição ou tenta fallback
-        dados_brutos = []
-        casa_padrao = CasaLegislativa.CAMARA
+            # Determina o adapter e a casa padrão com base na proposição ou tenta fallback
+            dados_brutos = []
+            casa_padrao = CasaLegislativa.CAMARA
 
-        if not proposicao:
-            # Fallback numérico
-            if not real_id.isdigit():
-                return []
+            if not proposicao:
+                # Fallback numérico
+                if not real_id.isdigit():
+                    return []
 
-            dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
-            if not dados_brutos:
-                dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
-                    int(real_id)
-                )
-                casa_padrao = CasaLegislativa.SENADO
-        else:
-            if "Câmara" in (proposicao.orgao_origem or ""):
                 dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(
                     int(real_id)
                 )
-                casa_padrao = CasaLegislativa.CAMARA
+                if not dados_brutos:
+                    dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
+                        int(real_id)
+                    )
+                    casa_padrao = CasaLegislativa.SENADO
             else:
-                dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
-                    int(real_id)
+                if "Câmara" in (proposicao.orgao_origem or ""):
+                    dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(
+                        int(real_id)
+                    )
+                    casa_padrao = CasaLegislativa.CAMARA
+                else:
+                    dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
+                        int(real_id)
+                    )
+                    casa_padrao = CasaLegislativa.SENADO
+
+            if not dados_brutos:
+                eventos = []
+            else:
+                # 3. Normalizar
+                normalizer = NormalizarTramitacaoService(
+                    fase_repo=self.fase_repo,
+                    orgao_repo=self.orgao_repo,
+                    apensamento_repo=self.apensamento_repo,
+                    casa_padrao=casa_padrao,
                 )
-                casa_padrao = CasaLegislativa.SENADO
+                eventos = normalizer.normalizar(real_id, dados_brutos)
 
-        if not dados_brutos:
-            return []
+                # 4. Salvar no cache
+                if eventos:
+                    self.evento_repo.salvar_lote(eventos)
 
-        # 3. Normalizar
-        normalizer = NormalizarTramitacaoService(
-            fase_repo=self.fase_repo,
-            orgao_repo=self.orgao_repo,
-            apensamento_repo=self.apensamento_repo,
-            casa_padrao=casa_padrao,
-        )
-        eventos_novos = normalizer.normalizar(real_id, dados_brutos)
+        # 5. Aplica a lógica do modo
+        if modo == ModoMovimentacao.RESUMIDO:
+            proposicao = self.proposicao_repo.buscar_por_id(real_id)
+            status = proposicao.status if proposicao else ""
+            data_enc = proposicao.data_encerramento if proposicao else None
+            return self._agregar_service.executar(
+                eventos,
+                proposicao_encerrada=status == "Encerrada",
+                data_encerramento=data_enc,
+            )
 
-        # 4. Salvar no cache
-        if eventos_novos:
-            self.evento_repo.salvar_lote(eventos_novos)
+        if modo == ModoMovimentacao.RELEVANTE:
+            return [e for e in eventos if e.relevante]
 
-        return eventos_novos
+        return eventos
