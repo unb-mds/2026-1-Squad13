@@ -39,9 +39,11 @@ def test_seed_orgaos_insere_3_registros(session: Session):
     assert len(orgaos) >= 1
 
     # Verificar que existem exatamente 3 órgãos no total (PLEN, MESA, SECCJ)
-    total = len(repo.buscar_por_sigla("PLEN")) + \
-            len(repo.buscar_por_sigla("MESA")) + \
-            len(repo.buscar_por_sigla("SECCJ"))
+    total = (
+        len(repo.buscar_por_sigla("PLEN"))
+        + len(repo.buscar_por_sigla("MESA"))
+        + len(repo.buscar_por_sigla("SECCJ"))
+    )
     assert total == 3
 
 
@@ -52,9 +54,11 @@ def test_seed_orgaos_idempotente(session: Session):
     repo.seed_orgaos()
     repo.seed_orgaos()
 
-    total = len(repo.buscar_por_sigla("PLEN")) + \
-            len(repo.buscar_por_sigla("MESA")) + \
-            len(repo.buscar_por_sigla("SECCJ"))
+    total = (
+        len(repo.buscar_por_sigla("PLEN"))
+        + len(repo.buscar_por_sigla("MESA"))
+        + len(repo.buscar_por_sigla("SECCJ"))
+    )
     assert total == 3
 
 
