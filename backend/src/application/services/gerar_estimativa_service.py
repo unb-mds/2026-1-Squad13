@@ -1,4 +1,5 @@
 from typing import Protocol, List
+from infrastructure.config import settings
 from src.domain.services.estimativa_aprovacao_service import (
     EstimativaAprovacaoService,
     ResultadoEstimativa,
@@ -24,7 +25,9 @@ class GerarEstimativaUseCase:
 
     def __init__(self, repository: ProposicaoRepositoryInterface):
         self.repository = repository
-        self.domain_service = EstimativaAprovacaoService()
+        self.domain_service = EstimativaAprovacaoService(
+            threshold_minimo_amostra=settings.THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA
+        )
 
     def executar(self, tipo: str, tema: str) -> ResultadoEstimativa:
         # 1. Busca dados históricos (Ação de Infraestrutura)

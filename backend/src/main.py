@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,23 +7,35 @@ from presentation.controllers import (
     dashboard_controller,
     auth_controller,
 )
-from infrastructure.database import get_session
+from infrastructure.database import get_session, init_redis, close_redis
 from sqlmodel import Session, text
 from src import init_db
+
+# Configuração de Logging Estruturado
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: executado quando a aplicação inicia
-    print("🚀 Iniciando e verificando banco de dados...")
+    logger.info("🚀 Iniciando e verificando banco de dados...")
     try:
         init_db.run()
-        print("✅ Banco de dados pronto!")
+        logger.info("✅ Banco de dados pronto!")
+        # Inicializa pool de conexões Redis
+        init_redis()
+        logger.info("✅ Redis inicializado!")
     except Exception as e:
-        print(f"❌ Erro ao inicializar banco: {e}")
+        logger.error(f"❌ Erro ao inicializar serviços: {e}")
     yield
     # Shutdown: executado quando a aplicação encerra
-    print("👋 Backend Monitor Legislativo encerrado.")
+    close_redis()
+    logger.info("👋 Backend Monitor Legislativo encerrado.")
 
 
 app = FastAPI(title="Monitor Legislativo API", lifespan=lifespan)

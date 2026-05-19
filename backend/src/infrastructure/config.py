@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     As variáveis são lidas do ambiente ou de um arquivo .env.
     """
 
+    # Limite para relevância estatística na estimativa (MVP = 50)
+    THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA: int = 50
+
     model_config = SettingsConfigDict(
         env_file=".env",  # Procura na pasta atual
         env_file_encoding="utf-8",
@@ -26,7 +29,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 horas
 
     # Redis e Bloqueio de Conta
-    REDIS_HOST: str = "redis"
+    REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     TENTATIVAS_MAXIMAS: int = 5

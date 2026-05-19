@@ -2,36 +2,55 @@ from typing import List, Optional
 from sqlalchemy import func
 from sqlmodel import Session, select
 from domain.entities.proposicao import Proposicao
+from infrastructure.database.models.proposicao_model import ProposicaoModel
 
 
 class SQLProposicaoRepository:
     """
     Implementação do repositório utilizando SQLModel e PostgreSQL.
+    Opera sobre ProposicaoModel (infra) e retorna Proposicao (domínio).
     """
 
     def __init__(self, session: Session):
         self.session = session
 
+    def _to_entity(self, model: ProposicaoModel) -> Proposicao:
+        return Proposicao.model_validate(model.model_dump())
+
+    def _to_model(self, entity: Proposicao) -> ProposicaoModel:
+        return ProposicaoModel.model_validate(entity.model_dump())
+
     def salvar(self, proposicao: Proposicao) -> Proposicao:
         """Salva ou atualiza uma proposição no banco."""
-        self.session.add(proposicao)
+        model = self._to_model(proposicao)
+        # Tenta buscar se já existe para fazer merge
+        if model.id:
+            existing = self.session.get(ProposicaoModel, model.id)
+            if existing:
+                for key, value in model.model_dump(exclude={"id"}).items():
+                    setattr(existing, key, value)
+                model = existing
+
+        self.session.add(model)
         self.session.commit()
-        self.session.refresh(proposicao)
-        return proposicao
+        self.session.refresh(model)
+        return self._to_entity(model)
 
     def buscar_por_id(self, id: str) -> Optional[Proposicao]:
-        return self.session.get(Proposicao, id)
+        model = self.session.get(ProposicaoModel, id)
+        return self._to_entity(model) if model else None
 
     def buscar_por_codigo(
         self, tipo: str, numero: str, ano: int
     ) -> Optional[Proposicao]:
         """Busca uma proposição pelo conjunto único Tipo, Número e Ano."""
-        statement = select(Proposicao).where(
-            func.lower(Proposicao.tipo) == tipo.lower(),
-            Proposicao.numero == str(numero),
-            Proposicao.ano == ano,
+        statement = select(ProposicaoModel).where(
+            func.lower(ProposicaoModel.tipo) == tipo.lower(),
+            ProposicaoModel.numero == str(numero),
+            ProposicaoModel.ano == ano,
         )
-        return self.session.exec(statement).first()
+        model = self.session.exec(statement).first()
+        return self._to_entity(model) if model else None
 
     def filtrar(
         self,
@@ -48,49 +67,56 @@ class SQLProposicaoRepository:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> List[Proposicao]:
-        statement = select(Proposicao)
+        statement = select(ProposicaoModel)
 
         if tipo:
-            statement = statement.where(func.lower(Proposicao.tipo) == tipo.lower())
+            statement = statement.where(
+                func.lower(ProposicaoModel.tipo) == tipo.lower()
+            )
         if numero:
-            statement = statement.where(Proposicao.numero == str(numero))
+            statement = statement.where(ProposicaoModel.numero == str(numero))
         if ano:
-            statement = statement.where(Proposicao.ano == ano)
+            statement = statement.where(ProposicaoModel.ano == ano)
         if autor:
             statement = statement.where(
-                func.lower(Proposicao.autor).contains(autor.lower())
+                func.lower(ProposicaoModel.autor).contains(autor.lower())
             )
         if uf_autor:
             statement = statement.where(
-                func.lower(Proposicao.uf_autor) == uf_autor.lower()
+                func.lower(ProposicaoModel.uf_autor) == uf_autor.lower()
             )
         if status:
-            statement = statement.where(func.lower(Proposicao.status) == status.lower())
+            statement = statement.where(
+                func.lower(ProposicaoModel.status) == status.lower()
+            )
         if orgao_origem:
             statement = statement.where(
-                func.lower(Proposicao.orgao_origem) == orgao_origem.lower()
+                func.lower(ProposicaoModel.orgao_origem) == orgao_origem.lower()
             )
         if data_inicio:
-            statement = statement.where(Proposicao.data_apresentacao >= data_inicio)
+            statement = statement.where(
+                ProposicaoModel.data_apresentacao >= data_inicio
+            )
         if data_fim:
-            statement = statement.where(Proposicao.data_apresentacao <= data_fim)
+            statement = statement.where(ProposicaoModel.data_apresentacao <= data_fim)
 
         if busca:
             termo = f"%{busca}%"
             statement = statement.where(
-                (Proposicao.ementa.ilike(termo))
-                | (Proposicao.numero.ilike(termo))
-                | (Proposicao.autor.ilike(termo))
+                (ProposicaoModel.ementa.ilike(termo))
+                | (ProposicaoModel.numero.ilike(termo))
+                | (ProposicaoModel.autor.ilike(termo))
             )
 
-        statement = statement.order_by(Proposicao.id)
+        statement = statement.order_by(ProposicaoModel.id)
 
         if offset is not None:
             statement = statement.offset(offset)
         if limit is not None:
             statement = statement.limit(limit)
 
-        return list(self.session.exec(statement).all())
+        models = self.session.exec(statement).all()
+        return [self._to_entity(m) for m in models]
 
     def contar(
         self,
@@ -105,39 +131,45 @@ class SQLProposicaoRepository:
         data_inicio: Optional[str] = None,
         data_fim: Optional[str] = None,
     ) -> int:
-        statement = select(func.count()).select_from(Proposicao)
+        statement = select(func.count()).select_from(ProposicaoModel)
 
         if tipo:
-            statement = statement.where(func.lower(Proposicao.tipo) == tipo.lower())
+            statement = statement.where(
+                func.lower(ProposicaoModel.tipo) == tipo.lower()
+            )
         if numero:
-            statement = statement.where(Proposicao.numero == str(numero))
+            statement = statement.where(ProposicaoModel.numero == str(numero))
         if ano:
-            statement = statement.where(Proposicao.ano == ano)
+            statement = statement.where(ProposicaoModel.ano == ano)
         if autor:
             statement = statement.where(
-                func.lower(Proposicao.autor).contains(autor.lower())
+                func.lower(ProposicaoModel.autor).contains(autor.lower())
             )
         if uf_autor:
             statement = statement.where(
-                func.lower(Proposicao.uf_autor) == uf_autor.lower()
+                func.lower(ProposicaoModel.uf_autor) == uf_autor.lower()
             )
         if status:
-            statement = statement.where(func.lower(Proposicao.status) == status.lower())
+            statement = statement.where(
+                func.lower(ProposicaoModel.status) == status.lower()
+            )
         if orgao_origem:
             statement = statement.where(
-                func.lower(Proposicao.orgao_origem) == orgao_origem.lower()
+                func.lower(ProposicaoModel.orgao_origem) == orgao_origem.lower()
             )
         if data_inicio:
-            statement = statement.where(Proposicao.data_apresentacao >= data_inicio)
+            statement = statement.where(
+                ProposicaoModel.data_apresentacao >= data_inicio
+            )
         if data_fim:
-            statement = statement.where(Proposicao.data_apresentacao <= data_fim)
+            statement = statement.where(ProposicaoModel.data_apresentacao <= data_fim)
 
         if busca:
             termo = f"%{busca}%"
             statement = statement.where(
-                (Proposicao.ementa.ilike(termo))
-                | (Proposicao.numero.ilike(termo))
-                | (Proposicao.autor.ilike(termo))
+                (ProposicaoModel.ementa.ilike(termo))
+                | (ProposicaoModel.numero.ilike(termo))
+                | (ProposicaoModel.autor.ilike(termo))
             )
 
         return self.session.exec(statement).one()
@@ -147,18 +179,14 @@ class SQLProposicaoRepository:
         Busca cirúrgica: traz apenas a coluna de tempo em dias de proposições
         que já foram concluídas e que casam com o tipo e tema solicitados.
         """
-        # Explicação Pedagógica: select(Proposicao.tempo_total_dias) em vez de select(Proposicao)
-        # faz com que o SQLModel gere um 'SELECT tempo_total_dias' apenas.
-        # Isso evita carregar strings gigantes de 'ementa' ou JSONs pesados na memória do Python.
-        statement = select(Proposicao.tempo_total_dias).where(
-            func.lower(Proposicao.tipo) == tipo.lower(),
+        statement = select(ProposicaoModel.tempo_total_dias).where(
+            func.lower(ProposicaoModel.tipo) == tipo.lower(),
             # Postgres JSONB contains: busca o tema dentro da lista de tags
-            Proposicao.tags.contains([tema]),
+            ProposicaoModel.tags.contains([tema]),
             # Apenas proposições concluídas têm um tempo de aprovação "final"
-            Proposicao.status.in_(["Concluída (Lei)", "Sancionada", "Aprovada"]),
-            Proposicao.tempo_total_dias > 0,
+            ProposicaoModel.status.in_(["Concluída (Lei)", "Sancionada", "Aprovada"]),
+            ProposicaoModel.tempo_total_dias > 0,
         )
 
         results = self.session.exec(statement).all()
-        # Garante que não retornamos None e limpamos a lista
         return [int(d) for d in results if d is not None]
