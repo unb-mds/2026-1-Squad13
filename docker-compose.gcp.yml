@@ -1,0 +1,33 @@
+# Override do docker-compose.yml para execução em VM remota (GCP dev/homologação).
+#
+# Uso:
+#   GCP_IP=<IP_EXTERNO_DA_VM> docker compose -f docker-compose.yml -f docker-compose.gcp.yml up -d --build
+#
+# Ou via script:
+#   ./start_gcp.sh
+#
+# O que este arquivo faz (diferenças em relação ao docker-compose.yml principal):
+#   - Remove exposição pública das portas de PostgreSQL e Redis (segurança)
+#   - Remove pgAdmin da composição padrão (não expor por padrão em ambiente remoto)
+#   - Injeta VITE_API_URL no frontend para que o JS aponte ao IP externo da VM
+#   - Injeta ALLOWED_ORIGINS no backend para liberar CORS do IP externo
+
+services:
+  db:
+    ports: !reset []
+
+  redis:
+    ports: !reset []
+
+  pgadmin:
+    profiles:
+      - pgadmin
+
+  backend:
+    environment:
+      - POSTGRES_HOST=db
+      - ALLOWED_ORIGINS=http://${GCP_IP}:5173
+
+  frontend:
+    environment:
+      - VITE_API_URL=http://${GCP_IP}:8000
