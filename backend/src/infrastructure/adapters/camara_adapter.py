@@ -1,6 +1,11 @@
 import requests
+import logging
 from typing import Optional, List
 from domain.entities.proposicao import Proposicao
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+logger = logging.getLogger(__name__)
 
 
 class CamaraAdapter:
@@ -11,17 +16,30 @@ class CamaraAdapter:
 
     def __init__(self):
         self.base_url = "https://dadosabertos.camara.leg.br/api/v2"
+        self.session = requests.Session()
+        
+        # Configuração de retry para resiliência (5 tentativas com backoff exponencial)
+        retry_strategy = Retry(
+            total=5,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+        self.timeout = 20  # Timeout aumentado para lidar com lentidão eventual
 
     def buscar_por_id(self, id_proposicao: int) -> Optional[Proposicao]:
         url_proposicao = f"{self.base_url}/proposicoes/{id_proposicao}"
         url_autores = f"{url_proposicao}/autores"
 
         try:
-            resp_prop = requests.get(url_proposicao, timeout=10)
+            resp_prop = self.session.get(url_proposicao, timeout=self.timeout)
             resp_prop.raise_for_status()
             dados = resp_prop.json()["dados"]
 
-            resp_autores = requests.get(url_autores, timeout=10)
+            resp_autores = self.session.get(url_autores, timeout=self.timeout)
             resp_autores.raise_for_status()
             autores_dados = resp_autores.json()["dados"]
 
@@ -36,15 +54,12 @@ class CamaraAdapter:
             data_ultima_movimentacao = status_info.get("dataHora", "")
             orgao_atual = status_info.get("siglaOrgao", "N/A")
 
-            # Tratamento para apensamento: se o órgão for o código de outra proposição
-            # (Ex: PEC22119), formatamos para ficar legível.
             if orgao_atual and any(
                 orgao_atual.startswith(prefix)
                 for prefix in ["PL", "PEC", "MPV", "PLP", "PDL"]
             ):
                 orgao_atual = f"Apensada ao {orgao_atual}"
 
-            # Normalização para a entidade Proposicao
             return Proposicao(
                 id=str(id_proposicao),
                 tipo=dados.get("siglaTipo", ""),
@@ -65,15 +80,14 @@ class CamaraAdapter:
             )
 
         except requests.exceptions.RequestException as e:
-            # TODO: Implementar logging adequado
-            print(f"Erro de rede ao buscar proposição {id_proposicao} na Câmara: {e}")
+            logger.error(f"Erro de rede ao buscar proposição {id_proposicao} na Câmara: {e}")
             return None
         except (KeyError, IndexError) as e:
-            print(f"Erro ao processar dados da Câmara para ID {id_proposicao}: {e}")
+            logger.error(f"Erro ao processar dados da Câmara para ID {id_proposicao}: {e}")
             return None
 
-    def listar_recentes(self, tipo: str, quantidade: int = 10) -> List[int]:
-        """Busca uma lista de IDs das proposições mais recentes de um determinado tipo."""
+    def listar_recentes(self, tipo: str, quantidade: int = 10, ano: Optional[int] = None) -> List[int]:
+        """Busca uma lista de IDs das proposições de um determinado tipo, opcionalmente por ano."""
         url = f"{self.base_url}/proposicoes"
         params = {
             "siglaTipo": tipo,
@@ -81,35 +95,29 @@ class CamaraAdapter:
             "ordenarPor": "ano",
             "itens": quantidade,
         }
+        if ano:
+            params["ano"] = ano
         try:
-            resp = requests.get(url, params=params, timeout=10)
+            resp = self.session.get(url, params=params, timeout=self.timeout)
             resp.raise_for_status()
             dados = resp.json()["dados"]
             return [d["id"] for d in dados]
         except Exception as e:
-            print(f"Erro ao listar proposições recentes na Câmara: {e}")
+            logger.error(f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}): {e}")
             return []
 
     def buscar_tramitacoes_brutas(self, id_proposicao: int) -> List[dict]:
         """
         Retorna payload bruto de cada tramitação da Câmara.
-
-        Cada dict contém:
-            - data_hora: str
-            - sequencia: int
-            - sigla_orgao: str
-            - descricao: str (descricaoTramitacao + despacho consolidados)
-            - payload_bruto: dict (JSON original para auditoria)
         """
         url = f"{self.base_url}/proposicoes/{id_proposicao}/tramitacoes"
         try:
-            resp = requests.get(url, timeout=10)
+            resp = self.session.get(url, timeout=self.timeout)
             resp.raise_for_status()
             dados = resp.json()["dados"]
 
             brutas = []
             for d in dados:
-                # Consolida descricao_tramitacao e despacho
                 desc_tram = d.get("descricaoTramitacao", "").strip()
                 despacho = d.get("despacho", "").strip()
 
@@ -120,6 +128,8 @@ class CamaraAdapter:
                     descricao_partes.append(despacho)
 
                 descricao_consolidada = " - ".join(descricao_partes)
+                if descricao_consolidada:
+                    descricao_consolidada = descricao_consolidada.capitalize()
 
                 brutas.append(
                     {
@@ -133,7 +143,7 @@ class CamaraAdapter:
 
             return brutas
         except Exception as e:
-            print(
+            logger.error(
                 f"Erro ao buscar tramitações brutas da Câmara para ID {id_proposicao}: {e}"
             )
             return []
