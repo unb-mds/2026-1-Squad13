@@ -11,18 +11,18 @@ class Proposicao(SQLModel):
     """
 
     id: Optional[str] = None
-    tipo: str
-    numero: str
-    ano: int
-    ementa: str
+    tipo: Optional[str] = None
+    numero: Optional[str] = None
+    ano: Optional[int] = None
+    ementa: Optional[str] = None
     ementa_resumida: Optional[str] = None
-    autor: str
+    autor: Optional[str] = None
     uf_autor: Optional[str] = None
     orgao_origem: Optional[str] = None
-    status: str
-    orgao_atual: str
-    data_apresentacao: str
-    data_ultima_movimentacao: str
+    status: Optional[str] = None
+    orgao_atual: Optional[str] = None
+    data_apresentacao: Optional[str] = None
+    data_ultima_movimentacao: Optional[str] = None
     tempo_total_dias: Optional[int] = 0
     tem_atraso: Optional[bool] = False
     tem_previsao_ia: Optional[bool] = False

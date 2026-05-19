@@ -5,6 +5,9 @@ from sqlalchemy.pool import StaticPool
 from main import app
 from infrastructure.database import get_session
 from domain.entities.proposicao import Proposicao
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 
 # Banco de dados SQLite em memória para cada teste
@@ -16,8 +19,9 @@ def session_fixture():
     )
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
+        repo = SQLProposicaoRepository(session)
         # Popular com dados básicos para os testes de busca funcionarem
-        session.add(
+        repo.salvar(
             Proposicao(
                 id="1",
                 tipo="PL",
@@ -33,7 +37,6 @@ def session_fixture():
                 tags=[],
             )
         )
-        session.commit()
         yield session
 
 
