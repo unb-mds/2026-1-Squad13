@@ -49,6 +49,7 @@ class EventoTramitacaoResponse(BaseModel):
     remessaOuRetorno: Optional[str] = Field(default=None, alias="remessaOuRetorno")
     diasNaEtapa: int = Field(alias="diasNaEtapa")
     temAtraso: bool = Field(alias="temAtraso")
+    relevante: bool
 
 
 class ProposicaoResponse(BaseModel):
@@ -88,9 +89,33 @@ class ProposicoesListResponse(BaseModel):
     totalPaginas: int = Field(alias="totalPaginas")
 
 
+from domain.value_objects.modo_movimentacao import ModoMovimentacao
+
 class StatusEstimativa(str, Enum):
     CALCULADA = "CALCULADA"
     DADOS_INSUFICIENTES = "DADOS_INSUFICIENTES"
+
+
+class EventoResumoResponse(BaseModel):
+    eventoId: Optional[int] = Field(default=None, alias="eventoId")
+    tipoEvento: str = Field(alias="tipoEvento")
+    descricaoOriginal: str = Field(alias="descricaoOriginal")
+    dataEvento: str = Field(alias="dataEvento")
+    siglaOrgao: Optional[str] = Field(default=None, alias="siglaOrgao")
+    deliberativo: bool
+    diasNaEtapa: Optional[int] = Field(default=None, alias="diasNaEtapa")
+    marcaApensacao: bool = Field(alias="marcaApensacao")
+
+
+class PeriodoFaseResponse(BaseModel):
+    faseCodigo: str = Field(alias="faseCodigo")
+    faseNome: str = Field(alias="faseNome")
+    ordemLogica: int = Field(alias="ordemLogica")
+    ocorrencia: int
+    dataEntrada: str = Field(alias="dataEntrada")
+    dataSaida: Optional[str] = Field(default=None, alias="dataSaida")
+    diasCorridos: int = Field(alias="diasCorridos")
+    eventosRelevantes: List[EventoResumoResponse] = Field(alias="eventosRelevantes")
 
 
 class EstimativaAprovacaoResponse(BaseModel):
@@ -153,6 +178,32 @@ def _to_evento_response(e) -> dict:
         "remessaOuRetorno": e.remessa_ou_retorno,
         "diasNaEtapa": e.dias_na_etapa,
         "temAtraso": e.tem_atraso,
+        "relevante": getattr(e, "relevante", False),
+    }
+
+
+def _to_periodo_response(p) -> dict:
+    return {
+        "faseCodigo": p.fase_codigo,
+        "faseNome": p.fase_nome,
+        "ordemLogica": p.ordem_logica,
+        "ocorrencia": p.ocorrencia,
+        "dataEntrada": p.data_entrada.isoformat(),
+        "dataSaida": p.data_saida.isoformat() if p.data_saida else None,
+        "diasCorridos": p.dias_corridos,
+        "eventosRelevantes": [
+            {
+                "eventoId": e.evento_id,
+                "tipoEvento": e.tipo_evento,
+                "descricaoOriginal": e.descricao_original,
+                "dataEvento": e.data_evento.replace(" ", "T"),
+                "siglaOrgao": e.sigla_orgao,
+                "deliberativo": e.deliberativo,
+                "diasNaEtapa": e.dias_na_etapa,
+                "marcaApensacao": e.marca_apensacao,
+            }
+            for e in p.eventos_relevantes
+        ],
     }
 
 
@@ -161,9 +212,13 @@ def _to_evento_response(e) -> dict:
 
 @router.get(
     "/proposicoes/{id}/movimentacoes",
-    response_model=List[EventoTramitacaoResponse],
+    response_model=List[dict],
 )
-def listar_movimentacoes(id: str, session: Session = Depends(get_session)):
+def listar_movimentacoes(
+    id: str,
+    modo: ModoMovimentacao = Query(default=ModoMovimentacao.RESUMIDO),
+    session: Session = Depends(get_session),
+):
     evento_repo = SQLEventoTramitacaoRepository(session)
     proposicao_repo = SQLProposicaoRepository(session)
     camara_adapter = CamaraAdapter()
@@ -184,12 +239,20 @@ def listar_movimentacoes(id: str, session: Session = Depends(get_session)):
     )
 
     try:
-        movimentacoes = service.executar(id)
-        return [_to_evento_response(e) for e in movimentacoes]
+        resultado = service.executar(id, modo=modo)
+
+        if modo == ModoMovimentacao.RESUMIDO:
+            return [_to_periodo_response(p) for p in resultado]
+        else:
+            return [_to_evento_response(e) for e in resultado]
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500, detail=f"Erro ao buscar movimentações: {str(e)}"
         )
+
 
 
 @router.get("/proposicoes", response_model=ProposicoesListResponse)
