@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlmodel import Session
-from infrastructure.database import get_session, get_redis_connection
+from infrastructure.database import get_session, get_redis_client
 from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import decode_access_token
 from infrastructure.adapters.redis_blacklist_adapter import RedisTokenBlacklistAdapter
@@ -25,7 +25,7 @@ def get_auth_service(session: Session = Depends(get_session)) -> AuthService:
     Instancia o RedisTokenBlacklistAdapter, RedisLoginAttemptAdapter e o injeta.
     """
     repository = SQLUserRepository(session)
-    redis_conn = get_redis_connection()
+    redis_conn = get_redis_client()
     attempt_provider = RedisLoginAttemptAdapter(redis_conn)
     blacklist_adapter = RedisTokenBlacklistAdapter(redis_conn)
     return AuthService(
@@ -37,7 +37,7 @@ def get_solicitar_recuperacao_usecase(
     session: Session = Depends(get_session),
 ) -> SolicitarRecuperacaoSenhaUseCase:
     user_repo = SQLUserRepository(session)
-    redis_conn = get_redis_connection()
+    redis_conn = get_redis_client()
     token_provider = RedisPasswordResetTokenProvider(redis_conn)
     email_sender = DummyEmailSender()
     return SolicitarRecuperacaoSenhaUseCase(user_repo, token_provider, email_sender)
@@ -47,7 +47,7 @@ def get_redefinir_senha_usecase(
     session: Session = Depends(get_session),
 ) -> RedefinirSenhaUseCase:
     user_repo = SQLUserRepository(session)
-    redis_conn = get_redis_connection()
+    redis_conn = get_redis_client()
     token_provider = RedisPasswordResetTokenProvider(redis_conn)
     return RedefinirSenhaUseCase(user_repo, token_provider)
 

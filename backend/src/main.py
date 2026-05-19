@@ -7,7 +7,7 @@ from presentation.controllers import (
     dashboard_controller,
     auth_controller,
 )
-from infrastructure.database import get_session
+from infrastructure.database import get_session, init_redis, close_redis
 from sqlmodel import Session, text
 from src import init_db
 
@@ -27,10 +27,14 @@ async def lifespan(app: FastAPI):
     try:
         init_db.run()
         logger.info("✅ Banco de dados pronto!")
+        # Inicializa pool de conexões Redis
+        init_redis()
+        logger.info("✅ Redis inicializado!")
     except Exception as e:
-        logger.error(f"❌ Erro ao inicializar banco: {e}")
+        logger.error(f"❌ Erro ao inicializar serviços: {e}")
     yield
     # Shutdown: executado quando a aplicação encerra
+    close_redis()
     logger.info("👋 Backend Monitor Legislativo encerrado.")
 
 
