@@ -13,7 +13,7 @@ import argparse
 from sqlmodel import Session, select, func
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import init_db, get_session, get_redis_connection, engine
+from infrastructure.database import init_db, get_session, get_redis_client, engine
 from infrastructure.database.models.proposicao_model import ProposicaoModel
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
@@ -189,7 +189,7 @@ def run(force=False) -> None:
 
     # 5. Invalidação de Cache
     try:
-        redis_conn = get_redis_connection()
+        redis_conn = get_redis_client()
         RedisClient(redis_conn).invalidate("dashboard:")
         print("✅ Cache limpo.")
     except Exception:

@@ -10,6 +10,9 @@ from infrastructure.repositories.sql_proposicao_repository import (
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
+from infrastructure.repositories.sql_fase_analitica_repository import (
+    SQLFaseAnaliticaRepository,
+)
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
 
@@ -24,10 +27,12 @@ class DashboardService:
         self,
         repository: SQLProposicaoRepository,
         evento_repo: SQLEventoTramitacaoRepository,
+        fase_repo: Optional[SQLFaseAnaliticaRepository] = None,
         cache_provider: Optional[CacheProvider] = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
+        self.fase_repo = fase_repo
         self.cache_provider = cache_provider
         self.cache_ttl = 86400  # 24 horas em segundos
 
@@ -55,8 +60,15 @@ class DashboardService:
         if not filtros:
             return base_key
 
-        # Gera um hash MD5 determinístico dos filtros
-        filtros_json = json.dumps(filtros, sort_keys=True)
+        # Sanitiza filtros para garantir apenas tipos serializáveis (str, int, float, bool, None)
+        filtros_sanitizados = {
+            k: v
+            for k, v in filtros.items()
+            if isinstance(v, (str, int, float, bool)) or v is None
+        }
+
+        # Gera um hash MD5 determinístico dos filtros sanitizados
+        filtros_json = json.dumps(filtros_sanitizados, sort_keys=True)
         filtros_hash = hashlib.md5(filtros_json.encode()).hexdigest()
         return f"{base_key}:{filtros_hash}"
 
@@ -524,3 +536,88 @@ class DashboardService:
 
         self._set_cache(cache_key, resultado)
         return resultado
+
+    def obter_tempo_por_fase(self) -> List[Dict]:
+        """
+        Calcula o tempo médio que proposições passam em cada fase analítica.
+
+        Retorna apenas fases com ao menos uma proposição registrada,
+        ordenadas por ordem_logica. Eventos sem fase_analitica_id são ignorados.
+        """
+        if self.fase_repo is None:
+            return []
+
+        fases = self.fase_repo.buscar_todas()
+        if not fases:
+            return []
+
+        mapa_fases = {f.id: {"codigo": f.codigo, "nome": f.nome, "ordem": f.ordem_logica} for f in fases}
+
+        todas = self.repository.filtrar()
+        if not todas:
+            return []
+
+        ids = [str(p.id) for p in todas]
+        mapa_eventos = self.evento_repo.buscar_por_multiplas_proposicoes(ids)
+
+        # {fase_id: {"dias": [...], "proposicoes": set()}}
+        acumulador: Dict[int, Dict] = {}
+
+        for prop in todas:
+            eventos = mapa_eventos.get(str(prop.id), [])
+            # filtra eventos sem fase definida
+            eventos_com_fase = [e for e in eventos if e.fase_analitica_id is not None]
+            if not eventos_com_fase:
+                continue
+
+            fase_atual: Optional[int] = None
+            data_entrada: Optional[str] = None
+
+            for evento in eventos_com_fase:
+                if evento.fase_analitica_id != fase_atual:
+                    # registra tempo na fase anterior
+                    if fase_atual is not None and data_entrada is not None:
+                        try:
+                            entrada = datetime.fromisoformat(data_entrada[:10]).date()
+                            saida = datetime.fromisoformat(evento.data_evento[:10]).date()
+                            dias = (saida - entrada).days
+                            if dias >= 0:
+                                if fase_atual not in acumulador:
+                                    acumulador[fase_atual] = {"dias": [], "proposicoes": set()}
+                                acumulador[fase_atual]["dias"].append(dias)
+                                acumulador[fase_atual]["proposicoes"].add(str(prop.id))
+                        except (ValueError, AttributeError):
+                            pass
+
+                    fase_atual = evento.fase_analitica_id
+                    data_entrada = evento.data_evento
+
+            # registra tempo da última fase (ainda em tramitação ou encerrada)
+            if fase_atual is not None and data_entrada is not None:
+                try:
+                    entrada = datetime.fromisoformat(data_entrada[:10]).date()
+                    saida = date.today()
+                    dias = (saida - entrada).days
+                    if dias >= 0:
+                        if fase_atual not in acumulador:
+                            acumulador[fase_atual] = {"dias": [], "proposicoes": set()}
+                        acumulador[fase_atual]["dias"].append(dias)
+                        acumulador[fase_atual]["proposicoes"].add(str(prop.id))
+                except (ValueError, AttributeError):
+                    pass
+
+        resultado = []
+        for fase_id, dados in acumulador.items():
+            info = mapa_fases.get(fase_id)
+            if info is None:
+                continue
+            tempo_medio = sum(dados["dias"]) / len(dados["dias"]) if dados["dias"] else 0
+            resultado.append({
+                "fase": info["nome"],
+                "codigoFase": info["codigo"],
+                "ordemLogica": info["ordem"],
+                "tempoMedioDias": int(tempo_medio),
+                "quantidadeProposicoes": len(dados["proposicoes"]),
+            })
+
+        return sorted(resultado, key=lambda x: x["ordemLogica"])

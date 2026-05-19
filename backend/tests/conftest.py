@@ -1,5 +1,48 @@
 import pytest
+from unittest.mock import MagicMock
 from domain.entities.proposicao import Proposicao
+
+
+@pytest.fixture(autouse=True)
+def mock_redis(monkeypatch):
+    """
+    Mock global do Redis para evitar timeouts e dependência de serviço externo nos testes.
+    Bypassa conexões lentas ou inexistentes durante a execução dos testes.
+    """
+    mock = MagicMock()
+    # Configura comportamentos padrão para não quebrar a lógica de negócio
+    mock.get.return_value = None
+    mock.exists.return_value = 0
+    mock.incr.return_value = 1
+    mock.ttl.return_value = -1
+
+    # Mock em múltiplos locais para garantir que pegue independentemente da forma de importação
+    monkeypatch.setattr("infrastructure.database.get_redis_client", lambda: mock)
+    try:
+        # Pega o local onde é usado nas dependências do FastAPI
+        monkeypatch.setattr(
+            "presentation.auth_dependencies.get_redis_client", lambda: mock
+        )
+    except (ImportError, AttributeError):
+        pass
+
+    return mock
+
+
+@pytest.fixture(autouse=True)
+def fast_bcrypt(monkeypatch):
+    """
+    Reduz o custo do bcrypt durante os testes para acelerar a execução.
+    Impacto: 0.18s -> 0.001s por hash.
+    """
+    import bcrypt
+
+    original_gensalt = bcrypt.gensalt
+
+    def mocked_gensalt(rounds=4):
+        return original_gensalt(rounds=4)
+
+    monkeypatch.setattr(bcrypt, "gensalt", mocked_gensalt)
 
 
 @pytest.fixture
