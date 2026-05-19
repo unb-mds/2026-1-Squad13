@@ -4,7 +4,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
 from main import app
 from infrastructure.database import get_session
-from domain.entities.proposicao import Proposicao
+from infrastructure.database.models.proposicao_model import ProposicaoModel
 
 
 # Engine único para cada worker (processo) do xdist
@@ -38,10 +38,10 @@ def session_fixture(engine):
         # 1. Verificar se a proposição ID '1' já existe para evitar IntegrityError
         # (Em tese, o rollback deveria limpar, mas se algo falhou no rollback anterior
         # ou se a sessão de transação for compartilhada de forma imprevista, isso protege)
-        existing = session.get(Proposicao, "1")
+        existing = session.get(ProposicaoModel, "1")
         if not existing:
             session.add(
-                Proposicao(
+                ProposicaoModel(
                     id="1",
                     tipo="PL",
                     numero="1",

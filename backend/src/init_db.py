@@ -1,21 +1,24 @@
+import logging
 from infrastructure.database import init_db, engine
 from sqlmodel import Session, select
-from domain.entities.user import User
+from infrastructure.database.models.user_model import UserModel
 from infrastructure.adapters.security_adapter import get_password_hash
 
 # Importando modelos para registro no metadata
-from domain.entities.proposicao import Proposicao  # noqa: F401
+from infrastructure.database.models.proposicao_model import ProposicaoModel  # noqa: F401
+
+logger = logging.getLogger(__name__)
 
 
 def seed_demo_user():
-    print("Verificando usuário de demonstração...")
+    logger.info("Verificando usuário de demonstração...")
     with Session(engine) as session:
-        statement = select(User).where(User.email == "demo@lextrack.gov.br")
+        statement = select(UserModel).where(UserModel.email == "demo@lextrack.gov.br")
         demo_user = session.exec(statement).first()
 
         if not demo_user:
-            print("Criando usuário de demonstração (demo@lextrack.gov.br)...")
-            user = User(
+            logger.info("Criando usuário de demonstração (demo@lextrack.gov.br)...")
+            user = UserModel(
                 nome="Demo User",
                 email="demo@lextrack.gov.br",
                 hashed_password=get_password_hash("demo123"),
@@ -23,16 +26,16 @@ def seed_demo_user():
             )
             session.add(user)
             session.commit()
-            print("Usuário de demonstração criado!")
+            logger.info("Usuário de demonstração criado!")
         else:
-            print("Usuário de demonstração já existe.")
+            logger.info("Usuário de demonstração já existe.")
 
 
 def run():
-    print("Criando tabelas no banco de dados...")
+    logger.info("Criando tabelas no banco de dados...")
     init_db()
     seed_demo_user()
-    print("Tabelas e dados iniciais configurados com sucesso!")
+    logger.info("Tabelas e dados iniciais configurados com sucesso!")
 
 
 if __name__ == "__main__":

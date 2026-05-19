@@ -17,11 +17,11 @@ def mock_redis(monkeypatch):
     mock.ttl.return_value = -1
 
     # Mock em múltiplos locais para garantir que pegue independentemente da forma de importação
-    monkeypatch.setattr("infrastructure.database.get_redis_connection", lambda: mock)
+    monkeypatch.setattr("infrastructure.database.get_redis_client", lambda: mock)
     try:
         # Pega o local onde é usado nas dependências do FastAPI
         monkeypatch.setattr(
-            "presentation.auth_dependencies.get_redis_connection", lambda: mock
+            "presentation.auth_dependencies.get_redis_client", lambda: mock
         )
     except (ImportError, AttributeError):
         pass

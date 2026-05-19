@@ -1,11 +1,15 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel
 from typing import Optional
 
 
-class User(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+class User(SQLModel):
+    """
+    Entidade de Domínio Pura para Usuário.
+    """
+
+    id: Optional[int] = None
     nome: str
-    email: str = Field(index=True, unique=True)
+    email: str
     hashed_password: str
     perfil: str = "analista"
 

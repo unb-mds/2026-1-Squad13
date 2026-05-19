@@ -1,4 +1,6 @@
 import logging
+import redis
+from jose import JWTError
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
@@ -120,8 +122,8 @@ class AuthService:
 
                 if ttl > 0:
                     self.token_blacklist.adicionar_na_blacklist(token, ttl)
-        except Exception as e:
-            # Swallows exception to avoid breaking the logout response, but logs for monitoring
+        except (JWTError, redis.RedisError) as e:
+            # Swallows specific infra/token exceptions to avoid breaking logout response, but logs for monitoring
             logger.error(f"Falha ao processar logout/blacklist para o token: {e}")
 
     def verificar_token_blacklist(self, token: str) -> None:

@@ -1,4 +1,5 @@
 import json
+import hashlib
 from typing import Dict, List, Optional, Any
 from datetime import datetime, date
 
@@ -8,6 +9,9 @@ from infrastructure.repositories.sql_proposicao_repository import (
 )
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
+)
+from infrastructure.repositories.sql_fase_analitica_repository import (
+    SQLFaseAnaliticaRepository,
 )
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
@@ -23,10 +27,12 @@ class DashboardService:
         self,
         repository: SQLProposicaoRepository,
         evento_repo: SQLEventoTramitacaoRepository,
+        fase_repo: Optional[SQLFaseAnaliticaRepository] = None,
         cache_provider: Optional[CacheProvider] = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
+        self.fase_repo = fase_repo
         self.cache_provider = cache_provider
         self.cache_ttl = 86400  # 24 horas em segundos
 
@@ -49,8 +55,28 @@ class DashboardService:
         if self.cache_provider:
             self.cache_provider.set(key, json.dumps(value), self.cache_ttl)
 
+    def _gerar_cache_key(self, base_key: str, filtros: Optional[Dict] = None) -> str:
+        """Gera uma chave de cache única baseada no hash dos filtros."""
+        if not filtros:
+            return base_key
+
+        # Sanitiza filtros para garantir apenas tipos serializáveis (str, int, float, bool, None)
+        filtros_sanitizados = {
+            k: v
+            for k, v in filtros.items()
+            if isinstance(v, (str, int, float, bool)) or v is None
+        }
+
+        # Gera um hash MD5 determinístico dos filtros sanitizados
+        filtros_json = json.dumps(filtros_sanitizados, sort_keys=True)
+        filtros_hash = hashlib.md5(filtros_json.encode()).hexdigest()
+        return f"{base_key}:{filtros_hash}"
+
     def _calcular_tempo_total(
-        self, eventos: List[EventoTramitacao], fallback_tempo: int
+        self,
+        eventos: List[EventoTramitacao],
+        fallback_tempo: int,
+        proposicao: Optional[Any] = None,
     ) -> int:
         if not eventos:
             return fallback_tempo
@@ -86,11 +112,16 @@ class DashboardService:
                 primeiro_evento.data_evento.replace("Z", "+00:00")
             ).date()
             if ultimo_evento_terminal:
-                fim = datetime.fromisoformat(
-                    ultimo_evento_terminal.data_evento.replace("Z", "+00:00")
-                ).date()
+                fim_dt_iso = ultimo_evento_terminal.data_evento.replace("Z", "+00:00")
+                fim = datetime.fromisoformat(fim_dt_iso).date()
+                # Se temos a instância da proposição, marcamos a data de encerramento
+                if proposicao:
+                    proposicao.data_encerramento = fim.isoformat()
             else:
                 fim = date.today()
+                if proposicao:
+                    proposicao.data_encerramento = None
+
             return (fim - inicio).days
         except (ValueError, AttributeError):
             return fallback_tempo
@@ -136,9 +167,11 @@ class DashboardService:
         dados = []
         for p in proposicoes:
             eventos = mapa_eventos.get(str(p.id), [])
-            tempo = self._calcular_tempo_total(eventos, p.tempo_total_dias or 0)
+            tempo = self._calcular_tempo_total(eventos, p.tempo_total_dias or 0, p)
             status = self._extrair_status_atual(eventos, p.status)
-            atraso_critico = tempo > 180
+
+            # Atraso crítico só faz sentido se a proposição ainda estiver aberta
+            atraso_critico = (tempo > 180) and (p.data_encerramento is None)
 
             dados.append(
                 {
@@ -215,14 +248,14 @@ class DashboardService:
 
         return "Outros"
 
-    def obter_metricas(self) -> Dict:
-        cache_key = "dashboard:metricas"
+    def obter_metricas(self, filtros: Optional[Dict] = None) -> Dict:
+        cache_key = self._gerar_cache_key("dashboard:metricas", filtros)
 
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
 
         if not todas:
             resultado_vazio = {
@@ -290,13 +323,13 @@ class DashboardService:
 
         return resultado
 
-    def obter_dados_tipo(self) -> List[Dict]:
-        cache_key = "dashboard:dados_tipo"
+    def obter_dados_tipo(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:dados_tipo", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
 
         tipos: Dict[str, Dict] = {}
@@ -320,16 +353,17 @@ class DashboardService:
                 }
             )
         resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_dados_comissao(self) -> List[Dict]:
-        cache_key = "dashboard:dados_comissao"
+    def obter_dados_comissao(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:dados_comissao", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
 
         orgaos: Dict[str, Dict] = {}
@@ -354,16 +388,17 @@ class DashboardService:
                 }
             )
         resultado = sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
+
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_dados_status(self) -> List[Dict]:
-        cache_key = "dashboard:dados_status"
+    def obter_dados_status(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:dados_status", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         if not todas:
             return []
 
@@ -383,16 +418,17 @@ class DashboardService:
             for status, qtd in contagem.items()
         ]
         resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_gargalos(self) -> List[Dict]:
-        cache_key = "dashboard:gargalos"
+    def obter_gargalos(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:gargalos", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
 
         orgaos: Dict[str, Dict] = {}
@@ -436,16 +472,17 @@ class DashboardService:
             )
 
         resultado = sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
+
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_comparacao_temas(self) -> List[Dict]:
-        cache_key = "dashboard:comparacao_temas"
+    def obter_comparacao_temas(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:comparacao_temas", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
 
         temas: Dict[str, Dict] = {}
@@ -496,5 +533,91 @@ class DashboardService:
             )
 
         resultado = sorted(resultado, key=lambda x: x["tempoMedioDias"])
+
         self._set_cache(cache_key, resultado)
         return resultado
+
+    def obter_tempo_por_fase(self) -> List[Dict]:
+        """
+        Calcula o tempo médio que proposições passam em cada fase analítica.
+
+        Retorna apenas fases com ao menos uma proposição registrada,
+        ordenadas por ordem_logica. Eventos sem fase_analitica_id são ignorados.
+        """
+        if self.fase_repo is None:
+            return []
+
+        fases = self.fase_repo.buscar_todas()
+        if not fases:
+            return []
+
+        mapa_fases = {f.id: {"codigo": f.codigo, "nome": f.nome, "ordem": f.ordem_logica} for f in fases}
+
+        todas = self.repository.filtrar()
+        if not todas:
+            return []
+
+        ids = [str(p.id) for p in todas]
+        mapa_eventos = self.evento_repo.buscar_por_multiplas_proposicoes(ids)
+
+        # {fase_id: {"dias": [...], "proposicoes": set()}}
+        acumulador: Dict[int, Dict] = {}
+
+        for prop in todas:
+            eventos = mapa_eventos.get(str(prop.id), [])
+            # filtra eventos sem fase definida
+            eventos_com_fase = [e for e in eventos if e.fase_analitica_id is not None]
+            if not eventos_com_fase:
+                continue
+
+            fase_atual: Optional[int] = None
+            data_entrada: Optional[str] = None
+
+            for evento in eventos_com_fase:
+                if evento.fase_analitica_id != fase_atual:
+                    # registra tempo na fase anterior
+                    if fase_atual is not None and data_entrada is not None:
+                        try:
+                            entrada = datetime.fromisoformat(data_entrada[:10]).date()
+                            saida = datetime.fromisoformat(evento.data_evento[:10]).date()
+                            dias = (saida - entrada).days
+                            if dias >= 0:
+                                if fase_atual not in acumulador:
+                                    acumulador[fase_atual] = {"dias": [], "proposicoes": set()}
+                                acumulador[fase_atual]["dias"].append(dias)
+                                acumulador[fase_atual]["proposicoes"].add(str(prop.id))
+                        except (ValueError, AttributeError):
+                            pass
+
+                    fase_atual = evento.fase_analitica_id
+                    data_entrada = evento.data_evento
+
+            # registra tempo da última fase (ainda em tramitação ou encerrada)
+            if fase_atual is not None and data_entrada is not None:
+                try:
+                    entrada = datetime.fromisoformat(data_entrada[:10]).date()
+                    saida = date.today()
+                    dias = (saida - entrada).days
+                    if dias >= 0:
+                        if fase_atual not in acumulador:
+                            acumulador[fase_atual] = {"dias": [], "proposicoes": set()}
+                        acumulador[fase_atual]["dias"].append(dias)
+                        acumulador[fase_atual]["proposicoes"].add(str(prop.id))
+                except (ValueError, AttributeError):
+                    pass
+
+        resultado = []
+        for fase_id, dados in acumulador.items():
+            info = mapa_fases.get(fase_id)
+            if info is None:
+                continue
+            tempo_medio = sum(dados["dias"]) / len(dados["dias"]) if dados["dias"] else 0
+            resultado.append({
+                "fase": info["nome"],
+                "codigoFase": info["codigo"],
+                "ordemLogica": info["ordem"],
+                "tempoMedioDias": int(tempo_medio),
+                "quantidadeProposicoes": len(dados["proposicoes"]),
+            })
+
+        return sorted(resultado, key=lambda x: x["ordemLogica"])

@@ -14,10 +14,11 @@ class ResultadoEstimativa:
 class EstimativaAprovacaoService:
     """
     Serviço de domínio puro para calcular a estimativa de aprovação.
-    Regra central: Mínimo de 50 registros para garantir relevância estatística.
+    Regra central: Mínimo de registros para garantir relevância estatística.
     """
 
-    THRESHOLD_MINIMO_AMOSTRA = 50
+    def __init__(self, threshold_minimo_amostra: int = 50):
+        self.threshold_minimo_amostra = threshold_minimo_amostra
 
     def calcular_estimativa(self, dias_historico: List[int]) -> ResultadoEstimativa:
         """
@@ -25,7 +26,7 @@ class EstimativaAprovacaoService:
         """
         tamanho_amostra = len(dias_historico)
 
-        if tamanho_amostra < self.THRESHOLD_MINIMO_AMOSTRA:
+        if tamanho_amostra < self.threshold_minimo_amostra:
             return ResultadoEstimativa(
                 dias=None, status="DADOS_INSUFICIENTES", amostra=tamanho_amostra
             )
