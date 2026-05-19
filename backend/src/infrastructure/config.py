@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA: int = 50
 
     model_config = SettingsConfigDict(
-        env_file=".env",  # Procura na pasta atual
+        # Procura primeiro no local, depois sobe para a raiz do projeto
+        env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )

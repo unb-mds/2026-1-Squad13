@@ -23,14 +23,14 @@ if ! docker ps > /dev/null 2>&1; then
     exit 1
 fi
 
-# 3. Verificar arquivo .env
-if [ ! -f "backend/.env" ]; then
-    echo -e "${YELLOW}⚠️  Arquivo backend/.env não encontrado. Criando a partir do .env.example...${NC}"
-    if [ -f "backend/.env.example" ]; then
-        cp backend/.env.example backend/.env
-        echo -e "${GREEN}✅ backend/.env criado com sucesso!${NC}"
+# 3. Verificar arquivo .env na raiz
+if [ ! -f ".env" ]; then
+    echo -e "${YELLOW}⚠️  Arquivo .env não encontrado na raiz. Criando a partir do .env.example...${NC}"
+    if [ -f ".env.example" ]; then
+        cp .env.example .env
+        echo -e "${GREEN}✅ .env criado com sucesso na raiz!${NC}"
     else
-        echo -e "${RED}❌ Erro: backend/.env.example não encontrado para criar o .env.${NC}"
+        echo -e "${RED}❌ Erro: .env.example não encontrado para criar o .env.${NC}"
         exit 1
     fi
 fi
