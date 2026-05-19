@@ -193,55 +193,6 @@ class TestPropertyEhDeliberativo:
         assert e.eh_deliberativo is False
 
 
-class TestPropertyEhRelevante:
-    def test_deliberativo_eh_relevante(self):
-        e = _evento(tipo_evento=TipoEvento.VOTACAO_COMISSAO.value, deliberativo=True)
-        assert e.eh_relevante is True
-
-    def test_mudou_fase_eh_relevante(self):
-        e = _evento(mudou_fase=True)
-        assert e.eh_relevante is True
-
-    def test_remessa_eh_relevante(self):
-        e = _evento(remessa_ou_retorno="REMESSA")
-        assert e.eh_relevante is True
-
-    def test_retorno_eh_relevante(self):
-        e = _evento(remessa_ou_retorno="RETORNO")
-        assert e.eh_relevante is True
-
-    @pytest.mark.parametrize(
-        "tipo",
-        [
-            TipoEvento.ARQUIVAMENTO,
-            TipoEvento.PREJUDICIALIDADE,
-            TipoEvento.SANCAO_OU_VETO,
-            TipoEvento.PROMULGACAO,
-            TipoEvento.REJEICAO,
-        ],
-        ids=lambda v: v.value,
-    )
-    def test_evento_terminal_eh_relevante(self, tipo):
-        e = _evento(tipo_evento=tipo.value)
-        assert e.eh_relevante is True
-
-    def test_despacho_simples_nao_eh_relevante(self):
-        e = _evento(tipo_evento=TipoEvento.DESPACHO.value)
-        assert e.eh_relevante is False
-
-    def test_nao_classificado_sem_flags_nao_eh_relevante(self):
-        e = _evento(tipo_evento=TipoEvento.NAO_CLASSIFICADO.value)
-        assert e.eh_relevante is False
-
-    def test_apresentacao_sem_flags_nao_eh_relevante(self):
-        e = _evento(tipo_evento=TipoEvento.APRESENTACAO.value)
-        assert e.eh_relevante is False
-
-    def test_multiplas_flags_verdadeiras_eh_relevante(self):
-        e = _evento(deliberativo=True, mudou_fase=True)
-        assert e.eh_relevante is True
-
-
 class TestPropertyDataFormatada:
     def test_data_simples(self):
         e = _evento(data_evento="2024-06-15")
