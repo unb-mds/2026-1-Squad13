@@ -2,7 +2,6 @@ import json
 import sys
 import os
 from sqlmodel import Session, select
-from datetime import datetime, date
 
 # Adiciona o diretório src ao path
 sys.path.append(os.path.join(os.getcwd(), "src"))
