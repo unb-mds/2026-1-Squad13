@@ -8,6 +8,7 @@ from presentation.controllers import (
     auth_controller,
 )
 from infrastructure.database import get_session, init_redis, close_redis
+from infrastructure.config import settings
 from sqlmodel import Session, text
 from src import init_db
 
@@ -40,15 +41,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Monitor Legislativo API", lifespan=lifespan)
 
-# Configuração de CORS
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
+# Configuração de CORS via settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
