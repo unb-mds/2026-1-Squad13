@@ -32,6 +32,14 @@ class Settings(BaseSettings):
     TENTATIVAS_MAXIMAS: int = 5
     BLOQUEIO_MINUTOS: int = 15
 
+    # CORS
+    ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Processa a string separada por vírgula em uma lista limpa."""
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
+
     @property
     def database_url(self) -> str:
         """Gera a URL de conexão para o SQLAlchemy/SQLModel"""
