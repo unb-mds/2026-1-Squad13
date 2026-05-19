@@ -7,6 +7,7 @@ from domain.entities.tipo_evento import TipoEvento
 
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
 
+
 @pytest.fixture
 def mocks():
     return {

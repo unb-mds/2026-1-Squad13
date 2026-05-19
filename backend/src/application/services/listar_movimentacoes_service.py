@@ -93,7 +93,9 @@ class ListarMovimentacoesService:
                 if not real_id.isdigit():
                     return []
 
-                dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
+                dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(
+                    int(real_id)
+                )
                 if not dados_brutos:
                     dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
                         int(real_id)
@@ -119,7 +121,8 @@ class ListarMovimentacoesService:
                     fase_repo=self.fase_repo,
                     orgao_repo=self.orgao_repo,
                     apensamento_repo=self.apensamento_repo,
-                    casa_padrao=casa_padrao,                )
+                    casa_padrao=casa_padrao,
+                )
                 eventos = normalizer.normalizar(real_id, dados_brutos)
 
                 # 4. Salvar no cache

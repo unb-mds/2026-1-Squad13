@@ -66,7 +66,9 @@ def test_listar_movimentacoes_camara_retorna200(http_client: TestClient):
             "infrastructure.repositories.sql_evento_tramitacao_repository.SQLEventoTramitacaoRepository.salvar_lote"
         ),
     ):
-        response = http_client.get(f"/proposicoes/{id_prop}/movimentacoes?modo=completo")
+        response = http_client.get(
+            f"/proposicoes/{id_prop}/movimentacoes?modo=completo"
+        )
 
     assert response.status_code == 200
     dados = response.json()
@@ -108,7 +110,9 @@ def test_listar_movimentacoes_senado_retorna200(http_client: TestClient):
             "infrastructure.repositories.sql_evento_tramitacao_repository.SQLEventoTramitacaoRepository.salvar_lote"
         ),
     ):
-        response = http_client.get(f"/proposicoes/{id_prop}/movimentacoes?modo=completo")
+        response = http_client.get(
+            f"/proposicoes/{id_prop}/movimentacoes?modo=completo"
+        )
 
     assert response.status_code == 200
     dados = response.json()
@@ -129,7 +133,9 @@ def test_listar_movimentacoes_usa_cache_do_banco(http_client: TestClient):
             "infrastructure.repositories.sql_proposicao_repository.SQLProposicaoRepository.buscar_por_id"
         ) as mock_prop_repo,
     ):
-        response = http_client.get(f"/proposicoes/{id_prop}/movimentacoes?modo=completo")
+        response = http_client.get(
+            f"/proposicoes/{id_prop}/movimentacoes?modo=completo"
+        )
 
         # Não deve nem buscar a proposição se já tem as tramitações em cache
         mock_prop_repo.assert_not_called()

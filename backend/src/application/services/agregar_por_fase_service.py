@@ -6,6 +6,7 @@ from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
 
+
 class AgregarPorFaseService:
     """
     Serviço de aplicação para agrupar eventos de tramitação em períodos por fase.
@@ -30,9 +31,7 @@ class AgregarPorFaseService:
             return []
 
         # Garante ordenação cronológica
-        eventos_ordenados = sorted(
-            eventos, key=lambda e: (e.data_evento, e.sequencia)
-        )
+        eventos_ordenados = sorted(eventos, key=lambda e: (e.data_evento, e.sequencia))
 
         periodos: List[PeriodoFase] = []
         fase_atual_id: Optional[int] = None
@@ -43,14 +42,16 @@ class AgregarPorFaseService:
 
         for evento in eventos_ordenados:
             fase_evento_id = evento.fase_analitica_id
-            
+
             # Se o evento não tem fase (ex: NAO_CLASSIFICADO), ele pertence à fase anterior
             if fase_evento_id is None:
                 if periodo_atual:
                     if evento.relevante:
                         periodo_atual.eventos_relevantes.append(evento)
                     # Atualiza a saída do período para o evento mais recente (mesmo irrelevante)
-                    periodo_atual.data_saida = datetime.fromisoformat(evento.data_evento[:10]).date()
+                    periodo_atual.data_saida = datetime.fromisoformat(
+                        evento.data_evento[:10]
+                    ).date()
                 continue
 
             # Se mudou a fase ou é o primeiro evento
@@ -59,21 +60,27 @@ class AgregarPorFaseService:
                 if periodo_atual:
                     # O SPEC diz que data_saida do período anterior é a data_entrada do novo
                     # Mas para cálculo de dias, vamos usar a data do evento atual
-                    data_transicao = datetime.fromisoformat(evento.data_evento[:10]).date()
+                    data_transicao = datetime.fromisoformat(
+                        evento.data_evento[:10]
+                    ).date()
                     periodo_atual.data_saida = data_transicao
-                    
+
                     # Recalcula dias corridos do período fechado
-                    periodo_atual.dias_corridos = (periodo_atual.data_saida - periodo_atual.data_entrada).days
+                    periodo_atual.dias_corridos = (
+                        periodo_atual.data_saida - periodo_atual.data_entrada
+                    ).days
 
                 # Abre novo período
                 fase_info = self._fases_map.get(fase_evento_id)
                 if not fase_info:
                     continue
 
-                ocorrencias_fase[fase_evento_id] = ocorrencias_fase.get(fase_evento_id, 0) + 1
-                
+                ocorrencias_fase[fase_evento_id] = (
+                    ocorrencias_fase.get(fase_evento_id, 0) + 1
+                )
+
                 data_entrada = datetime.fromisoformat(evento.data_evento[:10]).date()
-                
+
                 periodo_atual = PeriodoFase(
                     fase_codigo=fase_info.codigo,
                     fase_nome=fase_info.nome,
@@ -82,12 +89,12 @@ class AgregarPorFaseService:
                     data_saida=None,
                     dias_corridos=0,
                     eventos_relevantes=[],
-                    ocorrencia=ocorrencias_fase[fase_evento_id]
+                    ocorrencia=ocorrencias_fase[fase_evento_id],
                 )
-                
+
                 if evento.relevante:
                     periodo_atual.eventos_relevantes.append(evento)
-                
+
                 periodos.append(periodo_atual)
                 fase_atual_id = fase_evento_id
             else:
@@ -95,7 +102,9 @@ class AgregarPorFaseService:
                 if periodo_atual:
                     if evento.relevante:
                         periodo_atual.eventos_relevantes.append(evento)
-                    periodo_atual.data_saida = datetime.fromisoformat(evento.data_evento[:10]).date()
+                    periodo_atual.data_saida = datetime.fromisoformat(
+                        evento.data_evento[:10]
+                    ).date()
 
         # Finalização do último período
         if periodo_atual:
@@ -105,10 +114,12 @@ class AgregarPorFaseService:
                 # Se não tem data_encerramento informada, usa a do último evento
                 pass
             else:
-                periodo_atual.data_saida = None # Mantém None para indicar ativa
-            
+                periodo_atual.data_saida = None  # Mantém None para indicar ativa
+
             # Cálculo final de dias
             referencia_fim = periodo_atual.data_saida or hoje
-            periodo_atual.dias_corridos = (referencia_fim - periodo_atual.data_entrada).days
+            periodo_atual.dias_corridos = (
+                referencia_fim - periodo_atual.data_entrada
+            ).days
 
         return periodos
