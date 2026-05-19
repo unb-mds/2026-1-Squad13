@@ -38,6 +38,7 @@ def session_fixture():
     engine = create_engine("sqlite:///:memory:")
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
+        repo = SQLProposicaoRepository(session)
         # P1: Aprovada, 100 dias (Sem atraso)
         p1 = Proposicao(
             id="1",
@@ -66,9 +67,8 @@ def session_fixture():
             data_ultima_movimentacao="2024-01-01",
             tempo_total_dias=200,
         )
-        session.add(p1)
-        session.add(p2)
-        session.commit()
+        repo.salvar(p1)
+        repo.salvar(p2)
         yield session
 
 

@@ -1,4 +1,5 @@
 import json
+import hashlib
 from typing import Dict, List, Optional, Any
 from datetime import datetime, date
 
@@ -49,8 +50,21 @@ class DashboardService:
         if self.cache_provider:
             self.cache_provider.set(key, json.dumps(value), self.cache_ttl)
 
+    def _gerar_cache_key(self, base_key: str, filtros: Optional[Dict] = None) -> str:
+        """Gera uma chave de cache única baseada no hash dos filtros."""
+        if not filtros:
+            return base_key
+
+        # Gera um hash MD5 determinístico dos filtros
+        filtros_json = json.dumps(filtros, sort_keys=True)
+        filtros_hash = hashlib.md5(filtros_json.encode()).hexdigest()
+        return f"{base_key}:{filtros_hash}"
+
     def _calcular_tempo_total(
-        self, eventos: List[EventoTramitacao], fallback_tempo: int
+        self,
+        eventos: List[EventoTramitacao],
+        fallback_tempo: int,
+        proposicao: Optional[Any] = None,
     ) -> int:
         if not eventos:
             return fallback_tempo
@@ -86,11 +100,16 @@ class DashboardService:
                 primeiro_evento.data_evento.replace("Z", "+00:00")
             ).date()
             if ultimo_evento_terminal:
-                fim = datetime.fromisoformat(
-                    ultimo_evento_terminal.data_evento.replace("Z", "+00:00")
-                ).date()
+                fim_dt_iso = ultimo_evento_terminal.data_evento.replace("Z", "+00:00")
+                fim = datetime.fromisoformat(fim_dt_iso).date()
+                # Se temos a instância da proposição, marcamos a data de encerramento
+                if proposicao:
+                    proposicao.data_encerramento = fim.isoformat()
             else:
                 fim = date.today()
+                if proposicao:
+                    proposicao.data_encerramento = None
+
             return (fim - inicio).days
         except (ValueError, AttributeError):
             return fallback_tempo
@@ -136,9 +155,11 @@ class DashboardService:
         dados = []
         for p in proposicoes:
             eventos = mapa_eventos.get(str(p.id), [])
-            tempo = self._calcular_tempo_total(eventos, p.tempo_total_dias or 0)
+            tempo = self._calcular_tempo_total(eventos, p.tempo_total_dias or 0, p)
             status = self._extrair_status_atual(eventos, p.status)
-            atraso_critico = tempo > 180
+
+            # Atraso crítico só faz sentido se a proposição ainda estiver aberta
+            atraso_critico = (tempo > 180) and (p.data_encerramento is None)
 
             dados.append(
                 {
@@ -215,14 +236,14 @@ class DashboardService:
 
         return "Outros"
 
-    def obter_metricas(self) -> Dict:
-        cache_key = "dashboard:metricas"
+    def obter_metricas(self, filtros: Optional[Dict] = None) -> Dict:
+        cache_key = self._gerar_cache_key("dashboard:metricas", filtros)
 
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
 
         if not todas:
             resultado_vazio = {
@@ -290,13 +311,13 @@ class DashboardService:
 
         return resultado
 
-    def obter_dados_tipo(self) -> List[Dict]:
-        cache_key = "dashboard:dados_tipo"
+    def obter_dados_tipo(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:dados_tipo", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
 
         tipos: Dict[str, Dict] = {}
@@ -320,16 +341,17 @@ class DashboardService:
                 }
             )
         resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_dados_comissao(self) -> List[Dict]:
-        cache_key = "dashboard:dados_comissao"
+    def obter_dados_comissao(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:dados_comissao", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
 
         orgaos: Dict[str, Dict] = {}
@@ -354,16 +376,17 @@ class DashboardService:
                 }
             )
         resultado = sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
+
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_dados_status(self) -> List[Dict]:
-        cache_key = "dashboard:dados_status"
+    def obter_dados_status(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:dados_status", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         if not todas:
             return []
 
@@ -383,16 +406,17 @@ class DashboardService:
             for status, qtd in contagem.items()
         ]
         resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_gargalos(self) -> List[Dict]:
-        cache_key = "dashboard:gargalos"
+    def obter_gargalos(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:gargalos", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
 
         orgaos: Dict[str, Dict] = {}
@@ -436,16 +460,17 @@ class DashboardService:
             )
 
         resultado = sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
+
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_comparacao_temas(self) -> List[Dict]:
-        cache_key = "dashboard:comparacao_temas"
+    def obter_comparacao_temas(self, filtros: Optional[Dict] = None) -> List[Dict]:
+        cache_key = self._gerar_cache_key("dashboard:comparacao_temas", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar()
+        todas = self.repository.filtrar(**(filtros or {}))
         dados = self._obter_dados_em_lote(todas)
 
         temas: Dict[str, Dict] = {}
@@ -496,5 +521,6 @@ class DashboardService:
             )
 
         resultado = sorted(resultado, key=lambda x: x["tempoMedioDias"])
+
         self._set_cache(cache_key, resultado)
         return resultado
