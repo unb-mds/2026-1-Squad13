@@ -237,12 +237,6 @@ A entidade `Tramitacao` (campos: `data_hora`, `descricao_tramitacao`, `despacho`
 
 ---
 
-## Gap conhecido: dessincronia no consumo de movimentações pelo frontend
-
-O método `obterMovimentacoes` em `frontend/src/shared/lib/api.ts` lê `dataHora` e `descricaoTramitacao` do payload retornado, mas o backend retorna `dataEvento` e `descricaoOriginal`. Isso faz com que os campos `data` e `descricao` de `MovimentacaoTramitacao` sempre caiam nos valores de fallback (`new Date().toISOString()` e `"Tramitação registrada"`). Correção pendente em issue separada — não alterar este adapter para contornar.
-
----
-
 ## Alternativas consideradas
 
 | Opção | Prós | Contras |
