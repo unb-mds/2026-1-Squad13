@@ -65,6 +65,8 @@ services:
       dockerfile: Dockerfile
     container_name: monitor_frontend
     restart: always
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
     ports:
       - "5173:5173"
     volumes:
