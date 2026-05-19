@@ -35,17 +35,21 @@ fi
 echo -e "${GREEN}✅ IP externo: ${GCP_IP}${NC}\n"
 export GCP_IP
 
-# 3. Verificar arquivo .env do backend
-if [ ! -f "backend/.env" ]; then
-    echo -e "${YELLOW}⚠️  backend/.env não encontrado. Criando a partir do .env.example...${NC}"
-    if [ -f "backend/.env.example" ]; then
-        cp backend/.env.example backend/.env
-        echo -e "${GREEN}✅ backend/.env criado.${NC}"
+# 3. Verificar arquivo .env na raiz
+if [ ! -f ".env" ]; then
+    echo -e "${YELLOW}⚠️  .env não encontrado na raiz. Criando a partir do .env.example...${NC}"
+    if [ -f ".env.example" ]; then
+        cp .env.example .env
+        echo -e "${GREEN}✅ .env criado na raiz.${NC}"
     else
-        echo -e "${RED}❌ Erro: backend/.env.example não encontrado.${NC}"
+        echo -e "${RED}❌ Erro: .env.example não encontrado.${NC}"
         exit 1
     fi
 fi
+
+# Ajustar VITE_API_URL e ALLOWED_ORIGINS no .env para o IP da GCP
+sed -i "s|VITE_API_URL=.*|VITE_API_URL=http://${GCP_IP}:8000|g" .env
+sed -i "s|ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=http://${GCP_IP}:5173|g" .env
 
 # 4. Subir Ambiente (Tudo de uma vez - Healthchecks cuidam da ordem)
 echo -e "${YELLOW}⚙️  Subindo containers (build e infra)...${NC}"
