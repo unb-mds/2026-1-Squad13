@@ -214,7 +214,7 @@ def _to_periodo_response(p) -> dict:
     "/proposicoes/{id}/movimentacoes",
     response_model=List[dict],
 )
-def listar_movimentacoes(
+async def listar_movimentacoes(
     id: str,
     modo: ModoMovimentacao = Query(default=ModoMovimentacao.RESUMIDO),
     session: Session = Depends(get_session),
@@ -239,13 +239,12 @@ def listar_movimentacoes(
     )
 
     try:
-        resultado = service.executar(id, modo=modo)
+        resultado = await service.executar(id, modo=modo)
 
         if modo == ModoMovimentacao.RESUMIDO:
             return [_to_periodo_response(p) for p in resultado]
         else:
             return [_to_evento_response(e) for e in resultado]
-
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -295,14 +294,14 @@ def buscar_proposicoes(
 
 
 @router.get("/proposicoes/{id}", response_model=ProposicaoResponse)
-def obter_detalhe_proposicao(id: str, session: Session = Depends(get_session)):
+async def obter_detalhe_proposicao(id: str, session: Session = Depends(get_session)):
     repository = SQLProposicaoRepository(session)
     camara_adapter = CamaraAdapter()
     senado_adapter = SenadoAdapter()
     service = DetalheProposicaoService(repository, camara_adapter, senado_adapter)
 
     try:
-        proposicao = service.executar(id)
+        proposicao = await service.executar(id)
         return _to_response(proposicao)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

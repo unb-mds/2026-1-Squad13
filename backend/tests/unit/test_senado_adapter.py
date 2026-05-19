@@ -1,6 +1,6 @@
 import pytest
-import requests
-from unittest.mock import MagicMock, patch
+import httpx
+from unittest.mock import MagicMock, patch, AsyncMock
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 
 
@@ -9,7 +9,8 @@ def adapter():
     return SenadoAdapter()
 
 
-def test_senado_adapter_normalizacao_sucesso(adapter):
+@pytest.mark.asyncio
+async def test_senado_adapter_normalizacao_sucesso(adapter):
     # Mock da resposta da API do Senado
     mock_dados = {
         "identificacao": "PL 456/2023",
@@ -23,14 +24,15 @@ def test_senado_adapter_normalizacao_sucesso(adapter):
         ],
     }
 
-    with patch.object(adapter.session, "get") as mock_get:
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.json.return_value = mock_dados
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
         # Act
-        proposicao = adapter.buscar_por_id(54321)
+        proposicao = await adapter.buscar_por_id(54321)
 
         # Assert
         assert proposicao is not None
@@ -42,10 +44,11 @@ def test_senado_adapter_normalizacao_sucesso(adapter):
         assert proposicao.data_apresentacao == "2023-01-01"
         assert (
             proposicao.data_ultima_movimentacao == "2023-01-01"
-        )  # No mock, inicio is missing but fallback should work if I add it
+        )
 
 
-def test_senado_adapter_data_ultima_movimentacao_sucesso(adapter):
+@pytest.mark.asyncio
+async def test_senado_adapter_data_ultima_movimentacao_sucesso(adapter):
     mock_dados = {
         "identificacao": "PL 456/2023",
         "documento": {"dataApresentacao": "2023-01-01"},
@@ -59,46 +62,51 @@ def test_senado_adapter_data_ultima_movimentacao_sucesso(adapter):
         ],
     }
 
-    with patch.object(adapter.session, "get") as mock_get:
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.json.return_value = mock_dados
         mock_get.return_value = mock_response
 
-        proposicao = adapter.buscar_por_id(54321)
+        proposicao = await adapter.buscar_por_id(54321)
 
         assert proposicao.status == "Status Novo"
         assert proposicao.data_ultima_movimentacao == "2023-02-01"
 
 
-def test_senado_adapter_fallback_data_ultima_movimentacao(adapter):
+@pytest.mark.asyncio
+async def test_senado_adapter_fallback_data_ultima_movimentacao(adapter):
     mock_dados = {
         "identificacao": "PL 456/2023",
         "documento": {"dataApresentacao": "2023-01-01"},
         "autuacoes": [],
     }
 
-    with patch.object(adapter.session, "get") as mock_get:
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.json.return_value = mock_dados
         mock_get.return_value = mock_response
 
-        proposicao = adapter.buscar_por_id(54321)
+        proposicao = await adapter.buscar_por_id(54321)
 
         assert proposicao.data_ultima_movimentacao == "2023-01-01"
 
 
-def test_senado_adapter_erro_rede(adapter):
-    with patch.object(adapter.session, "get") as mock_get:
-        mock_get.side_effect = requests.exceptions.RequestException("Erro de conexão")
+@pytest.mark.asyncio
+async def test_senado_adapter_erro_rede(adapter):
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_get.side_effect = httpx.RequestError("Erro de conexão")
 
         # Act
-        proposicao = adapter.buscar_por_id(54321)
+        proposicao = await adapter.buscar_por_id(54321)
 
         # Assert
         assert proposicao is None
 
 
-def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
+@pytest.mark.asyncio
+async def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
     mock_dados_materia = {
         "DetalheMateria": {
             "Materia": {"IdentificacaoMateria": {"IdentificacaoProcesso": "999"}}
@@ -124,7 +132,7 @@ def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
         ]
     }
 
-    with patch.object(adapter.session, "get") as mock_get:
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         # Duas respostas: a primeira pra buscar id do processo, a segunda pro processo em si
         mock_resp_mat = MagicMock()
         mock_resp_mat.status_code = 200
@@ -137,7 +145,7 @@ def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
         mock_get.side_effect = [mock_resp_mat, mock_resp_proc]
 
         # Act
-        tramitacoes = adapter.buscar_tramitacoes_brutas(123)
+        tramitacoes = await adapter.buscar_tramitacoes_brutas(123)
 
         # Assert
         assert len(tramitacoes) == 2
@@ -152,12 +160,13 @@ def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
         assert tramitacoes[1]["sequencia"] == 2
 
 
-def test_senado_adapter_buscar_tramitacoes_brutas_erro(adapter):
-    with patch.object(adapter.session, "get") as mock_get:
-        mock_get.side_effect = requests.exceptions.RequestException("Erro")
+@pytest.mark.asyncio
+async def test_senado_adapter_buscar_tramitacoes_brutas_erro(adapter):
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_get.side_effect = httpx.RequestError("Erro")
 
         # Act
-        tramitacoes = adapter.buscar_tramitacoes_brutas(123)
+        tramitacoes = await adapter.buscar_tramitacoes_brutas(123)
 
         # Assert
         assert tramitacoes == []
