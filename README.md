@@ -12,6 +12,12 @@ Se você possui **Docker** e **uv** instalados, utilize os scripts de automaçã
 
 ### 1. Subir o Ambiente Completo (Docker)
 Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend e Frontend automaticamente.
+
+Antes de rodar, você pode opcionalmente criar um arquivo `.env` na raiz para definir o endereço da API (útil em ambientes remotos):
+```bash
+VITE_API_URL=http://localhost:8000
+```
+
 ```bash
 ./start_dev.sh
 ```
