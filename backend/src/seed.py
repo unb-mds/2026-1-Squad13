@@ -7,7 +7,7 @@ import argparse
 import asyncio
 import logging
 import sys
-from typing import List, Optional
+from typing import List
 import httpx
 from sqlmodel import Session, select, func
 
