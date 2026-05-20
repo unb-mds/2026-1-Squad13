@@ -1,10 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
-from main import app
+from sqlmodel import Session, SQLModel, create_engine
+
 from infrastructure.database import get_session
 from infrastructure.database.models.proposicao_model import ProposicaoModel
+from main import app
 
 
 # Engine único para cada worker (processo) do xdist

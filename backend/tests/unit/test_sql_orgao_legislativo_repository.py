@@ -6,8 +6,8 @@ e busca por sigla.
 """
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
 from domain.entities.orgao_legislativo import (
     CasaLegislativa,
