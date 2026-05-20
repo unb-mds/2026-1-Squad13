@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Any
 from sqlalchemy import func, case, or_, and_
 from sqlmodel import Session, select
 from infrastructure.database.models.proposicao_model import ProposicaoModel
+from domain.constants import LIMITE_DIAS_ATRASO
 
 
 class SQLDashboardRepository:
@@ -110,7 +111,7 @@ class SQLDashboardRepository:
                 case(
                     (
                         and_(
-                            ProposicaoModel.tempo_total_dias > 180,
+                            ProposicaoModel.tempo_total_dias > LIMITE_DIAS_ATRASO,
                             ProposicaoModel.data_encerramento.is_(None),
                         ),
                         1,
@@ -254,7 +255,7 @@ class SQLDashboardRepository:
                 case(
                     (
                         and_(
-                            ProposicaoModel.tempo_total_dias > 180,
+                            ProposicaoModel.tempo_total_dias > LIMITE_DIAS_ATRASO,
                             ProposicaoModel.data_encerramento.is_(None),
                         ),
                         1,

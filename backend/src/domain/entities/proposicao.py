@@ -1,6 +1,7 @@
 from sqlmodel import SQLModel
 from typing import Optional, List
 from datetime import datetime, date
+from domain.constants import LIMITE_DIAS_ATRASO
 
 
 class Proposicao(SQLModel):
@@ -105,7 +106,7 @@ class Proposicao(SQLModel):
 
             delta = data_fim - data_apresentacao
             self.tempo_total_dias = max(0, delta.days)
-            self.tem_atraso = self.tempo_total_dias > 180
+            self.tem_atraso = self.tempo_total_dias > LIMITE_DIAS_ATRASO
         except Exception:
             # Em caso de erro na data, mantém valores padrão
             pass
@@ -122,5 +123,5 @@ class Proposicao(SQLModel):
 
     @property
     def atraso_critico(self) -> bool:
-        """Retorna True se o tempo total de tramitação for superior a 180 dias."""
-        return (self.tempo_total_dias or 0) > 180
+        """Retorna True se o tempo total de tramitação for superior a LIMITE_DIAS_ATRASO dias."""
+        return (self.tempo_total_dias or 0) > LIMITE_DIAS_ATRASO
