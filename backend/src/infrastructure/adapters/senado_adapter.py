@@ -15,10 +15,12 @@ class SenadoAdapter:
 
     def __init__(self):
         self.base_url = "https://legis.senado.leg.br/dadosabertos"
-        self.timeout = 15  # Reduzido para 15s para não travar o frontend se o Senado estiver fora
+        self.timeout = (
+            15  # Reduzido para 15s para não travar o frontend se o Senado estiver fora
+        )
         self.headers = {
             "Accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 (MonitorLegislativo/1.0)"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 (MonitorLegislativo/1.0)",
         }
 
     async def _get_with_retry(
@@ -35,7 +37,7 @@ class SenadoAdapter:
         req_headers = self.headers.copy()
         if headers:
             req_headers.update(headers)
-            
+
         req_timeout = timeout or self.timeout
 
         for attempt in range(max_retries):
@@ -43,24 +45,31 @@ class SenadoAdapter:
                 resp = await client.get(
                     url, params=params, headers=req_headers, timeout=req_timeout
                 )
+                # Erros 5xx ou 429 (Rate Limit) configuram instabilidade/limitação para retry
                 if (
-                    resp.status_code in [429, 500, 502, 503, 504]
-                    and attempt < max_retries - 1
-                ):
-                    wait_time = (attempt + 1) * 3  # Backoff um pouco mais agressivo
+                    resp.status_code >= 500 or resp.status_code == 429
+                ) and attempt < max_retries - 1:
+                    wait_time = 2**attempt  # Backoff exponencial: 1s, 2s, 4s
                     logger.warning(
                         f"⚠️ Erro {resp.status_code} no Senado. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
                     )
                     await asyncio.sleep(wait_time)
                     continue
-                
+
                 if resp.status_code != 404:
                     resp.raise_for_status()
                 return resp
-            except Exception as e:
+            except (httpx.RequestError, httpx.HTTPStatusError) as e:
+                # Se for erro de status 4xx (exceto 429 que já tratamos acima), não fazemos retry
+                if (
+                    isinstance(e, httpx.HTTPStatusError)
+                    and e.response.status_code < 500
+                    and e.response.status_code != 429
+                ):
+                    raise
+
                 if attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 3
-                    # Loga o tipo da exceção para debug melhor (ex: ConnectTimeout)
+                    wait_time = 2**attempt
                     error_type = type(e).__name__
                     logger.warning(
                         f"🔄 Falha [{error_type}] no Senado: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
@@ -70,7 +79,9 @@ class SenadoAdapter:
                     raise
         raise httpx.RequestError("Máximo de tentativas excedido no Senado")
 
-    async def buscar_por_id(self, id_materia: int, client: Optional[httpx.AsyncClient] = None) -> Optional[Proposicao]:
+    async def buscar_por_id(
+        self, id_materia: int, client: Optional[httpx.AsyncClient] = None
+    ) -> Optional[Proposicao]:
         """
         Busca detalhes de uma matéria legislativa no Senado.
         Tenta primeiro o endpoint de matéria (legado mas compatível com idMateria)
@@ -185,10 +196,14 @@ class SenadoAdapter:
                 )
 
             except httpx.ConnectError:
-                logger.error(f"❌ Erro de CONEXÃO com o Senado para ID {id_materia}. Verifique se o container tem acesso à internet (DNS/Firewall).")
+                logger.error(
+                    f"❌ Erro de CONEXÃO com o Senado para ID {id_materia}. Verifique se o container tem acesso à internet (DNS/Firewall)."
+                )
                 return None
             except httpx.TimeoutException:
-                logger.error(f"⏳ TIMEOUT ao acessar Senado para ID {id_materia} após {self.timeout}s.")
+                logger.error(
+                    f"⏳ TIMEOUT ao acessar Senado para ID {id_materia} após {self.timeout}s."
+                )
                 return None
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
                 logger.error(
@@ -205,13 +220,18 @@ class SenadoAdapter:
                 await _client.aclose()
 
     async def listar_recentes(
-        self, tipo: str, quantidade: int = 10, ano: Optional[int] = None, client: Optional[httpx.AsyncClient] = None
+        self,
+        tipo: str,
+        quantidade: int = 10,
+        ano: Optional[int] = None,
+        client: Optional[httpx.AsyncClient] = None,
     ) -> List[int]:
         """Busca uma lista de IDs das matérias de um determinado tipo no Senado, opcionalmente por ano."""
         url = f"{self.base_url}/processo"
 
         if not ano:
             from datetime import date
+
             ano = date.today().year
 
         params = {
@@ -260,18 +280,25 @@ class SenadoAdapter:
             if client is None:
                 await _client.aclose()
 
-    async def buscar_tramitacoes_brutas(self, id_materia: int, client: Optional[httpx.AsyncClient] = None, timeout: Optional[int] = None) -> List[dict]:
+    async def buscar_tramitacoes_brutas(
+        self,
+        id_materia: int,
+        client: Optional[httpx.AsyncClient] = None,
+        timeout: Optional[int] = None,
+    ) -> List[dict]:
         """
         Retorna payload bruto de cada tramitação do Senado.
         """
         headers = {"Accept": "application/json"}
         id_processo = id_materia
         _client = client or httpx.AsyncClient(follow_redirects=True)
-        
+
         try:
             try:
                 url_mat = f"{self.base_url}/materia/{id_materia}"
-                resp_mat = await _client.get(url_mat, headers=headers, timeout=timeout or 10)
+                resp_mat = await _client.get(
+                    url_mat, headers=headers, timeout=timeout or 10
+                )
                 if resp_mat.status_code == 200:
                     dados_mat = resp_mat.json()
                     if (
@@ -290,7 +317,9 @@ class SenadoAdapter:
 
             url = f"{self.base_url}/processo/{id_processo}?v=1"
             try:
-                resp = await self._get_with_retry(_client, url, headers=headers, timeout=timeout)
+                resp = await self._get_with_retry(
+                    _client, url, headers=headers, timeout=timeout
+                )
                 resp.raise_for_status()
                 dados = resp.json()
 
@@ -326,6 +355,73 @@ class SenadoAdapter:
         finally:
             if client is None:
                 await _client.aclose()
+
+    async def coletar_em_lote(self, params: Optional[dict] = None) -> List[Proposicao]:
+        """
+        Busca proposições em lote no Senado.
+        A API do Senado não possui paginação nativa idêntica à da Câmara no endpoint principal,
+        então buscamos por ano/quantidade e limitamos o batch.
+        """
+        if params is None:
+            params = {}
+
+        url = f"{self.base_url}/processo"
+        headers = {"Accept": "application/json"}
+
+        # Parâmetros default caso não informados
+        if "ano" not in params:
+            from datetime import date
+
+            params["ano"] = date.today().year
+
+        # O Senado não tem "itens" na API de processo, mas limitamos no código
+        limite = params.get("itens", 100)
+        ids_coletados = []
+
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            try:
+                # Removemos itens da query string pois a API do senado pode rejeitar parâmetros desconhecidos
+                api_params = {k: v for k, v in params.items() if k in ["sigla", "ano"]}
+
+                resp = await self._get_with_retry(
+                    client, url, params=api_params, headers=headers
+                )
+                resp.raise_for_status()
+                dados = resp.json()
+
+                if not isinstance(dados, list):
+                    dados = [dados] if dados else []
+
+                for m in dados:
+                    if "codigoMateria" in m:
+                        ids_coletados.append(int(m["codigoMateria"]))
+                    elif "id" in m:
+                        ids_coletados.append(int(m["id"]))
+
+                    if len(ids_coletados) >= limite:
+                        break
+
+            except Exception as e:
+                logger.error(f"Erro na listagem em lote do Senado: {e}")
+
+        proposicoes_completas = []
+        # Limite menor para o Senado pois a API costuma ser mais lenta/instável
+        semaphore = asyncio.Semaphore(5)
+
+        async def fetch_full(id_prop: int):
+            async with semaphore:
+                return await self.buscar_por_id(id_prop)
+
+        tasks = [fetch_full(id_prop) for id_prop in ids_coletados]
+        resultados = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for res in resultados:
+            if isinstance(res, Proposicao):
+                proposicoes_completas.append(res)
+            elif isinstance(res, Exception):
+                logger.error(f"Erro na coleta em lote de proposição do Senado: {res}")
+
+        return proposicoes_completas
 
     def _processar_dados_processo(self, dados: dict, id_materia: str) -> Proposicao:
         """Processa a estrutura flat retornada pelo endpoint /processo."""
