@@ -30,18 +30,26 @@ export function DetalheProposicaoPage() {
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoTramitacao[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [modoHistorico, setModoHistorico] = useState<'completo' | 'relevente'>('relevente')
 
   useEffect(() => {
     if (!id) return
     setLoading(true)
-    Promise.all([obterProposicao(id), obterMovimentacoes(id)])
+    
+    // Converte 'relevente' (UI) para 'relevante' (API)
+    const apiMode = modoHistorico === 'relevente' ? 'relevante' : 'completo'
+
+    Promise.all([
+      obterProposicao(id), 
+      obterMovimentacoes(id, apiMode as any)
+    ])
       .then(([prop, movs]) => {
         if (!prop) { setNotFound(true); return }
         setProposicao(prop)
         setMovimentacoes(movs)
       })
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, modoHistorico])
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -100,7 +108,7 @@ export function DetalheProposicaoPage() {
 
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5">
-          {proposicao.tags.map((tag) => (
+          {proposicao.tags?.map((tag) => (
             <span key={tag} className="px-2 py-1 bg-ink-700/50 text-ink-400 text-xs rounded-md border border-ink-700/50">
               #{tag}
             </span>
@@ -170,9 +178,31 @@ export function DetalheProposicaoPage() {
         {/* Timeline */}
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader>
-              <p className="text-sm font-medium text-ink-200">Histórico de Tramitação</p>
-              <p className="text-xs text-ink-400 mt-0.5">Da movimentação mais recente à mais antiga</p>
+            <CardHeader className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-ink-200">Histórico de Tramitação</p>
+                <p className="text-xs text-ink-400 mt-0.5">
+                  {modoHistorico === 'relevente' ? 'Exibindo apenas eventos principais' : 'Exibindo todas as movimentações'}
+                </p>
+              </div>
+              <div className="flex bg-ink-700/50 p-1 rounded-lg border border-ink-700">
+                <button
+                  onClick={() => setModoHistorico('relevente')}
+                  className={`px-3 py-1 text-xs rounded-md transition-all ${
+                    modoHistorico === 'relevente' ? 'bg-volt-400 text-ink-900 font-bold shadow-sm' : 'text-ink-400 hover:text-ink-200'
+                  }`}
+                >
+                  Reduzido
+                </button>
+                <button
+                  onClick={() => setModoHistorico('completo')}
+                  className={`px-3 py-1 text-xs rounded-md transition-all ${
+                    modoHistorico === 'completo' ? 'bg-volt-400 text-ink-900 font-bold shadow-sm' : 'text-ink-400 hover:text-ink-200'
+                  }`}
+                >
+                  Completo
+                </button>
+              </div>
             </CardHeader>
             <CardBody>
               <TimelineTramitacao movimentacoes={movimentacoes} />

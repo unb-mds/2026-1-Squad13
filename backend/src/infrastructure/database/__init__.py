@@ -13,8 +13,8 @@ from infrastructure.database.models.apensamento_model import ApensamentoModel  #
 from infrastructure.database.models.log_coleta_model import LogColetaModel  # noqa: F401
 
 # O motor de conexão (Engine)
-# echo=True faz com que o SQLModel imprima os comandos SQL no console (útil para aprender)
-engine = create_engine(settings.database_url, echo=True)
+# echo=False por padrão para evitar poluição de logs; use logging.getLogger('sqlalchemy.engine') para debug
+engine = create_engine(settings.database_url, echo=False)
 
 
 def init_db():

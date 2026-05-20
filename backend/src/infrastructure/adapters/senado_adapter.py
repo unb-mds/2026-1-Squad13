@@ -15,7 +15,11 @@ class SenadoAdapter:
 
     def __init__(self):
         self.base_url = "https://legis.senado.leg.br/dadosabertos"
-        self.timeout = 25  # Timeout aumentado para lidar com lentidão da API
+        self.timeout = 15  # Reduzido para 15s para não travar o frontend se o Senado estiver fora
+        self.headers = {
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 (MonitorLegislativo/1.0)"
+        }
 
     async def _get_with_retry(
         self,
@@ -23,44 +27,58 @@ class SenadoAdapter:
         url: str,
         params: Optional[dict] = None,
         headers: Optional[dict] = None,
+        timeout: Optional[int] = None,
     ) -> httpx.Response:
         """Helper para realizar GET com retry básico em caso de erros temporários."""
-        max_retries = 3
+        max_retries = 2
+        # Merge de headers padrão com específicos da chamada
+        req_headers = self.headers.copy()
+        if headers:
+            req_headers.update(headers)
+            
+        req_timeout = timeout or self.timeout
+
         for attempt in range(max_retries):
             try:
                 resp = await client.get(
-                    url, params=params, headers=headers, timeout=self.timeout
+                    url, params=params, headers=req_headers, timeout=req_timeout
                 )
-                # Apenas erros 5xx configuram instabilidade do servidor para retry
-                if resp.status_code >= 500 and attempt < max_retries - 1:
+                # Erros 5xx ou 429 (Rate Limit) configuram instabilidade/limitação para retry
+                if (
+                    (resp.status_code >= 500 or resp.status_code == 429)
+                    and attempt < max_retries - 1
+                ):
                     wait_time = 2**attempt  # Backoff exponencial: 1s, 2s, 4s
                     logger.warning(
-                        f"Erro {resp.status_code} no Senado. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
+                        f"⚠️ Erro {resp.status_code} no Senado. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
                     )
                     await asyncio.sleep(wait_time)
                     continue
-                # Se for 404, não faz sentido dar raise se quisermos tratar o fallback
+                
                 if resp.status_code != 404:
                     resp.raise_for_status()
                 return resp
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
+                # Se for erro de status 4xx (exceto 429 que já tratamos acima), não fazemos retry
                 if (
                     isinstance(e, httpx.HTTPStatusError)
                     and e.response.status_code < 500
+                    and e.response.status_code != 429
                 ):
-                    raise  # Não tenta retry para 4xx
+                    raise
 
                 if attempt < max_retries - 1:
                     wait_time = 2**attempt
+                    error_type = type(e).__name__
                     logger.warning(
-                        f"Falha na conexão com Senado: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
+                        f"🔄 Falha [{error_type}] no Senado: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
                     )
                     await asyncio.sleep(wait_time)
                 else:
                     raise
-        raise httpx.RequestError("Máximo de tentativas excedido")
+        raise httpx.RequestError("Máximo de tentativas excedido no Senado")
 
-    async def buscar_por_id(self, id_materia: int) -> Optional[Proposicao]:
+    async def buscar_por_id(self, id_materia: int, client: Optional[httpx.AsyncClient] = None) -> Optional[Proposicao]:
         """
         Busca detalhes de uma matéria legislativa no Senado.
         Tenta primeiro o endpoint de matéria (legado mas compatível com idMateria)
@@ -69,12 +87,13 @@ class SenadoAdapter:
         url = f"{self.base_url}/materia/{id_materia}"
         headers = {"Accept": "application/json"}
 
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        _client = client or httpx.AsyncClient(follow_redirects=True)
+        try:
             try:
-                resp = await self._get_with_retry(client, url, headers=headers)
+                resp = await self._get_with_retry(_client, url, headers=headers)
                 if resp.status_code == 404:
                     url = f"{self.base_url}/processo/{id_materia}?v=1"
-                    resp = await self._get_with_retry(client, url, headers=headers)
+                    resp = await self._get_with_retry(_client, url, headers=headers)
 
                 resp.raise_for_status()
                 dados_brutos = resp.json()
@@ -92,7 +111,7 @@ class SenadoAdapter:
                     id_processo = identificacao_obj.get("IdentificacaoProcesso")
                     if id_processo:
                         try:
-                            resp_proc = await client.get(
+                            resp_proc = await _client.get(
                                 f"{self.base_url}/processo/{id_processo}?v=1",
                                 headers=headers,
                                 timeout=10,
@@ -131,7 +150,7 @@ class SenadoAdapter:
                     and "Materia" not in dados_brutos["DetalheMateria"]
                 ):
                     url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
-                    resp_proc = await client.get(
+                    resp_proc = await _client.get(
                         url_proc, headers=headers, timeout=self.timeout
                     )
                     if resp_proc.status_code == 200:
@@ -173,6 +192,12 @@ class SenadoAdapter:
                     tags=[],
                 )
 
+            except httpx.ConnectError:
+                logger.error(f"❌ Erro de CONEXÃO com o Senado para ID {id_materia}. Verifique se o container tem acesso à internet (DNS/Firewall).")
+                return None
+            except httpx.TimeoutException:
+                logger.error(f"⏳ TIMEOUT ao acessar Senado para ID {id_materia} após {self.timeout}s.")
+                return None
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
                 logger.error(
                     f"Erro de rede ao buscar proposição {id_materia} no Senado: {e}"
@@ -183,16 +208,18 @@ class SenadoAdapter:
                     f"Erro inesperado ao processar dados do Senado para ID {id_materia}: {e}"
                 )
                 return None
+        finally:
+            if client is None:
+                await _client.aclose()
 
     async def listar_recentes(
-        self, tipo: str, quantidade: int = 10, ano: Optional[int] = None
+        self, tipo: str, quantidade: int = 10, ano: Optional[int] = None, client: Optional[httpx.AsyncClient] = None
     ) -> List[int]:
         """Busca uma lista de IDs das matérias de um determinado tipo no Senado, opcionalmente por ano."""
         url = f"{self.base_url}/processo"
 
         if not ano:
             from datetime import date
-
             ano = date.today().year
 
         params = {
@@ -200,10 +227,11 @@ class SenadoAdapter:
             "ano": ano,
         }
         headers = {"Accept": "application/json"}
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        _client = client or httpx.AsyncClient(follow_redirects=True)
+        try:
             try:
                 resp = await self._get_with_retry(
-                    client, url, params=params, headers=headers
+                    _client, url, params=params, headers=headers
                 )
                 resp.raise_for_status()
                 dados = resp.json()
@@ -213,7 +241,7 @@ class SenadoAdapter:
 
                 if not dados and not ano:
                     params["ano"] = ano - 1
-                    resp = await client.get(
+                    resp = await _client.get(
                         url, params=params, headers=headers, timeout=self.timeout
                     )
                     if resp.status_code == 200:
@@ -236,18 +264,22 @@ class SenadoAdapter:
                     f"Erro ao listar matérias no Senado (tipo={tipo}, ano={ano}): {e}"
                 )
                 return []
+        finally:
+            if client is None:
+                await _client.aclose()
 
-    async def buscar_tramitacoes_brutas(self, id_materia: int) -> List[dict]:
+    async def buscar_tramitacoes_brutas(self, id_materia: int, client: Optional[httpx.AsyncClient] = None, timeout: Optional[int] = None) -> List[dict]:
         """
         Retorna payload bruto de cada tramitação do Senado.
         """
         headers = {"Accept": "application/json"}
-
         id_processo = id_materia
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        _client = client or httpx.AsyncClient(follow_redirects=True)
+        
+        try:
             try:
                 url_mat = f"{self.base_url}/materia/{id_materia}"
-                resp_mat = await client.get(url_mat, headers=headers, timeout=10)
+                resp_mat = await _client.get(url_mat, headers=headers, timeout=timeout or 10)
                 if resp_mat.status_code == 200:
                     dados_mat = resp_mat.json()
                     if (
@@ -266,7 +298,7 @@ class SenadoAdapter:
 
             url = f"{self.base_url}/processo/{id_processo}?v=1"
             try:
-                resp = await self._get_with_retry(client, url, headers=headers)
+                resp = await self._get_with_retry(_client, url, headers=headers, timeout=timeout)
                 resp.raise_for_status()
                 dados = resp.json()
 
@@ -299,6 +331,9 @@ class SenadoAdapter:
                     f"Erro ao buscar tramitações brutas do Senado para ID {id_materia} (Processo {id_processo}): {e}"
                 )
                 return []
+        finally:
+            if client is None:
+                await _client.aclose()
 
     async def coletar_em_lote(self, params: Optional[dict] = None) -> List[Proposicao]:
         """
