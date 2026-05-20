@@ -58,7 +58,10 @@ class ListarMovimentacoesService:
         self._agregar_service = AgregarPorFaseService(fase_repo)
 
     async def executar(
-        self, proposicao_id: str, modo: ModoMovimentacao = ModoMovimentacao.RESUMIDO, client: Optional[httpx.AsyncClient] = None
+        self,
+        proposicao_id: str,
+        modo: ModoMovimentacao = ModoMovimentacao.RESUMIDO,
+        client: Optional[httpx.AsyncClient] = None,
     ) -> Union[List[PeriodoFase], List[EventoTramitacao]]:
         """
         Retorna a lista de eventos normalizados para a proposição solicitada.
@@ -84,7 +87,7 @@ class ListarMovimentacoesService:
         # 2. Se não está no cache, busca na API (Fail-fast de 5s para o usuário)
         if not eventos:
             proposicao = self.proposicao_repo.buscar_por_id(real_id)
-            
+
             # Timeout curto para a Web (5s), mas permite maior se for via client (Seed)
             req_timeout = 5 if client is None else 30
 

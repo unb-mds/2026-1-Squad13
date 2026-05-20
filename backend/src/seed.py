@@ -7,7 +7,7 @@ import argparse
 import asyncio
 import logging
 import sys
-from typing import List, Optional
+from typing import List
 import httpx
 from sqlmodel import Session, select, func
 
@@ -52,16 +52,18 @@ def seed_lookup_tables():
 
 
 async def get_varied_ids(
-    camara: CamaraAdapter, 
-    senado: SenadoAdapter, 
+    camara: CamaraAdapter,
+    senado: SenadoAdapter,
     client: httpx.AsyncClient,
     sources: List[str],
     years: List[int],
     types: List[str],
-    limit_per_batch: int
+    limit_per_batch: int,
 ):
-    logger.info(f"🔍 Coletando IDs (Fontes: {sources}, Anos: {years}, Tipos: {types})...")
-    
+    logger.info(
+        f"🔍 Coletando IDs (Fontes: {sources}, Anos: {years}, Tipos: {types})..."
+    )
+
     sem_c = asyncio.Semaphore(4)
     sem_s = asyncio.Semaphore(1)
 
@@ -143,13 +145,17 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
         senado = SenadoAdapter()
 
         # 2. Coleta de IDs
-        ids_c, ids_s = await get_varied_ids(camara, senado, client, sources, years, types, limit)
+        ids_c, ids_s = await get_varied_ids(
+            camara, senado, client, sources, years, types, limit
+        )
 
         # 3. Busca de detalhes
         proposicoes = []
-        
+
         if ids_c:
-            logger.info(f"📥 Buscando detalhes de {len(ids_c)} proposições da Câmara...")
+            logger.info(
+                f"📥 Buscando detalhes de {len(ids_c)} proposições da Câmara..."
+            )
             for id_p in ids_c:
                 try:
                     p = await camara.buscar_por_id(id_p, client=client)
@@ -161,7 +167,9 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
                     logger.warning(f"⚠️ Erro Câmara ID {id_p}: {e}")
 
         if ids_s:
-            logger.info(f"📥 Buscando detalhes de {len(ids_s)} proposições do Senado...")
+            logger.info(
+                f"📥 Buscando detalhes de {len(ids_s)} proposições do Senado..."
+            )
             senado_errors = 0
             for id_p in ids_s:
                 if senado_errors >= 3:
@@ -196,7 +204,13 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
             apensamento_repo = SQLApensamentoRepository(session)
 
             listar_service = ListarMovimentacoesService(
-                evento_repo, repo, fase_repo, orgao_repo, camara, senado, apensamento_repo,
+                evento_repo,
+                repo,
+                fase_repo,
+                orgao_repo,
+                camara,
+                senado,
+                apensamento_repo,
             )
             dashboard_service = DashboardService(repo, evento_repo)
 
@@ -204,7 +218,11 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
                 try:
                     p.tags = generate_tags(p.ementa)
                     if not p.ementa_resumida:
-                        p.ementa_resumida = p.ementa[:150] + "..." if p.ementa and len(p.ementa) > 150 else p.ementa
+                        p.ementa_resumida = (
+                            p.ementa[:150] + "..."
+                            if p.ementa and len(p.ementa) > 150
+                            else p.ementa
+                        )
 
                     prop_db = repo.buscar_por_id(p.id)
                     if prop_db is None:
@@ -217,42 +235,52 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
                         atualizados += 1
 
                     await listar_service.executar(str(prop_db.id), client=client)
-                    
-                    tempo = dashboard_service._calcular_tempo_total([], prop_db.tempo_total_dias or 0, prop_db)
+
+                    tempo = dashboard_service._calcular_tempo_total(
+                        [], prop_db.tempo_total_dias or 0, prop_db
+                    )
                     prop_db.tempo_total_dias = tempo
                     repo.salvar(prop_db)
 
                     if (inseridos + atualizados) % 5 == 0:
-                        print(f"  [Progress] {inseridos + atualizados}/{len(proposicoes)}...", end="\r")
+                        print(
+                            f"  [Progress] {inseridos + atualizados}/{len(proposicoes)}...",
+                            end="\r",
+                        )
 
                 except Exception as e:
                     session.rollback()
                     logger.error(f"❌ Erro em {p.id}: {e}")
 
-        logger.info(f"\n✨ Finalizado! Inseridos/Atualizados: {inseridos + atualizados}")
-        
+        logger.info(
+            f"\n✨ Finalizado! Inseridos/Atualizados: {inseridos + atualizados}"
+        )
+
         try:
             redis_conn = get_redis_client()
             RedisClient(redis_conn).invalidate("dashboard:")
             logger.info("✅ Cache limpo.")
-        except: pass
+        except Exception:
+            pass
 
 
 def interactive_menu():
     """Exibe um menu interativo no terminal."""
-    print("\n" + "="*40)
+    print("\n" + "=" * 40)
     print(" 🏛️  MONITOR LEGISLATIVO - SEED TOOL")
-    print("="*40)
-    
+    print("=" * 40)
+
     print("\n1. Escolha a FONTE dos dados:")
     print("   [1] Câmara dos Deputados (Rápida)")
     print("   [2] Senado Federal (Lenta/Instável)")
     print("   [3] Ambos")
     choice = input("\n> Opção [1]: ") or "1"
-    
+
     sources = ["camara"]
-    if choice == "2": sources = ["senado"]
-    elif choice == "3": sources = ["camara", "senado"]
+    if choice == "2":
+        sources = ["senado"]
+    elif choice == "3":
+        sources = ["camara", "senado"]
 
     print("\n2. Escolha o LIMITE de proposições por lote:")
     limit = int(input("> Limite [5]: ") or "5")
@@ -265,14 +293,14 @@ def interactive_menu():
     types_str = input("> Tipos [PL PEC]: ") or "PL PEC"
     types = [t.upper() for t in types_str.split()]
 
-    print("\n" + "-"*40)
+    print("\n" + "-" * 40)
     print(f"Configuração: {sources} | Anos: {years} | Tipos: {types} | Limite: {limit}")
     confirm = input("Confirmar execução? (S/n): ").lower()
-    
-    if confirm == 'n':
+
+    if confirm == "n":
         print("Operação cancelada.")
         sys.exit(0)
-        
+
     return sources, years, types, limit
 
 
@@ -283,9 +311,9 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, help="Limite")
     parser.add_argument("--years", type=int, nargs="+", help="Anos")
     parser.add_argument("--types", type=str, nargs="+", help="Tipos")
-    
+
     args = parser.parse_args()
-    
+
     # Se não passou argumentos de fonte, abre o menu
     if not args.source:
         sources, years, types, limit = interactive_menu()
@@ -296,7 +324,11 @@ if __name__ == "__main__":
         limit = args.limit or 5
 
     try:
-        asyncio.run(run(force=args.force, sources=sources, years=years, types=types, limit=limit))
+        asyncio.run(
+            run(
+                force=args.force, sources=sources, years=years, types=types, limit=limit
+            )
+        )
     except KeyboardInterrupt:
         logger.info("\n🛑 Seed interrompido.")
         sys.exit(0)
