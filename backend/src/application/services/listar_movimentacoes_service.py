@@ -261,7 +261,6 @@ class ListarMovimentacoesService:
             proposicao.orgao_atual = eventos[-1].sigla_orgao
 
         # 3. Normalizar e recalcular
-        from domain.entities.proposicao import Proposicao as PropEntity
 
         # Garante que temos os métodos de domínio se for um model
         if hasattr(proposicao, "normalizar_campo_status"):
