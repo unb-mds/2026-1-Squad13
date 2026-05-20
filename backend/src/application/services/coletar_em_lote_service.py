@@ -38,10 +38,10 @@ class ColetarEmLoteService:
             "senado": {"status": "pendente", "itens_coletados": 0, "erro": None},
         }
 
-        # Coleta Câmara
+        # Coleta Câmara (Meta: 300)
         try:
-            logger.info("Iniciando coleta em lote da Câmara dos Deputados...")
-            props_camara = await self.camara_adapter.coletar_em_lote()
+            logger.info("Iniciando coleta em lote da Câmara dos Deputados (Meta: 300)...")
+            props_camara = await self.camara_adapter.coletar_em_lote({"limite_total": 300})
             if props_camara:
                 self.repository.upsert_em_lote_por_numero_canonico(props_camara)
 
@@ -55,10 +55,10 @@ class ColetarEmLoteService:
             resumo["camara"]["erro"] = str(e)
             self._registrar_log("camara", "falha", 0, str(e))
 
-        # Coleta Senado
+        # Coleta Senado (Meta: 200)
         try:
-            logger.info("Iniciando coleta em lote do Senado Federal...")
-            props_senado = await self.senado_adapter.coletar_em_lote()
+            logger.info("Iniciando coleta em lote do Senado Federal (Meta: 200)...")
+            props_senado = await self.senado_adapter.coletar_em_lote({"limite_total": 200})
             if props_senado:
                 self.repository.upsert_em_lote_por_numero_canonico(props_senado)
 

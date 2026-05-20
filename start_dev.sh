@@ -44,8 +44,8 @@ echo -e "${BLUE}⏳ Aguardando serviços de infra estabilizarem...${NC}"
 sleep 5
 
 # 3. Subir as aplicações
-echo -e "${YELLOW}⚙️  Subindo Backend e Frontend...${NC}"
-docker compose up -d --build backend frontend
+echo -e "${YELLOW}⚙️  Subindo Backend, Frontend e Workers...${NC}"
+docker compose up -d --build backend frontend celery_worker celery_beat
 
 # 4. Verificar se o backend subiu
 echo -e "${BLUE}⏳ Verificando saúde do backend...${NC}"
