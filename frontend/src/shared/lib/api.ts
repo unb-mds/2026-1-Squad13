@@ -98,15 +98,17 @@ export async function obterProposicao(id: string): Promise<Proposicao | null> {
   return await response.json()
 }
 
-export async function obterMovimentacoes(proposicaoId: string): Promise<MovimentacaoTramitacao[]> {
+export async function obterMovimentacoes(proposicaoId: string, modo: 'completo' | 'relevante' = 'completo'): Promise<MovimentacaoTramitacao[]> {
   try {
-    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes`)
+    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes?modo=${modo}`)
 
     if (!response.ok) {
       return []
     }
 
     const rawData = await response.json()
+    if (!Array.isArray(rawData)) return []
+
     // Normalização das propriedades do Backend para a interface do Frontend
     return (rawData as Array<{
       proposicaoId: string;
@@ -117,14 +119,14 @@ export async function obterMovimentacoes(proposicaoId: string): Promise<Moviment
       diasNaEtapa: number;
       temAtraso: boolean;
     }>).map((d) => ({
-      id: String(d.sequencia),
-      proposicaoId: d.proposicaoId,
-      data: d.dataEvento,
+      id: String(d.sequencia || Math.random()),
+      proposicaoId: d.proposicaoId || '',
+      data: d.dataEvento || '',
       orgao: d.siglaOrgao || 'N/A',
       descricao: d.descricaoOriginal || 'Movimentação registrada',
       responsavel: undefined,
-      diasNaEtapa: d.diasNaEtapa,
-      temAtraso: d.temAtraso,
+      diasNaEtapa: d.diasNaEtapa || 0,
+      temAtraso: d.temAtraso || false,
     }))
   } catch {
     return []

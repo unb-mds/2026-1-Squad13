@@ -15,7 +15,11 @@ class CamaraAdapter:
 
     def __init__(self):
         self.base_url = "https://dadosabertos.camara.leg.br/api/v2"
-        self.timeout = 20  # Timeout aumentado para lidar com lentidão eventual
+        self.timeout = 25  # Timeout aumentado para lidar com lentidão eventual
+        self.headers = {
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 (MonitorLegislativo/1.0)"
+        }
 
     async def _get_with_retry(
         self, client: httpx.AsyncClient, url: str, params: Optional[dict] = None
@@ -24,40 +28,42 @@ class CamaraAdapter:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                resp = await client.get(url, params=params, timeout=self.timeout)
+                resp = await client.get(url, params=params, headers=self.headers, timeout=self.timeout)
                 if (
                     resp.status_code in [429, 500, 502, 503, 504]
                     and attempt < max_retries - 1
                 ):
                     wait_time = (attempt + 1) * 2
                     logger.warning(
-                        f"Erro {resp.status_code} na Câmara. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
+                        f"⚠️ Erro {resp.status_code} na Câmara. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
                     )
                     await asyncio.sleep(wait_time)
                     continue
                 resp.raise_for_status()
                 return resp
-            except (httpx.RequestError, httpx.HTTPStatusError) as e:
+            except Exception as e:
                 if attempt < max_retries - 1:
                     wait_time = (attempt + 1) * 2
+                    error_type = type(e).__name__
                     logger.warning(
-                        f"Falha na conexão com Câmara: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
+                        f"🔄 Falha [{error_type}] na Câmara: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
                     )
                     await asyncio.sleep(wait_time)
                 else:
                     raise
-        raise httpx.RequestError("Máximo de tentativas excedido")
+        raise httpx.RequestError("Máximo de tentativas excedido na Câmara")
 
-    async def buscar_por_id(self, id_proposicao: int) -> Optional[Proposicao]:
+    async def buscar_por_id(self, id_proposicao: int, client: Optional[httpx.AsyncClient] = None) -> Optional[Proposicao]:
         url_proposicao = f"{self.base_url}/proposicoes/{id_proposicao}"
         url_autores = f"{url_proposicao}/autores"
 
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        _client = client or httpx.AsyncClient(follow_redirects=True)
+        try:
             try:
-                resp_prop = await self._get_with_retry(client, url_proposicao)
+                resp_prop = await self._get_with_retry(_client, url_proposicao)
                 dados = resp_prop.json()["dados"]
 
-                resp_autores = await self._get_with_retry(client, url_autores)
+                resp_autores = await self._get_with_retry(_client, url_autores)
                 autores_dados = resp_autores.json()["dados"]
 
                 # Processamento de autores
@@ -96,6 +102,12 @@ class CamaraAdapter:
                     tags=[],
                 )
 
+            except httpx.ConnectError:
+                logger.error(f"❌ Erro de CONEXÃO com a Câmara para ID {id_proposicao}. Verifique se o container tem acesso à internet (DNS/Firewall).")
+                return None
+            except httpx.TimeoutException:
+                logger.error(f"⏳ TIMEOUT ao acessar Câmara para ID {id_proposicao} após {self.timeout}s.")
+                return None
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
                 logger.error(
                     f"Erro de rede ao buscar proposição {id_proposicao} na Câmara: {e}"
@@ -106,9 +118,12 @@ class CamaraAdapter:
                     f"Erro ao processar dados da Câmara para ID {id_proposicao}: {e}"
                 )
                 return None
+        finally:
+            if client is None:
+                await _client.aclose()
 
     async def listar_recentes(
-        self, tipo: str, quantidade: int = 10, ano: Optional[int] = None
+        self, tipo: str, quantidade: int = 10, ano: Optional[int] = None, client: Optional[httpx.AsyncClient] = None
     ) -> List[int]:
         """Busca uma lista de IDs das proposições de um determinado tipo, opcionalmente por ano."""
         url = f"{self.base_url}/proposicoes"
@@ -121,9 +136,10 @@ class CamaraAdapter:
         if ano:
             params["ano"] = ano
 
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        _client = client or httpx.AsyncClient(follow_redirects=True)
+        try:
             try:
-                resp = await self._get_with_retry(client, url, params=params)
+                resp = await self._get_with_retry(_client, url, params=params)
                 dados = resp.json()["dados"]
                 return [d["id"] for d in dados]
             except Exception as e:
@@ -131,15 +147,19 @@ class CamaraAdapter:
                     f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}): {e}"
                 )
                 return []
+        finally:
+            if client is None:
+                await _client.aclose()
 
-    async def buscar_tramitacoes_brutas(self, id_proposicao: int) -> List[dict]:
+    async def buscar_tramitacoes_brutas(self, id_proposicao: int, client: Optional[httpx.AsyncClient] = None) -> List[dict]:
         """
         Retorna payload bruto de cada tramitação da Câmara.
         """
         url = f"{self.base_url}/proposicoes/{id_proposicao}/tramitacoes"
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        _client = client or httpx.AsyncClient(follow_redirects=True)
+        try:
             try:
-                resp = await self._get_with_retry(client, url)
+                resp = await self._get_with_retry(_client, url)
                 dados = resp.json()["dados"]
 
                 brutas = []
@@ -173,3 +193,6 @@ class CamaraAdapter:
                     f"Erro ao buscar tramitações brutas da Câmara para ID {id_proposicao}: {e}"
                 )
                 return []
+        finally:
+            if client is None:
+                await _client.aclose()
