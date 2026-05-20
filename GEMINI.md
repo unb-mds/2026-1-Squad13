@@ -31,7 +31,7 @@ Monitoramento de Tempo de Tramitação de Leis (PL/PEC). Busca, acompanhamento e
 ## Convenções Obrigatórias
 
 - **Branches**: `feat/`, `fix/`, `docs/`, nunca `main` diretamente.
-- **Commits**: Conventional Commits em **português** e **IMPERATIVO** (`adiciona`, `corrige`, `refatora`).
+- **Commits**: Conventional Commits com **tipo em inglês** (`feat`, `fix`, `chore`, `refactor`) e **descrição em português no IMPERATIVO** (`adiciona`, `corrige`, `estabiliza`).
 - **CI Verde**: não fazer merge sem CI aprovada.
 - **Issues**: toda nova necessidade → issue aprovada → implementação.
 
