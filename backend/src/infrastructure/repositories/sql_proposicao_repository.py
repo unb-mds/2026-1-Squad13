@@ -1,4 +1,3 @@
-
 from sqlalchemy import func
 from sqlmodel import Session, select
 
@@ -97,9 +96,7 @@ class SQLProposicaoRepository:
         model = self.session.get(ProposicaoModel, id)
         return self._to_entity(model) if model else None
 
-    def buscar_por_codigo(
-        self, tipo: str, numero: str, ano: int
-    ) -> Proposicao | None:
+    def buscar_por_codigo(self, tipo: str, numero: str, ano: int) -> Proposicao | None:
         """Busca uma proposição pelo conjunto único Tipo, Número e Ano."""
         statement = select(ProposicaoModel).where(
             func.lower(ProposicaoModel.tipo) == tipo.lower(),

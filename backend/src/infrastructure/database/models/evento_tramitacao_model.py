@@ -1,4 +1,3 @@
-
 from sqlalchemy import JSON, Column, Index
 from sqlmodel import Field, SQLModel
 

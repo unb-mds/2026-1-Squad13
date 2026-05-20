@@ -5,7 +5,6 @@ As 8 fases são inseridas via seed e nunca criadas em runtime.
 Este repositório oferece consulta e seed idempotente.
 """
 
-
 from sqlmodel import Session, select
 
 from domain.entities.fase_analitica import FASES_SEED, FaseAnalitica

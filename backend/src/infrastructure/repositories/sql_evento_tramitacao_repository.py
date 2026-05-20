@@ -8,7 +8,6 @@ de controle.
 Ordenação padrão: data_evento ASC, sequencia ASC (cronológica).
 """
 
-
 from sqlalchemy import func
 from sqlmodel import Session, select
 
