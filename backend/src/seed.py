@@ -236,12 +236,6 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
 
                     await listar_service.executar(str(prop_db.id), client=client)
 
-                    tempo = dashboard_service._calcular_tempo_total(
-                        [], prop_db.tempo_total_dias or 0, prop_db
-                    )
-                    prop_db.tempo_total_dias = tempo
-                    repo.salvar(prop_db)
-
                     if (inseridos + atualizados) % 5 == 0:
                         print(
                             f"  [Progress] {inseridos + atualizados}/{len(proposicoes)}...",
