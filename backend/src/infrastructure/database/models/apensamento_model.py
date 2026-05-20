@@ -1,4 +1,3 @@
-
 from sqlmodel import JSON, Column, Field, SQLModel
 
 

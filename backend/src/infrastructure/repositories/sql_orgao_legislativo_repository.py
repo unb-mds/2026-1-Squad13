@@ -7,7 +7,6 @@ Os adapters criam/atualizam órgãos conforme encontram novas siglas.
 Seed mínimo: 3 órgãos implícitos (PLEN, MESA, SECCJ).
 """
 
-
 from sqlmodel import Session, select
 
 from domain.entities.orgao_legislativo import (

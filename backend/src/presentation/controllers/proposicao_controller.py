@@ -253,7 +253,7 @@ async def listar_movimentacoes(
         traceback.print_exc()
         raise HTTPException(
             status_code=500, detail=f"Erro ao buscar movimentações: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/proposicoes", response_model=ProposicoesListResponse)
@@ -292,7 +292,7 @@ def buscar_proposicoes(
             "totalPaginas": resultado["total_paginas"],
         }
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/proposicoes/{id}", response_model=ProposicaoResponse)
@@ -306,9 +306,9 @@ async def obter_detalhe_proposicao(id: str, session: Session = Depends(get_sessi
         proposicao = await service.executar(id)
         return _to_response(proposicao)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}") from e
 
 
 @router.get(
@@ -335,4 +335,4 @@ def obter_estimativa_aprovacao(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Erro ao calcular estimativa: {str(e)}"
-        )
+        ) from e

@@ -44,7 +44,7 @@ class DetalheProposicaoService:
         try:
             id_int = int(id_proposicao)
         except ValueError:
-            raise ValueError(f"Proposição não encontrada: {id_proposicao}")
+            raise ValueError(f"Proposição não encontrada: {id_proposicao}") from None
 
         # Tenta na Câmara
         proposicao = await self.camara_adapter.buscar_por_id(id_int)

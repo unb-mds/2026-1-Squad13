@@ -74,7 +74,7 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token revogado. Faça login novamente.",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from None
 
     # 2. Decodificar e validar JWT
     try:
@@ -83,7 +83,7 @@ def get_current_user(
         if email is None:
             raise credentials_exception
     except JWTError:
-        raise credentials_exception
+        raise credentials_exception from None
 
     user = auth_service.user_repository.buscar_por_email(email)
     if user is None:
