@@ -231,11 +231,13 @@ class CamaraAdapter:
         # Otimiza paginação para o limite máximo da API da Câmara (100)
         params["itens"] = 100
         params["pagina"] = 1
+        
+        limite_total = params.get("limite_total", 500)
 
         ids_coletados = []
 
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            while True:
+            while len(ids_coletados) < limite_total:
                 try:
                     resp = await self._get_with_retry(client, url, params=params)
                     dados = resp.json().get("dados", [])
@@ -244,6 +246,11 @@ class CamaraAdapter:
                         break
 
                     ids_coletados.extend([d["id"] for d in dados])
+                    
+                    # Corta se exceder o limite solicitado
+                    if len(ids_coletados) >= limite_total:
+                        ids_coletados = ids_coletados[:limite_total]
+                        break
 
                     # Verifica se há próxima página baseando-se nos links de HATEOAS
                     links = resp.json().get("links", [])

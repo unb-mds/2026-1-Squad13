@@ -375,7 +375,7 @@ class SenadoAdapter:
             params["ano"] = date.today().year
 
         # O Senado não tem "itens" na API de processo, mas limitamos no código
-        limite = params.get("itens", 100)
+        limite = params.get("limite_total", 200)
         ids_coletados = []
 
         async with httpx.AsyncClient(follow_redirects=True) as client:
