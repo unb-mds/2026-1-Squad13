@@ -58,9 +58,11 @@ class SQLProposicaoRepository:
         from sqlalchemy import tuple_
 
         statement = select(ProposicaoModel).where(
-            tuple_(func.lower(ProposicaoModel.tipo), ProposicaoModel.numero, ProposicaoModel.ano).in_(
-                chaves_lote
-            )
+            tuple_(
+                func.lower(ProposicaoModel.tipo),
+                ProposicaoModel.numero,
+                ProposicaoModel.ano,
+            ).in_(chaves_lote)
         )
         existentes = self.session.exec(statement).all()
 
@@ -73,7 +75,7 @@ class SQLProposicaoRepository:
         for prop in proposicoes:
             chave = (prop.tipo.lower(), str(prop.numero), prop.ano)
             model_novo = self._to_model(prop)
-            
+
             existing = mapa_existentes.get(chave)
 
             if existing:
