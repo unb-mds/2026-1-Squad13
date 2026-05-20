@@ -89,7 +89,7 @@ async def test_listar_busca_api_camara_salva_no_cache(MockNormalizar, service, m
 
     # Assert
     assert resultado == [evento_normalizado]
-    mocks["camara_adapter"].buscar_tramitacoes_brutas.assert_called_once_with(123)
+    mocks["camara_adapter"].buscar_tramitacoes_brutas.assert_called_once_with(123, client=None)
     mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_not_called()
 
     mock_normalizer_instance.normalizar.assert_called_once_with("123", dados_brutos)
@@ -128,8 +128,8 @@ async def test_listar_fallback_senado_sem_proposicao_no_banco(service, mocks):
 
     # Assert
     assert resultado == [evento_mock]
-    mocks["camara_adapter"].buscar_tramitacoes_brutas.assert_called_once_with(123)
-    mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_called_once_with(123)
+    mocks["camara_adapter"].buscar_tramitacoes_brutas.assert_called_once_with(123, client=None)
+    mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_called_once_with(123, client=None, timeout=5)
 
 
 @pytest.mark.asyncio
