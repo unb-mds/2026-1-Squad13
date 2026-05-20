@@ -85,10 +85,19 @@ class ListarMovimentacoesService:
                     pass
 
         # 1. Tentar cache (banco de dados)
-        eventos = self.evento_repo.buscar_por_proposicao(real_id)
+        somente_relevantes = modo == ModoMovimentacao.RELEVANTE
+        eventos = self.evento_repo.buscar_por_proposicao(
+            real_id, somente_relevantes=somente_relevantes
+        )
 
         # 2. Se não está no cache, busca na API (Fail-fast de 5s para o usuário)
-        if not eventos:
+        # Se eventos está vazio, verificamos se é porque realmente não há nada no banco
+        # ou se é apenas porque não há eventos relevantes (caso modo == RELEVANTE).
+        ja_esta_no_cache = len(eventos) > 0 or (
+            somente_relevantes and self.evento_repo.existe_algum_evento(real_id)
+        )
+
+        if not ja_esta_no_cache:
             proposicao = self.proposicao_repo.buscar_por_id(real_id)
 
             # Timeout curto para a Web (5s), mas permite maior se for via client (Seed)

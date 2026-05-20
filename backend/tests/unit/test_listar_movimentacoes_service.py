@@ -55,6 +55,9 @@ async def test_listar_retorna_do_cache_se_existir(service, mocks):
     assert resultado == [evento_mock]
     mocks["camara_adapter"].buscar_tramitacoes_brutas.assert_not_called()
     mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_not_called()
+    mocks["evento_repo"].buscar_por_proposicao.assert_called_with(
+        "123", somente_relevantes=False
+    )
 
 
 @pytest.mark.asyncio
@@ -158,4 +161,53 @@ async def test_resolucao_slug_pl(service, mocks):
     # Assert
     mocks["proposicao_repo"].buscar_por_codigo.assert_called_once_with("PL", "1", 2024)
     # Even if it returns empty, it should have tried with "999"
-    mocks["evento_repo"].buscar_por_proposicao.assert_called_with("999")
+    mocks["evento_repo"].buscar_por_proposicao.assert_called_with(
+        "999", somente_relevantes=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_executar_delega_filtro_relevancia_para_repositorio(service, mocks):
+    # Arrange
+    evento_relevante = EventoTramitacao(
+        proposicao_id="123",
+        data_evento="2024-01-01",
+        sequencia=1,
+        sigla_orgao="CCJ",
+        descricao_original="Teste",
+        tipo_evento=TipoEvento.DESPACHO.value,
+        relevante=True,
+    )
+    mocks["evento_repo"].buscar_por_proposicao.return_value = [evento_relevante]
+
+    # Act
+    resultado = await service.executar("123", modo=ModoMovimentacao.RELEVANTE)
+
+    # Assert
+    assert resultado == [evento_relevante]
+    # Verifica que o repositório foi chamado com somente_relevantes=True
+    mocks["evento_repo"].buscar_por_proposicao.assert_called_with(
+        "123", somente_relevantes=True
+    )
+
+
+@pytest.mark.asyncio
+async def test_executar_nao_vai_para_api_se_houver_dados_no_cache_mesmo_sem_relevantes(
+    service, mocks
+):
+    # Arrange
+    # Modo RELEVANTE, repositório retorna vazio (nenhum relevante no banco)
+    mocks["evento_repo"].buscar_por_proposicao.return_value = []
+    # Mas o banco TEM eventos (irrelevantes)
+    mocks["evento_repo"].existe_algum_evento.return_value = True
+
+    # Act
+    resultado = await service.executar("123", modo=ModoMovimentacao.RELEVANTE)
+
+    # Assert
+    assert resultado == []
+    # Não deve chamar adapters
+    mocks["camara_adapter"].buscar_tramitacoes_brutas.assert_not_called()
+    mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_not_called()
+    # Deve ter verificado existência no repositório
+    mocks["evento_repo"].existe_algum_evento.assert_called_with("123")
