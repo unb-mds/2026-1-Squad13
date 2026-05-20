@@ -296,6 +296,72 @@ class SenadoAdapter:
                 )
                 return []
 
+    async def coletar_em_lote(self, params: Optional[dict] = None) -> List[Proposicao]:
+        """
+        Busca proposições em lote no Senado.
+        A API do Senado não possui paginação nativa idêntica à da Câmara no endpoint principal,
+        então buscamos por ano/quantidade e limitamos o batch.
+        """
+        if params is None:
+            params = {}
+
+        url = f"{self.base_url}/processo"
+        headers = {"Accept": "application/json"}
+
+        # Parâmetros default caso não informados
+        if "ano" not in params:
+            from datetime import date
+            params["ano"] = date.today().year
+
+        # O Senado não tem "itens" na API de processo, mas limitamos no código
+        limite = params.get("itens", 100)
+        ids_coletados = []
+
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            try:
+                # Removemos itens da query string pois a API do senado pode rejeitar parâmetros desconhecidos
+                api_params = {k: v for k, v in params.items() if k in ["sigla", "ano"]}
+                
+                resp = await self._get_with_retry(
+                    client, url, params=api_params, headers=headers
+                )
+                resp.raise_for_status()
+                dados = resp.json()
+
+                if not isinstance(dados, list):
+                    dados = [dados] if dados else []
+
+                for m in dados:
+                    if "codigoMateria" in m:
+                        ids_coletados.append(int(m["codigoMateria"]))
+                    elif "id" in m:
+                        ids_coletados.append(int(m["id"]))
+
+                    if len(ids_coletados) >= limite:
+                        break
+
+            except Exception as e:
+                logger.error(f"Erro na listagem em lote do Senado: {e}")
+
+        proposicoes_completas = []
+        # Limite menor para o Senado pois a API costuma ser mais lenta/instável
+        semaphore = asyncio.Semaphore(5)
+
+        async def fetch_full(id_prop: int):
+            async with semaphore:
+                return await self.buscar_por_id(id_prop)
+
+        tasks = [fetch_full(id_prop) for id_prop in ids_coletados]
+        resultados = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for res in resultados:
+            if isinstance(res, Proposicao):
+                proposicoes_completas.append(res)
+            elif isinstance(res, Exception):
+                logger.error(f"Erro na coleta em lote de proposição do Senado: {res}")
+
+        return proposicoes_completas
+
     def _processar_dados_processo(self, dados: dict, id_materia: str) -> Proposicao:
         """Processa a estrutura flat retornada pelo endpoint /processo."""
         identificacao = dados.get("identificacao", "")
