@@ -225,8 +225,9 @@ class SenadoAdapter:
         quantidade: int = 10,
         ano: Optional[int] = None,
         client: Optional[httpx.AsyncClient] = None,
+        numero: Optional[str] = None,
     ) -> List[int]:
-        """Busca uma lista de IDs das matérias de um determinado tipo no Senado, opcionalmente por ano."""
+        """Busca uma lista de IDs das matérias de um determinado tipo no Senado, opcionalmente por ano e número."""
         url = f"{self.base_url}/processo"
 
         if not ano:
@@ -238,6 +239,9 @@ class SenadoAdapter:
             "sigla": tipo,
             "ano": ano,
         }
+        if numero:
+            params["numero"] = numero
+
         headers = {"Accept": "application/json"}
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
@@ -251,16 +255,6 @@ class SenadoAdapter:
                 if not isinstance(dados, list):
                     dados = [dados] if dados else []
 
-                if not dados and not ano:
-                    params["ano"] = ano - 1
-                    resp = await _client.get(
-                        url, params=params, headers=headers, timeout=self.timeout
-                    )
-                    if resp.status_code == 200:
-                        dados = resp.json()
-                        if not isinstance(dados, list):
-                            dados = [dados] if dados else []
-
                 ids = []
                 for m in dados:
                     if "codigoMateria" in m:
@@ -273,12 +267,19 @@ class SenadoAdapter:
                 return ids
             except Exception as e:
                 logger.error(
-                    f"Erro ao listar matérias no Senado (tipo={tipo}, ano={ano}): {e}"
+                    f"Erro ao listar matérias no Senado (tipo={tipo}, ano={ano}, num={numero}): {e}"
                 )
                 return []
         finally:
             if client is None:
                 await _client.aclose()
+
+    async def buscar_id_por_identificacao(
+        self, tipo: str, numero: str, ano: int, client: Optional[httpx.AsyncClient] = None
+    ) -> Optional[int]:
+        """Localiza o ID interno do Senado para uma matéria conhecida."""
+        ids = await self.listar_recentes(tipo, 1, ano, client=client, numero=numero)
+        return ids[0] if ids else None
 
     async def buscar_tramitacoes_brutas(
         self,

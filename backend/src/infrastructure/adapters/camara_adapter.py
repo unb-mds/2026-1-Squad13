@@ -144,8 +144,9 @@ class CamaraAdapter:
         quantidade: int = 10,
         ano: Optional[int] = None,
         client: Optional[httpx.AsyncClient] = None,
+        numero: Optional[str] = None,
     ) -> List[int]:
-        """Busca uma lista de IDs das proposições de um determinado tipo, opcionalmente por ano."""
+        """Busca uma lista de IDs das proposições filtrando por tipo, ano e opcionalmente número."""
         url = f"{self.base_url}/proposicoes"
         params = {
             "siglaTipo": tipo,
@@ -155,6 +156,8 @@ class CamaraAdapter:
         }
         if ano:
             params["ano"] = ano
+        if numero:
+            params["numero"] = numero
 
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
@@ -164,12 +167,19 @@ class CamaraAdapter:
                 return [d["id"] for d in dados]
             except Exception as e:
                 logger.error(
-                    f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}): {e}"
+                    f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}, num={numero}): {e}"
                 )
                 return []
         finally:
             if client is None:
                 await _client.aclose()
+
+    async def buscar_id_por_identificacao(
+        self, tipo: str, numero: str, ano: int, client: Optional[httpx.AsyncClient] = None
+    ) -> Optional[int]:
+        """Localiza o ID interno da Câmara para uma proposição conhecida."""
+        ids = await self.listar_recentes(tipo, 1, ano, client=client, numero=numero)
+        return ids[0] if ids else None
 
     async def buscar_tramitacoes_brutas(
         self, id_proposicao: int, client: Optional[httpx.AsyncClient] = None
@@ -229,17 +239,22 @@ class CamaraAdapter:
             params = {}
 
         # Otimiza paginação para o limite máximo da API da Câmara (100)
-        params["itens"] = 100
-        params["pagina"] = 1
-        
         limite_total = params.get("limite_total", 500)
+        
+        # Cria uma cópia para não poluir os parâmetros passados com dados internos
+        api_params = params.copy()
+        if "limite_total" in api_params:
+            del api_params["limite_total"]
+            
+        api_params["itens"] = 100
+        api_params["pagina"] = 1
 
         ids_coletados = []
 
         async with httpx.AsyncClient(follow_redirects=True) as client:
             while len(ids_coletados) < limite_total:
                 try:
-                    resp = await self._get_with_retry(client, url, params=params)
+                    resp = await self._get_with_retry(client, url, params=api_params)
                     dados = resp.json().get("dados", [])
 
                     if not dados:
@@ -259,7 +274,7 @@ class CamaraAdapter:
                     if not has_next:
                         break
 
-                    params["pagina"] += 1
+                    api_params["pagina"] += 1
                 except Exception as e:
                     logger.error(
                         f"Erro na paginação da Câmara (página {params.get('pagina')}): {e}"
