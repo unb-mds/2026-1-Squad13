@@ -201,20 +201,20 @@ class ListarMovimentacoesService:
                     )
                     casa_padrao = CasaLegislativa.SENADO
 
-                if dados_brutos:
-                    # Normalizar e salvar (lógica original)
-                    normalizer = NormalizarTramitacaoService(
-                        fase_repo=self.fase_repo,
-                        orgao_repo=self.orgao_repo,
-                        apensamento_repo=self.apensamento_repo,
-                        casa_padrao=casa_padrao,
-                    )
-                    eventos = normalizer.normalizar(real_id, dados_brutos)
-                    if eventos:
-                        self.evento_repo.salvar_lote(eventos)
-                        if proposicao:
-                            self._sincronizar_proposicao(proposicao, eventos)
-                            self.proposicao_repo.salvar(proposicao)
+            if not eventos and dados_brutos:
+                # Normalizar e salvar (lógica original)
+                normalizer = NormalizarTramitacaoService(
+                    fase_repo=self.fase_repo,
+                    orgao_repo=self.orgao_repo,
+                    apensamento_repo=self.apensamento_repo,
+                    casa_padrao=casa_padrao,
+                )
+                eventos = normalizer.normalizar(real_id, dados_brutos)
+                if eventos:
+                    self.evento_repo.salvar_lote(eventos)
+                    if proposicao:
+                        self._sincronizar_proposicao(proposicao, eventos)
+                        self.proposicao_repo.salvar(proposicao)
 
         # 5. Aplica a lógica do modo
         if modo == ModoMovimentacao.RESUMIDO:
