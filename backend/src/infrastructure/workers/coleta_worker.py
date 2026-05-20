@@ -7,6 +7,7 @@ from application.services.coletar_em_lote_service import ColetarEmLoteService
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task(name="coletar_proposicoes_diario")
 def task_coletar_proposicoes_diario():
     """
