@@ -6,7 +6,7 @@ fallback para a API externa via adapter, e normalização de tramitações.
 """
 
 import logging
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 import httpx
 
 from application.services.normalizar_tramitacao_service import (
@@ -96,14 +96,14 @@ class ListarMovimentacoesService:
 
             # Determina o adapter e a casa padrão
             dados_brutos = []
-            
+
             # Se for PL ou PEC, tentamos buscar em AMBAS as casas para unificar o histórico
             tipos_unificaveis = {"PL", "PEC", "PLP", "MPV"}
-            
+
             tipo_prop = proposicao.tipo if proposicao else None
             numero_prop = proposicao.numero if proposicao else None
             ano_prop = proposicao.ano if proposicao else None
-            
+
             if not proposicao and real_id.isdigit():
                 # Tenta descobrir o tipo se não tiver proposicao (fallback para IDs diretos)
                 # Neste caso mantemos a lógica sequencial original
@@ -118,12 +118,14 @@ class ListarMovimentacoesService:
                     casa_padrao = CasaLegislativa.SENADO
             elif proposicao and tipo_prop in tipos_unificaveis:
                 # LÓGICA DE UNIFICAÇÃO (CROSSOVER)
-                logger.info(f"Iniciando busca unificada para {proposicao.nome_canonico}")
-                
+                logger.info(
+                    f"Iniciando busca unificada para {proposicao.nome_canonico}"
+                )
+
                 # 1. Buscar IDs em ambas as casas
                 id_camara = None
                 id_senado = None
-                
+
                 if "Câmara" in (proposicao.orgao_origem or ""):
                     id_camara = int(proposicao.id)
                     # Tenta achar o correspondente no Senado
@@ -136,39 +138,53 @@ class ListarMovimentacoesService:
                     id_camara = await self.camara_adapter.buscar_id_por_identificacao(
                         tipo_prop, numero_prop, ano_prop, client=client
                     )
-                
+
                 # 2. Coletar tramitações de onde encontramos ID
                 tramitacoes_camara = []
                 tramitacoes_senado = []
-                
+
                 if id_camara:
-                    tramitacoes_camara = await self.camara_adapter.buscar_tramitacoes_brutas(
-                        id_camara, client=client
+                    tramitacoes_camara = (
+                        await self.camara_adapter.buscar_tramitacoes_brutas(
+                            id_camara, client=client
+                        )
                     )
                 if id_senado:
-                    tramitacoes_senado = await self.senado_adapter.buscar_tramitacoes_brutas(
-                        id_senado, client=client, timeout=req_timeout
+                    tramitacoes_senado = (
+                        await self.senado_adapter.buscar_tramitacoes_brutas(
+                            id_senado, client=client, timeout=req_timeout
+                        )
                     )
-                
+
                 # 3. Normalizar separadamente (pois cada uma tem sua casa_padrao)
                 eventos_unificados = []
-                
+
                 if tramitacoes_camara:
                     norm_c = NormalizarTramitacaoService(
-                        self.fase_repo, self.orgao_repo, self.apensamento_repo, CasaLegislativa.CAMARA
+                        self.fase_repo,
+                        self.orgao_repo,
+                        self.apensamento_repo,
+                        CasaLegislativa.CAMARA,
                     )
-                    eventos_unificados.extend(norm_c.normalizar(real_id, tramitacoes_camara))
-                
+                    eventos_unificados.extend(
+                        norm_c.normalizar(real_id, tramitacoes_camara)
+                    )
+
                 if tramitacoes_senado:
                     norm_s = NormalizarTramitacaoService(
-                        self.fase_repo, self.orgao_repo, self.apensamento_repo, CasaLegislativa.SENADO
+                        self.fase_repo,
+                        self.orgao_repo,
+                        self.apensamento_repo,
+                        CasaLegislativa.SENADO,
                     )
-                    eventos_unificados.extend(norm_s.normalizar(real_id, tramitacoes_senado))
-                
+                    eventos_unificados.extend(
+                        norm_s.normalizar(real_id, tramitacoes_senado)
+                    )
+
                 # 4. Ordenar e deduplicar
                 # Ordena por data e depois por sequencia
                 eventos_unificados.sort(key=lambda e: (e.data_evento, e.sequencia))
-                
+
                 # Deduplicação por data e descrição (caso as casas repitam o mesmo evento de trânsito)
                 vistos = set()
                 eventos_finais = []
@@ -177,12 +193,12 @@ class ListarMovimentacoesService:
                     if chave not in vistos:
                         vistos.add(chave)
                         eventos_finais.append(e)
-                
+
                 eventos = eventos_finais
                 # Forçamos a sequencia correta após unificar
                 for i, e in enumerate(eventos):
                     e.sequencia = i + 1
-                
+
                 # Sincroniza a proposição
                 if eventos:
                     self.evento_repo.salvar_lote(eventos)
@@ -201,30 +217,41 @@ class ListarMovimentacoesService:
                     )
                     casa_padrao = CasaLegislativa.SENADO
 
-                if dados_brutos:
-                    # Normalizar e salvar (lógica original)
-                    normalizer = NormalizarTramitacaoService(
-                        fase_repo=self.fase_repo,
-                        orgao_repo=self.orgao_repo,
-                        apensamento_repo=self.apensamento_repo,
-                        casa_padrao=casa_padrao,
-                    )
-                    eventos = normalizer.normalizar(real_id, dados_brutos)
-                    if eventos:
-                        self.evento_repo.salvar_lote(eventos)
-                        if proposicao:
-                            self._sincronizar_proposicao(proposicao, eventos)
-                            self.proposicao_repo.salvar(proposicao)
+            if not eventos and dados_brutos:
+                # Normalizar e salvar (lógica original)
+                normalizer = NormalizarTramitacaoService(
+                    fase_repo=self.fase_repo,
+                    orgao_repo=self.orgao_repo,
+                    apensamento_repo=self.apensamento_repo,
+                    casa_padrao=casa_padrao,
+                )
+                eventos = normalizer.normalizar(real_id, dados_brutos)
+                if eventos:
+                    self.evento_repo.salvar_lote(eventos)
+                    if proposicao:
+                        self._sincronizar_proposicao(proposicao, eventos)
+                        self.proposicao_repo.salvar(proposicao)
 
         # 5. Aplica a lógica do modo
         if modo == ModoMovimentacao.RESUMIDO:
-            proposicao = self.proposicao_repo.buscar_por_id(real_id)
-            status = proposicao.status if proposicao else ""
-            data_enc = proposicao.data_encerramento if proposicao else None
+            # Se já temos a proposição carregada, usamos ela; caso contrário buscamos
+            prop_resumo = proposicao or self.proposicao_repo.buscar_por_id(real_id)
+
+            data_encerramento_obj = None
+            if prop_resumo and prop_resumo.data_encerramento:
+                try:
+                    from datetime import datetime
+
+                    data_encerramento_obj = datetime.fromisoformat(
+                        prop_resumo.data_encerramento[:10]
+                    ).date()
+                except (ValueError, TypeError):
+                    pass
+
             return self._agregar_service.executar(
                 eventos,
-                proposicao_encerrada=status == "Encerrada",
-                data_encerramento=data_enc,
+                proposicao_encerrada=data_encerramento_obj is not None,
+                data_encerramento=data_encerramento_obj,
             )
 
         if modo == ModoMovimentacao.RELEVANTE:
@@ -232,7 +259,7 @@ class ListarMovimentacoesService:
 
         return eventos
 
-    def _sincronizar_proposicao(self, proposicao: any, eventos: List[EventoTramitacao]):
+    def _sincronizar_proposicao(self, proposicao: Any, eventos: List[EventoTramitacao]):
         """Atualiza campos da proposição baseando-se no histórico de eventos."""
         if not eventos:
             return
@@ -261,7 +288,6 @@ class ListarMovimentacoesService:
             proposicao.orgao_atual = eventos[-1].sigla_orgao
 
         # 3. Normalizar e recalcular
-        from domain.entities.proposicao import Proposicao as PropEntity
 
         # Garante que temos os métodos de domínio se for um model
         if hasattr(proposicao, "normalizar_campo_status"):

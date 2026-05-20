@@ -57,7 +57,18 @@ def test_dashboard_service_analitico_calculo_tempo(monkeypatch):
         "2": eventos_prop2,
     }
 
-    service = DashboardService(prop_repo, evento_repo)
+    service = DashboardService(prop_repo, evento_repo, dashboard_repo=Mock())
+
+    # Simula o retorno do dashboard_repo para os métodos que agora dependem dele
+    service.dashboard_repo.obter_metricas_gerais.return_value = {
+        "totalProposicoes": 2,
+        "tempoMedioTramitacao": 80,
+        "totalRejeitadas": 1,
+        "totalAprovadas": 1,
+        "totalEmTramitacao": 0,
+        "totalAtrasadas": 0,
+    }
+
     metricas = service.obter_metricas()
 
     assert metricas["totalProposicoes"] == 2

@@ -43,13 +43,13 @@ class ColetarEmLoteService:
         self.repository = SQLProposicaoRepository(session)
         self.camara_adapter = camara_adapter or CamaraAdapter()
         self.senado_adapter = senado_adapter or SenadoAdapter()
-        
+
         # Repositórios necessários para o ListarMovimentacoesService
         self.evento_repo = SQLEventoTramitacaoRepository(session)
         self.fase_repo = SQLFaseAnaliticaRepository(session)
         self.orgao_repo = SQLOrgaoLegislativoRepository(session)
         self.apensamento_repo = SQLApensamentoRepository(session)
-        
+
         self.listar_movimentacoes_service = ListarMovimentacoesService(
             evento_repo=self.evento_repo,
             proposicao_repo=self.repository,
@@ -73,8 +73,12 @@ class ColetarEmLoteService:
         async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
             # Coleta Câmara (Meta: 300)
             try:
-                logger.info("Iniciando coleta em lote da Câmara dos Deputados (Meta: 300)...")
-                props_camara = await self.camara_adapter.coletar_em_lote({"limite_total": 300})
+                logger.info(
+                    "Iniciando coleta em lote da Câmara dos Deputados (Meta: 300)..."
+                )
+                props_camara = await self.camara_adapter.coletar_em_lote(
+                    {"limite_total": 300}
+                )
                 if props_camara:
                     await self._processar_proposicoes(props_camara, client)
 
@@ -91,7 +95,9 @@ class ColetarEmLoteService:
             # Coleta Senado (Meta: 200)
             try:
                 logger.info("Iniciando coleta em lote do Senado Federal (Meta: 200)...")
-                props_senado = await self.senado_adapter.coletar_em_lote({"limite_total": 200})
+                props_senado = await self.senado_adapter.coletar_em_lote(
+                    {"limite_total": 200}
+                )
                 if props_senado:
                     await self._processar_proposicoes(props_senado, client)
 
@@ -107,11 +113,13 @@ class ColetarEmLoteService:
 
         return resumo
 
-    async def _processar_proposicoes(self, proposicoes: List[Proposicao], client: httpx.AsyncClient):
+    async def _processar_proposicoes(
+        self, proposicoes: List[Proposicao], client: httpx.AsyncClient
+    ):
         """Salva proposições e coleta seus eventos de tramitação."""
         # 1. Upsert das proposições (rápido)
         self.repository.upsert_em_lote_por_numero_canonico(proposicoes)
-        
+
         # 2. Coleta de eventos (demorado, fazemos em pequenos batches para não estourar)
         batch_size = 10
         for i in range(0, len(proposicoes), batch_size):
@@ -120,10 +128,14 @@ class ColetarEmLoteService:
             for prop in batch:
                 # O real_id no banco pode ser diferente do id da API se houve normalização,
                 # mas aqui usamos o ID que acabamos de salvar.
-                tasks.append(self.listar_movimentacoes_service.executar(prop.id, client=client))
-            
+                tasks.append(
+                    self.listar_movimentacoes_service.executar(prop.id, client=client)
+                )
+
             await asyncio.gather(*tasks, return_exceptions=True)
-            logger.info(f"Processados eventos para {min(i + batch_size, len(proposicoes))}/{len(proposicoes)} proposições.")
+            logger.info(
+                f"Processados eventos para {min(i + batch_size, len(proposicoes))}/{len(proposicoes)} proposições."
+            )
 
     def _registrar_log(self, fonte: str, status: str, itens: int, erro: str = None):
         """Registra o log de execução no banco de dados."""

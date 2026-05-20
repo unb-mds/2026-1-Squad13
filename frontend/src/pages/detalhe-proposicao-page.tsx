@@ -37,11 +37,11 @@ export function DetalheProposicaoPage() {
     setLoading(true)
     
     // Converte 'relevente' (UI) para 'relevante' (API)
-    const apiMode = modoHistorico === 'relevente' ? 'relevante' : 'completo'
+    const apiMode = (modoHistorico === 'relevente' ? 'relevante' : 'completo') as 'relevante' | 'completo'
 
     Promise.all([
       obterProposicao(id), 
-      obterMovimentacoes(id, apiMode as any)
+      obterMovimentacoes(id, apiMode)
     ])
       .then(([prop, movs]) => {
         if (!prop) { setNotFound(true); return }
