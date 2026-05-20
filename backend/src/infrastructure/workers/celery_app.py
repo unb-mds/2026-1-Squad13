@@ -13,6 +13,6 @@ celery_app.conf.timezone = "America/Sao_Paulo"
 celery_app.conf.beat_schedule = {
     "coleta-diaria-camara-senado": {
         "task": "coletar_proposicoes_diario",
-        "schedule": crontab(minute=0, hour=2),
+        "schedule": crontab(minute=37, hour=2),
     }
 }
