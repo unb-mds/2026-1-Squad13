@@ -10,6 +10,7 @@ from infrastructure.database.models.fase_analitica_model import FaseAnaliticaMod
 from infrastructure.database.models.orgao_legislativo_model import OrgaoLegislativoModel  # noqa: F401
 from infrastructure.database.models.evento_tramitacao_model import EventoTramitacaoModel  # noqa: F401
 from infrastructure.database.models.apensamento_model import ApensamentoModel  # noqa: F401
+from infrastructure.database.models.log_coleta_model import LogColetaModel  # noqa: F401
 
 # O motor de conexão (Engine)
 # echo=True faz com que o SQLModel imprima os comandos SQL no console (útil para aprender)
