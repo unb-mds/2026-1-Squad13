@@ -45,18 +45,31 @@ class SQLEventoTramitacaoRepository:
             self.session.commit()
         return eventos
 
-    def buscar_por_proposicao(self, proposicao_id: str) -> List[EventoTramitacao]:
+    def existe_algum_evento(self, proposicao_id: str) -> bool:
+        """Verifica se existe pelo menos um evento para a proposição."""
+        statement = select(func.count()).where(
+            EventoTramitacaoModel.proposicao_id == proposicao_id
+        )
+        count = self.session.exec(statement).one()
+        return count > 0
+
+    def buscar_por_proposicao(
+        self, proposicao_id: str, somente_relevantes: bool = False
+    ) -> List[EventoTramitacao]:
         """
-        Retorna todos os eventos de uma proposição ordenados
-        cronologicamente (data_evento ASC, sequencia ASC).
+        Retorna eventos de uma proposição ordenados cronologicamente.
+        Opcionalmente filtra apenas os marcados como relevantes.
         """
-        statement = (
-            select(EventoTramitacaoModel)
-            .where(EventoTramitacaoModel.proposicao_id == proposicao_id)
-            .order_by(
-                EventoTramitacaoModel.data_evento.asc(),
-                EventoTramitacaoModel.sequencia.asc(),
-            )
+        statement = select(EventoTramitacaoModel).where(
+            EventoTramitacaoModel.proposicao_id == proposicao_id
+        )
+
+        if somente_relevantes:
+            statement = statement.where(EventoTramitacaoModel.relevante == True)
+
+        statement = statement.order_by(
+            EventoTramitacaoModel.data_evento.asc(),
+            EventoTramitacaoModel.sequencia.asc(),
         )
         models = self.session.exec(statement).all()
         return [self._to_entity(m) for m in models]
