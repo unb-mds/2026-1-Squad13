@@ -1,25 +1,26 @@
 import logging
+from datetime import UTC, datetime, timedelta
+
 import redis
 from jose import JWTError
-from datetime import datetime, timedelta, timezone
-from typing import Optional
-from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
+
+from application.ports.token_blacklist_provider import TokenBlacklistProvider
+from domain.entities.user import Token, User, UserCreate, UserLogin, UserResponse
 from domain.exceptions import (
-    TokenRevogadoError,
     ContaBloqueadaError,
     CredenciaisInvalidasError,
     EmailJaCadastradoError,
+    TokenRevogadoError,
 )
 from domain.services.login_attempt_service import LoginAttemptProvider
-from application.ports.token_blacklist_provider import TokenBlacklistProvider
-from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import (
-    get_password_hash,
-    verify_password,
     create_access_token,
     decode_access_token,
+    get_password_hash,
+    verify_password,
 )
 from infrastructure.config import settings
+from infrastructure.repositories.sql_user_repository import SQLUserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +33,8 @@ class AuthService:
     def __init__(
         self,
         user_repository: SQLUserRepository,
-        attempt_provider: Optional[LoginAttemptProvider] = None,
-        token_blacklist: Optional[TokenBlacklistProvider] = None,
+        attempt_provider: LoginAttemptProvider | None = None,
+        token_blacklist: TokenBlacklistProvider | None = None,
     ):
         self.user_repository = user_repository
         self.attempt_provider = attempt_provider
@@ -117,7 +118,7 @@ class AuthService:
             exp = payload.get("exp")
             if exp:
                 # exp é um timestamp Unix (segundos desde epoch)
-                now = datetime.now(timezone.utc).timestamp()
+                now = datetime.now(UTC).timestamp()
                 ttl = int(exp - now)
 
                 if ttl > 0:

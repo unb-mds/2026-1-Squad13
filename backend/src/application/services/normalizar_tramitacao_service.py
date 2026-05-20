@@ -5,27 +5,24 @@ Transforma dados das APIs (Câmara/Senado) em eventos analíticos estruturados.
 """
 
 import re
-from datetime import datetime, date
-from typing import List, Optional
+from datetime import date, datetime
 
-from domain.entities.evento_tramitacao import EventoTramitacao
-from domain.entities.orgao_legislativo import CasaLegislativa
-from domain.entities.tipo_evento import TipoEvento
-from domain.constants import LIMITE_DIAS_ATRASO
 from domain.classificar_evento import (
     classificar_tipo_evento,
     determinar_fase_analitica,
+)
+from domain.constants import LIMITE_DIAS_ATRASO
+from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.orgao_legislativo import CasaLegislativa
+from domain.entities.tipo_evento import TipoEvento
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
 )
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
-)
-
-
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
 )
 
 
@@ -38,7 +35,7 @@ class NormalizarTramitacaoService:
         self,
         fase_repo: SQLFaseAnaliticaRepository,
         orgao_repo: SQLOrgaoLegislativoRepository,
-        apensamento_repo: Optional[SQLApensamentoRepository] = None,
+        apensamento_repo: SQLApensamentoRepository | None = None,
         casa_padrao: CasaLegislativa = CasaLegislativa.CAMARA,
     ):
         self.fase_repo = fase_repo
@@ -51,8 +48,8 @@ class NormalizarTramitacaoService:
         self._fase_id_map = {f.codigo: f.id for f in todas_fases}
 
     def normalizar(
-        self, proposicao_id: str, dados_brutos: List[dict]
-    ) -> List[EventoTramitacao]:
+        self, proposicao_id: str, dados_brutos: list[dict]
+    ) -> list[EventoTramitacao]:
         """
         Recebe a lista cronológica de dicts (data_hora, sequencia, sigla_orgao, descricao, payload_bruto)
         e retorna uma lista de EventoTramitacao normalizados.
@@ -94,7 +91,7 @@ class NormalizarTramitacaoService:
                 sigla_orgao != orgao_anterior
             )
 
-            remessa_ou_retorno: Optional[str] = None
+            remessa_ou_retorno: str | None = None
             marca_apensacao = False
             if tipo_evento in {
                 TipoEvento.REMESSA_OUTRA_CASA,

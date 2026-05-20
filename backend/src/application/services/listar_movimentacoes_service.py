@@ -6,17 +6,18 @@ fallback para a API externa via adapter, e normalização de tramitações.
 """
 
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any
+
 import httpx
 
+from application.services.agregar_por_fase_service import AgregarPorFaseService
 from application.services.normalizar_tramitacao_service import (
     NormalizarTramitacaoService,
 )
-from application.services.agregar_por_fase_service import AgregarPorFaseService
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
-from domain.value_objects.periodo_fase import PeriodoFase
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
+from domain.value_objects.periodo_fase import PeriodoFase
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.repositories.sql_apensamento_repository import (
@@ -49,7 +50,7 @@ class ListarMovimentacoesService:
         orgao_repo: SQLOrgaoLegislativoRepository,
         camara_adapter: CamaraAdapter,
         senado_adapter: SenadoAdapter,
-        apensamento_repo: Optional[SQLApensamentoRepository] = None,
+        apensamento_repo: SQLApensamentoRepository | None = None,
     ):
         self.evento_repo = evento_repo
         self.proposicao_repo = proposicao_repo
@@ -64,8 +65,8 @@ class ListarMovimentacoesService:
         self,
         proposicao_id: str,
         modo: ModoMovimentacao = ModoMovimentacao.RESUMIDO,
-        client: Optional[httpx.AsyncClient] = None,
-    ) -> Union[List[PeriodoFase], List[EventoTramitacao]]:
+        client: httpx.AsyncClient | None = None,
+    ) -> list[PeriodoFase] | list[EventoTramitacao]:
         """
         Retorna a lista de eventos normalizados para a proposição solicitada.
         Se não existirem no cache, busca na API, normaliza e salva.
@@ -268,7 +269,7 @@ class ListarMovimentacoesService:
 
         return eventos
 
-    def _sincronizar_proposicao(self, proposicao: Any, eventos: List[EventoTramitacao]):
+    def _sincronizar_proposicao(self, proposicao: Any, eventos: list[EventoTramitacao]):
         """Atualiza campos da proposição baseando-se no histórico de eventos."""
         if not eventos:
             return

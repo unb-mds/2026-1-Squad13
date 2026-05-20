@@ -1,5 +1,6 @@
-from typing import Optional
+
 from sqlmodel import Session, select
+
 from domain.entities.user import User
 from infrastructure.database.models.user_model import UserModel
 
@@ -27,13 +28,13 @@ class SQLUserRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
-    def buscar_por_email(self, email: str) -> Optional[User]:
+    def buscar_por_email(self, email: str) -> User | None:
         """Busca um usuário pelo e-mail."""
         statement = select(UserModel).where(UserModel.email == email)
         model = self.session.exec(statement).first()
         return self._to_entity(model) if model else None
 
-    def buscar_por_id(self, user_id: int) -> Optional[User]:
+    def buscar_por_id(self, user_id: int) -> User | None:
         """Busca um usuário pelo ID."""
         model = self.session.get(UserModel, user_id)
         return self._to_entity(model) if model else None

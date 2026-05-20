@@ -1,6 +1,7 @@
-from typing import List, Optional
+
 from sqlalchemy import func
 from sqlmodel import Session, select
+
 from domain.entities.proposicao import Proposicao
 from infrastructure.database.models.proposicao_model import ProposicaoModel
 
@@ -36,7 +37,7 @@ class SQLProposicaoRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
-    def upsert_em_lote_por_numero_canonico(self, proposicoes: List[Proposicao]) -> None:
+    def upsert_em_lote_por_numero_canonico(self, proposicoes: list[Proposicao]) -> None:
         """
         Executa um upsert em lote garantindo idempotência com alta performance.
         Busca todos os registros existentes em uma única query e processa em memória.
@@ -92,13 +93,13 @@ class SQLProposicaoRepository:
 
         self.session.commit()
 
-    def buscar_por_id(self, id: str) -> Optional[Proposicao]:
+    def buscar_por_id(self, id: str) -> Proposicao | None:
         model = self.session.get(ProposicaoModel, id)
         return self._to_entity(model) if model else None
 
     def buscar_por_codigo(
         self, tipo: str, numero: str, ano: int
-    ) -> Optional[Proposicao]:
+    ) -> Proposicao | None:
         """Busca uma proposição pelo conjunto único Tipo, Número e Ano."""
         statement = select(ProposicaoModel).where(
             func.lower(ProposicaoModel.tipo) == tipo.lower(),
@@ -110,19 +111,19 @@ class SQLProposicaoRepository:
 
     def filtrar(
         self,
-        tipo: Optional[str] = None,
-        numero: Optional[str] = None,
-        ano: Optional[int] = None,
-        autor: Optional[str] = None,
-        uf_autor: Optional[str] = None,
-        status: Optional[str] = None,
-        busca: Optional[str] = None,
-        orgao_origem: Optional[str] = None,
-        data_inicio: Optional[str] = None,
-        data_fim: Optional[str] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-    ) -> List[Proposicao]:
+        tipo: str | None = None,
+        numero: str | None = None,
+        ano: int | None = None,
+        autor: str | None = None,
+        uf_autor: str | None = None,
+        status: str | None = None,
+        busca: str | None = None,
+        orgao_origem: str | None = None,
+        data_inicio: str | None = None,
+        data_fim: str | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> list[Proposicao]:
         statement = select(ProposicaoModel)
 
         if tipo:
@@ -176,16 +177,16 @@ class SQLProposicaoRepository:
 
     def contar(
         self,
-        tipo: Optional[str] = None,
-        numero: Optional[str] = None,
-        ano: Optional[int] = None,
-        autor: Optional[str] = None,
-        uf_autor: Optional[str] = None,
-        status: Optional[str] = None,
-        busca: Optional[str] = None,
-        orgao_origem: Optional[str] = None,
-        data_inicio: Optional[str] = None,
-        data_fim: Optional[str] = None,
+        tipo: str | None = None,
+        numero: str | None = None,
+        ano: int | None = None,
+        autor: str | None = None,
+        uf_autor: str | None = None,
+        status: str | None = None,
+        busca: str | None = None,
+        orgao_origem: str | None = None,
+        data_inicio: str | None = None,
+        data_fim: str | None = None,
     ) -> int:
         statement = select(func.count()).select_from(ProposicaoModel)
 
@@ -230,7 +231,7 @@ class SQLProposicaoRepository:
 
         return self.session.exec(statement).one()
 
-    def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> List[int]:
+    def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> list[int]:
         """
         Busca cirúrgica: traz apenas a coluna de tempo em dias de proposições
         que já foram concluídas e que casam com o tipo e tema solicitados.

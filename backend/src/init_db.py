@@ -1,17 +1,21 @@
 import logging
-from infrastructure.database import init_db, engine
+
 from sqlmodel import Session, select
-from infrastructure.database.models.user_model import UserModel
+
 from infrastructure.adapters.security_adapter import get_password_hash
+from infrastructure.database import engine, init_db
+
+# Importando modelos para registro no metadata
+from infrastructure.database.models.proposicao_model import (
+    ProposicaoModel,  # noqa: F401
+)
+from infrastructure.database.models.user_model import UserModel
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
 )
-
-# Importando modelos para registro no metadata
-from infrastructure.database.models.proposicao_model import ProposicaoModel  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

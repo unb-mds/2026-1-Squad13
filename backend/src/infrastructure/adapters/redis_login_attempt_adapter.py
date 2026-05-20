@@ -1,5 +1,7 @@
 import logging
+
 import redis
+
 from domain.services.login_attempt_service import LoginAttemptProvider
 from infrastructure.config import settings
 
