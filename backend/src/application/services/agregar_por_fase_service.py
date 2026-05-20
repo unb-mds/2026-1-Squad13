@@ -84,7 +84,7 @@ class AgregarPorFaseService:
                 periodo_atual = PeriodoFase(
                     fase_codigo=fase_info.codigo,
                     fase_nome=fase_info.nome,
-                    ordem_logica=fase_info.ordem_exibicao,
+                    ordem_logica=fase_info.ordem_logica,
                     data_entrada=data_entrada,
                     data_saida=None,
                     dias_corridos=0,

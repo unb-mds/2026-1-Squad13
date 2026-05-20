@@ -2,17 +2,38 @@ import { differenceInDays, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { StatusProposicao } from '../types'
 
-export function formatarData(data: string): string {
-  return format(parseISO(data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+export function formatarData(data?: string): string {
+  if (!data) return 'Data não informada'
+  try {
+    const parsed = parseISO(data)
+    if (isNaN(parsed.getTime())) return 'Data inválida'
+    return format(parsed, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+  } catch {
+    return 'Erro na data'
+  }
 }
 
-export function formatarDataCurta(data: string): string {
-  return format(parseISO(data), 'dd/MM/yyyy', { locale: ptBR })
+export function formatarDataCurta(data?: string): string {
+  if (!data) return 'N/A'
+  try {
+    const parsed = parseISO(data)
+    if (isNaN(parsed.getTime())) return 'Inválida'
+    return format(parsed, 'dd/MM/yyyy', { locale: ptBR })
+  } catch {
+    return 'N/A'
+  }
 }
 
 export function calcularDiasEntreatas(dataInicio: string, dataFim?: string): number {
-  const fim = dataFim ? parseISO(dataFim) : new Date()
-  return differenceInDays(fim, parseISO(dataInicio))
+  try {
+    const inicio = parseISO(dataInicio)
+    if (isNaN(inicio.getTime())) return 0
+    const fim = dataFim ? parseISO(dataFim) : new Date()
+    if (isNaN(fim.getTime())) return 0
+    return differenceInDays(fim, inicio)
+  } catch {
+    return 0
+  }
 }
 
 export function formatarTempo(dias: number): string {

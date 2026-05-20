@@ -159,9 +159,11 @@ def _to_response(p) -> dict:
 
 
 def _to_evento_response(e) -> dict:
-    data_str = e.data_evento.replace(" ", "T")
-    if not data_str.endswith("Z") and "+" not in data_str:
-        data_str += "Z"
+    data_str = e.data_evento or ""
+    if data_str:
+        data_str = data_str.replace(" ", "T")
+        if not data_str.endswith("Z") and "+" not in data_str:
+            data_str += "Z"
 
     return {
         "proposicaoId": e.proposicao_id,
