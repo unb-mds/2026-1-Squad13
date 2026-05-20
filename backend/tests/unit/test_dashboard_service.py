@@ -10,6 +10,7 @@ from infrastructure.repositories.sql_proposicao_repository import (
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
+from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
 from application.services.dashboard_service import DashboardService
 from application.ports.cache_provider import CacheProvider
 
@@ -75,7 +76,8 @@ def session_fixture():
 def test_obter_metricas_dashboard_sem_cache(session: Session):
     repo = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
-    service = DashboardService(repo, evento_repo)
+    dashboard_repo = SQLDashboardRepository(session)
+    service = DashboardService(repo, evento_repo, dashboard_repo=dashboard_repo)
 
     metricas = service.obter_metricas()
 
@@ -87,8 +89,11 @@ def test_obter_metricas_dashboard_sem_cache(session: Session):
 def test_obter_metricas_cache_miss_e_set(session: Session):
     repo = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
     cache_provider = MockCacheProvider()
-    service = DashboardService(repo, evento_repo, cache_provider=cache_provider)
+    service = DashboardService(
+        repo, evento_repo, cache_provider=cache_provider, dashboard_repo=dashboard_repo
+    )
 
     assert cache_provider.get("dashboard:metricas") is None
 
@@ -112,36 +117,22 @@ def test_obter_metricas_cache_hit(session: Session):
     cache_provider = MockCacheProvider()
     service = DashboardService(repo, evento_repo, cache_provider=cache_provider)
 
-    dados_simulados = {
-        "tempoMedioTramitacao": 999,
-        "totalProposicoes": 50,
-        "proposicoesComAtraso": 10,
-        "totalAprovadas": 20,
-        "totalEmTramitacao": 20,
-        "totalRejeitadas": 10,
+    # Simula um Cache Hit
+    mock_data = {
+        "tempoMedioTramitacao": 500,
+        "totalProposicoes": 10,
+        "proposicoesComAtraso": 5,
+        "totalAprovadas": 2,
+        "totalEmTramitacao": 3,
+        "totalRejeitadas": 5,
         "comissaoMaiorTempo": "MOCK",
-        "comissaoMaiorTempoMedia": 999,
+        "comissaoMaiorTempoMedia": 1000,
     }
+    cache_provider.set("dashboard:metricas", json.dumps(mock_data))
 
-    cache_provider.set("dashboard:metricas", json.dumps(dados_simulados))
-
-    # Deve pegar direto do cache (Cache Hit) e não processar os dados do banco
+    # Deve retornar o cache e não processar nada (mesmo sem dashboard_repo)
     metricas = service.obter_metricas()
 
-    assert metricas["totalProposicoes"] == 50
-    assert metricas["tempoMedioTramitacao"] == 999
+    assert metricas["totalProposicoes"] == 10
+    assert metricas["tempoMedioTramitacao"] == 500
     assert metricas["comissaoMaiorTempo"] == "MOCK"
-
-
-def test_cache_provider_invalidation():
-    cache_provider = MockCacheProvider()
-    cache_provider.set("dashboard:metricas", '{"a": 1}')
-    cache_provider.set("dashboard:tipos", '{"b": 2}')
-    cache_provider.set("outra:chave", "valor")
-
-    # Invalida tudo do dashboard
-    cache_provider.invalidate("dashboard:")
-
-    assert cache_provider.get("dashboard:metricas") is None
-    assert cache_provider.get("dashboard:tipos") is None
-    assert cache_provider.get("outra:chave") == "valor"

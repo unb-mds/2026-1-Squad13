@@ -34,6 +34,7 @@ from infrastructure.repositories.sql_apensamento_repository import (
 from infrastructure.cache.redis_client import RedisClient
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.dashboard_service import DashboardService
+from domain.constants import LIMITE_DIAS_ATRASO
 from init_db import seed_demo_user
 
 
@@ -185,7 +186,7 @@ async def run(force=False) -> None:
                 )
 
                 prop_db.tempo_total_dias = tempo
-                prop_db.tem_atraso = (tempo > 180) and (
+                prop_db.tem_atraso = (tempo > LIMITE_DIAS_ATRASO) and (
                     prop_db.data_encerramento is None
                 )
                 prop_db.status = status

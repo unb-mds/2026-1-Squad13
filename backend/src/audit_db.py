@@ -14,6 +14,7 @@ from infrastructure.database import get_session
 from infrastructure.database.models.proposicao_model import ProposicaoModel
 from infrastructure.database.models.evento_tramitacao_model import EventoTramitacaoModel
 from infrastructure.database.models.fase_analitica_model import FaseAnaliticaModel
+from domain.constants import LIMITE_DIAS_ATRASO
 
 
 def audit_db() -> None:
@@ -24,7 +25,7 @@ def audit_db() -> None:
         com_atraso = [p for p in proposicoes if p.tem_atraso]
         print("\n[Proposições]")
         print(f"Total: {len(proposicoes)}")
-        print(f"Com atraso (> 180 dias): {len(com_atraso)}")
+        print(f"Com atraso (> {LIMITE_DIAS_ATRASO} dias): {len(com_atraso)}")
 
         # 2. Total de Eventos e Órfãos
         eventos = session.exec(select(EventoTramitacaoModel)).all()
