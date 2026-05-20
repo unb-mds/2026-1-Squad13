@@ -13,6 +13,7 @@ from infrastructure.repositories.sql_evento_tramitacao_repository import (
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
+from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
 
@@ -20,7 +21,7 @@ from domain.entities.tipo_evento import TipoEvento
 class DashboardService:
     """
     Serviço de Aplicação para calcular métricas e dados do dashboard.
-    Centraliza a lógica de agregação que antes estava no frontend.
+    Centraliza a lógica usando o repositório SQL para performance no banco.
     """
 
     def __init__(
@@ -29,11 +30,13 @@ class DashboardService:
         evento_repo: SQLEventoTramitacaoRepository,
         fase_repo: Optional[SQLFaseAnaliticaRepository] = None,
         cache_provider: Optional[CacheProvider] = None,
+        dashboard_repo: Optional[SQLDashboardRepository] = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
         self.fase_repo = fase_repo
         self.cache_provider = cache_provider
+        self.dashboard_repo = dashboard_repo
         self.cache_ttl = 86400  # 24 horas em segundos
 
     def _get_cached(self, key: str) -> Optional[Any]:
@@ -255,72 +258,56 @@ class DashboardService:
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
+        if self.dashboard_repo:
+            resultado = self.dashboard_repo.obter_metricas_gerais(filtros)
+        else:
+            # Fallback para n quebrar testes q mockam apenas SQLProposicaoRepository
+            todas = self.repository.filtrar(**(filtros or {}))
+            if not todas:
+                resultado = {
+                    "tempoMedioTramitacao": 0,
+                    "totalProposicoes": 0,
+                    "proposicoesComAtraso": 0,
+                    "totalAprovadas": 0,
+                    "totalEmTramitacao": 0,
+                    "totalRejeitadas": 0,
+                    "comissaoMaiorTempo": "N/A",
+                    "comissaoMaiorTempoMedia": 0,
+                }
+            else:
+                dados = self._obter_dados_em_lote(todas)
+                total = len(dados)
+                aprovadas = [d for d in dados if self._agrupar_status(d["status"]) == "Aprovada/Sancionada"]
+                em_tramitacao = [d for d in dados if self._agrupar_status(d["status"]) == "Em tramitação"]
+                rejeitadas = [d for d in dados if self._agrupar_status(d["status"]) == "Rejeitada/Arquivada"]
+                com_atraso = [d for d in dados if d["atraso_critico"]]
 
-        if not todas:
-            resultado_vazio = {
-                "tempoMedioTramitacao": 0,
-                "totalProposicoes": 0,
-                "proposicoesComAtraso": 0,
-                "totalAprovadas": 0,
-                "totalEmTramitacao": 0,
-                "totalRejeitadas": 0,
-                "comissaoMaiorTempo": "N/A",
-                "comissaoMaiorTempoMedia": 0,
-            }
-            self._set_cache(cache_key, resultado_vazio)
-            return resultado_vazio
+                tempos = [d["tempo_total_dias"] for d in dados if d["tempo_total_dias"] is not None]
+                tempo_medio = sum(tempos) / len(tempos) if tempos else 0
 
-        dados = self._obter_dados_em_lote(todas)
+                orgaos: Dict[str, List[int]] = {}
+                for d in dados:
+                    if d["orgao_atual"] and d["tempo_total_dias"] is not None:
+                        if d["orgao_atual"] not in orgaos:
+                            orgaos[d["orgao_atual"]] = []
+                        orgaos[d["orgao_atual"]].append(d["tempo_total_dias"])
 
-        total = len(dados)
-        aprovadas = [
-            d
-            for d in dados
-            if self._agrupar_status(d["status"]) == "Aprovada/Sancionada"
-        ]
-        em_tramitacao = [
-            d for d in dados if self._agrupar_status(d["status"]) == "Em tramitação"
-        ]
-        rejeitadas = [
-            d
-            for d in dados
-            if self._agrupar_status(d["status"]) == "Rejeitada/Arquivada"
-        ]
-        com_atraso = [d for d in dados if d["atraso_critico"]]
+                medias_orgaos = {org: sum(t) / len(t) for org, t in orgaos.items()}
+                pior_orgao = max(medias_orgaos, key=medias_orgaos.get) if medias_orgaos else "N/A"
+                pior_media = medias_orgaos.get(pior_orgao, 0)
 
-        tempos = [
-            d["tempo_total_dias"] for d in dados if d["tempo_total_dias"] is not None
-        ]
-        tempo_medio = sum(tempos) / len(tempos) if tempos else 0
-
-        # Agrupamento por órgão para identificar a comissão mais lenta
-        orgaos: Dict[str, List[int]] = {}
-        for d in dados:
-            if d["orgao_atual"] and d["tempo_total_dias"] is not None:
-                if d["orgao_atual"] not in orgaos:
-                    orgaos[d["orgao_atual"]] = []
-                orgaos[d["orgao_atual"]].append(d["tempo_total_dias"])
-
-        medias_orgaos = {org: sum(t) / len(t) for org, t in orgaos.items()}
-        pior_orgao = (
-            max(medias_orgaos, key=medias_orgaos.get) if medias_orgaos else "N/A"
-        )
-        pior_media = medias_orgaos.get(pior_orgao, 0)
-
-        resultado = {
-            "tempoMedioTramitacao": int(tempo_medio),
-            "totalProposicoes": total,
-            "proposicoesComAtraso": len(com_atraso),
-            "totalAprovadas": len(aprovadas),
-            "totalEmTramitacao": len(em_tramitacao),
-            "totalRejeitadas": len(rejeitadas),
-            "comissaoMaiorTempo": pior_orgao,
-            "comissaoMaiorTempoMedia": int(pior_media),
-        }
+                resultado = {
+                    "tempoMedioTramitacao": int(tempo_medio),
+                    "totalProposicoes": total,
+                    "proposicoesComAtraso": len(com_atraso),
+                    "totalAprovadas": len(aprovadas),
+                    "totalEmTramitacao": len(em_tramitacao),
+                    "totalRejeitadas": len(rejeitadas),
+                    "comissaoMaiorTempo": pior_orgao,
+                    "comissaoMaiorTempoMedia": int(pior_media),
+                }
 
         self._set_cache(cache_key, resultado)
-
         return resultado
 
     def obter_dados_tipo(self, filtros: Optional[Dict] = None) -> List[Dict]:
@@ -329,30 +316,24 @@ class DashboardService:
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        dados = self._obter_dados_em_lote(todas)
+        if self.dashboard_repo:
+            resultado = self.dashboard_repo.obter_dados_tipo(filtros)
+        else:
+            todas = self.repository.filtrar(**(filtros or {}))
+            dados = self._obter_dados_em_lote(todas)
+            tipos: Dict[str, Dict] = {}
+            for d in dados:
+                if d["tipo"] not in tipos:
+                    tipos[d["tipo"]] = {"tipo": d["tipo"], "tempos": [], "quantidade": 0}
+                tipos[d["tipo"]]["quantidade"] += 1
+                if d["tempo_total_dias"] is not None:
+                    tipos[d["tipo"]]["tempos"].append(d["tempo_total_dias"])
 
-        tipos: Dict[str, Dict] = {}
-        for d in dados:
-            if d["tipo"] not in tipos:
-                tipos[d["tipo"]] = {"tipo": d["tipo"], "tempos": [], "quantidade": 0}
-            tipos[d["tipo"]]["quantidade"] += 1
-            if d["tempo_total_dias"] is not None:
-                tipos[d["tipo"]]["tempos"].append(d["tempo_total_dias"])
-
-        resultado = []
-        for info in tipos.values():
-            tempo_medio = (
-                sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
-            )
-            resultado.append(
-                {
-                    "tipo": info["tipo"],
-                    "tempoMedio": int(tempo_medio),
-                    "quantidade": info["quantidade"],
-                }
-            )
-        resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+            resultado = []
+            for info in tipos.values():
+                tempo_medio = sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
+                resultado.append({"tipo": info["tipo"], "tempoMedio": int(tempo_medio), "quantidade": info["quantidade"]})
+            resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
 
         self._set_cache(cache_key, resultado)
         return resultado
@@ -363,31 +344,25 @@ class DashboardService:
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        dados = self._obter_dados_em_lote(todas)
+        if self.dashboard_repo:
+            resultado = self.dashboard_repo.obter_dados_comissao(filtros)
+        else:
+            todas = self.repository.filtrar(**(filtros or {}))
+            dados = self._obter_dados_em_lote(todas)
+            orgaos: Dict[str, Dict] = {}
+            for d in dados:
+                orgao = d["orgao_atual"] or "Desconhecido"
+                if orgao not in orgaos:
+                    orgaos[orgao] = {"comissao": orgao, "tempos": [], "quantidade": 0}
+                orgaos[orgao]["quantidade"] += 1
+                if d["tempo_total_dias"] is not None:
+                    orgaos[orgao]["tempos"].append(d["tempo_total_dias"])
 
-        orgaos: Dict[str, Dict] = {}
-        for d in dados:
-            orgao = d["orgao_atual"] or "Desconhecido"
-            if orgao not in orgaos:
-                orgaos[orgao] = {"comissao": orgao, "tempos": [], "quantidade": 0}
-            orgaos[orgao]["quantidade"] += 1
-            if d["tempo_total_dias"] is not None:
-                orgaos[orgao]["tempos"].append(d["tempo_total_dias"])
-
-        resultado = []
-        for info in orgaos.values():
-            tempo_medio = (
-                sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
-            )
-            resultado.append(
-                {
-                    "comissao": info["comissao"],
-                    "tempoMedio": int(tempo_medio),
-                    "quantidade": info["quantidade"],
-                }
-            )
-        resultado = sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
+            resultado = []
+            for info in orgaos.values():
+                tempo_medio = sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
+                resultado.append({"comissao": info["comissao"], "tempoMedio": int(tempo_medio), "quantidade": info["quantidade"]})
+            resultado = sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
 
         self._set_cache(cache_key, resultado)
         return resultado
@@ -398,26 +373,21 @@ class DashboardService:
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        if not todas:
-            return []
+        if self.dashboard_repo:
+            resultado = self.dashboard_repo.obter_dados_status(filtros)
+        else:
+            todas = self.repository.filtrar(**(filtros or {}))
+            if not todas:
+                return []
+            dados = self._obter_dados_em_lote(todas)
+            total = len(dados)
+            contagem: Dict[str, int] = {}
+            for d in dados:
+                status_agrupado = self._agrupar_status(d["status"])
+                contagem[status_agrupado] = contagem.get(status_agrupado, 0) + 1
 
-        dados = self._obter_dados_em_lote(todas)
-        total = len(dados)
-        contagem: Dict[str, int] = {}
-        for d in dados:
-            status_agrupado = self._agrupar_status(d["status"])
-            contagem[status_agrupado] = contagem.get(status_agrupado, 0) + 1
-
-        resultado = [
-            {
-                "status": status,
-                "quantidade": qtd,
-                "percentual": round((qtd / total) * 100),
-            }
-            for status, qtd in contagem.items()
-        ]
-        resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
+            resultado = [{"status": status, "quantidade": qtd, "percentual": round((qtd / total) * 100)} for status, qtd in contagem.items()]
+            resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
 
         self._set_cache(cache_key, resultado)
         return resultado
@@ -428,50 +398,28 @@ class DashboardService:
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        dados = self._obter_dados_em_lote(todas)
+        if self.dashboard_repo:
+            resultado = self.dashboard_repo.obter_gargalos(filtros)
+        else:
+            todas = self.repository.filtrar(**(filtros or {}))
+            dados = self._obter_dados_em_lote(todas)
+            orgaos: Dict[str, Dict] = {}
+            for d in dados:
+                orgao = d["orgao_atual"] or "Desconhecido"
+                if orgao not in orgaos:
+                    orgaos[orgao] = {"orgao": orgao, "tempos": [], "proposicoes": 0, "atrasos": 0}
+                orgaos[orgao]["proposicoes"] += 1
+                if d["atraso_critico"]:
+                    orgaos[orgao]["atrasos"] += 1
+                if d["tempo_total_dias"] is not None:
+                    orgaos[orgao]["tempos"].append(d["tempo_total_dias"])
 
-        orgaos: Dict[str, Dict] = {}
-        for d in dados:
-            orgao = d["orgao_atual"] or "Desconhecido"
-            if orgao not in orgaos:
-                orgaos[orgao] = {
-                    "orgao": orgao,
-                    "tempos": [],
-                    "proposicoes": 0,
-                    "atrasos": 0,
-                }
-
-            orgaos[orgao]["proposicoes"] += 1
-            if d["atraso_critico"]:
-                orgaos[orgao]["atrasos"] += 1
-            if d["tempo_total_dias"] is not None:
-                orgaos[orgao]["tempos"].append(d["tempo_total_dias"])
-
-        resultado = []
-        for info in orgaos.values():
-            # Converte dias para meses (média de 30 dias)
-            tempo_medio_meses = (
-                (sum(info["tempos"]) / len(info["tempos"]) / 30)
-                if info["tempos"]
-                else 0
-            )
-            taxa_atraso = (
-                (info["atrasos"] / info["proposicoes"] * 100)
-                if info["proposicoes"]
-                else 0
-            )
-
-            resultado.append(
-                {
-                    "orgao": info["orgao"],
-                    "tempoMedioMeses": round(tempo_medio_meses, 1),
-                    "quantidadeProposicoes": info["proposicoes"],
-                    "taxaAtraso": round(taxa_atraso),
-                }
-            )
-
-        resultado = sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
+            resultado = []
+            for info in orgaos.values():
+                tempo_medio_meses = (sum(info["tempos"]) / len(info["tempos"]) / 30) if info["tempos"] else 0
+                taxa_atraso = (info["atrasos"] / info["proposicoes"] * 100) if info["proposicoes"] else 0
+                resultado.append({"orgao": info["orgao"], "tempoMedioMeses": round(tempo_medio_meses, 1), "quantidadeProposicoes": info["proposicoes"], "taxaAtraso": round(taxa_atraso)})
+            resultado = sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
 
         self._set_cache(cache_key, resultado)
         return resultado
@@ -482,31 +430,38 @@ class DashboardService:
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        dados = self._obter_dados_em_lote(todas)
-
-        temas: Dict[str, Dict] = {}
-
-        for d in dados:
-            if not d["tags"]:
-                continue
-
-            for tag in d["tags"]:
-                tag_formatada = tag.capitalize()
-                if tag_formatada not in temas:
-                    temas[tag_formatada] = {
-                        "tema": tag_formatada,
-                        "tempos": [],
-                        "total": 0,
-                        "aprovadas": 0,
-                    }
-
-                temas[tag_formatada]["total"] += 1
-                if d["tempo_total_dias"] is not None:
-                    temas[tag_formatada]["tempos"].append(d["tempo_total_dias"])
-
-                if self._agrupar_status(d["status"]) == "Aprovada/Sancionada":
-                    temas[tag_formatada]["aprovadas"] += 1
+        if self.dashboard_repo:
+            dados_db = self.dashboard_repo.obter_proposicoes_para_temas(filtros)
+            temas: Dict[str, Dict] = {}
+            for d in dados_db:
+                tags = d.get("tags")
+                if not tags:
+                    continue
+                for tag in tags:
+                    tag_formatada = tag.capitalize()
+                    if tag_formatada not in temas:
+                        temas[tag_formatada] = {"tema": tag_formatada, "tempos": [], "total": 0, "aprovadas": 0}
+                    temas[tag_formatada]["total"] += 1
+                    if d.get("tempo_total_dias") is not None:
+                        temas[tag_formatada]["tempos"].append(d["tempo_total_dias"])
+                    if d.get("status_agrupado") == "Aprovada/Sancionada":
+                        temas[tag_formatada]["aprovadas"] += 1
+        else:
+            todas = self.repository.filtrar(**(filtros or {}))
+            dados = self._obter_dados_em_lote(todas)
+            temas: Dict[str, Dict] = {}
+            for d in dados:
+                if not d["tags"]:
+                    continue
+                for tag in d["tags"]:
+                    tag_formatada = tag.capitalize()
+                    if tag_formatada not in temas:
+                        temas[tag_formatada] = {"tema": tag_formatada, "tempos": [], "total": 0, "aprovadas": 0}
+                    temas[tag_formatada]["total"] += 1
+                    if d["tempo_total_dias"] is not None:
+                        temas[tag_formatada]["tempos"].append(d["tempo_total_dias"])
+                    if self._agrupar_status(d["status"]) == "Aprovada/Sancionada":
+                        temas[tag_formatada]["aprovadas"] += 1
 
         resultado = []
         for info in temas.values():
