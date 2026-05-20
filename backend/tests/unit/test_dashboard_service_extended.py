@@ -164,9 +164,21 @@ def test_obter_dados_status_com_dados(mock_repo, mock_evento_repo, mock_dashboar
 
 def test_obter_comparacao_temas(mock_repo, mock_evento_repo, mock_dashboard_repo):
     mock_dashboard_repo.obter_proposicoes_para_temas.return_value = [
-        {"tags": ["Educação"], "tempo_total_dias": 100, "status_agrupado": "Aprovada/Sancionada"},
-        {"tags": ["Educação", "Saúde"], "tempo_total_dias": 200, "status_agrupado": "Em tramitação"},
-        {"tags": ["Saúde"], "tempo_total_dias": 700, "status_agrupado": "Rejeitada/Arquivada"},
+        {
+            "tags": ["Educação"],
+            "tempo_total_dias": 100,
+            "status_agrupado": "Aprovada/Sancionada",
+        },
+        {
+            "tags": ["Educação", "Saúde"],
+            "tempo_total_dias": 200,
+            "status_agrupado": "Em tramitação",
+        },
+        {
+            "tags": ["Saúde"],
+            "tempo_total_dias": 700,
+            "status_agrupado": "Rejeitada/Arquivada",
+        },
     ]
     service = DashboardService(
         mock_repo, mock_evento_repo, dashboard_repo=mock_dashboard_repo
@@ -185,7 +197,7 @@ def test_obter_comparacao_temas(mock_repo, mock_evento_repo, mock_dashboard_repo
     assert saude["tempoMedioDias"] == 450
     assert saude["taxaAprovacao"] == 0
     assert saude["velocidade"] == "medio"
-    
+
     mock_dashboard_repo.obter_proposicoes_para_temas.assert_called_once()
 
 

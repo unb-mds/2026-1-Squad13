@@ -175,7 +175,9 @@ class DashboardService:
             status = self._extrair_status_atual(eventos, p.status)
 
             # Atraso crítico só faz sentido se a proposição ainda estiver aberta
-            atraso_critico = (tempo > LIMITE_DIAS_ATRASO) and (p.data_encerramento is None)
+            atraso_critico = (tempo > LIMITE_DIAS_ATRASO) and (
+                p.data_encerramento is None
+            )
 
             dados.append(
                 {
@@ -279,7 +281,6 @@ class DashboardService:
         self._set_cache(cache_key, resultado)
         return resultado
 
-
     def obter_dados_comissao(self, filtros: Optional[Dict] = None) -> List[Dict]:
         cache_key = self._gerar_cache_key("dashboard:dados_comissao", filtros)
         cached = self._get_cached(cache_key)
@@ -287,7 +288,9 @@ class DashboardService:
             return cached
 
         if not self.dashboard_repo:
-            raise ValueError("dashboard_repo é obrigatório para obter dados por comissão")
+            raise ValueError(
+                "dashboard_repo é obrigatório para obter dados por comissão"
+            )
 
         resultado = self.dashboard_repo.obter_dados_comissao(filtros)
         self._set_cache(cache_key, resultado)
@@ -326,7 +329,9 @@ class DashboardService:
             return cached
 
         if not self.dashboard_repo:
-            raise ValueError("dashboard_repo é obrigatório para obter comparação de temas")
+            raise ValueError(
+                "dashboard_repo é obrigatório para obter comparação de temas"
+            )
 
         dados_db = self.dashboard_repo.obter_proposicoes_para_temas(filtros)
         temas: Dict[str, Dict] = {}

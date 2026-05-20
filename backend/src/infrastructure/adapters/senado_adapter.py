@@ -275,7 +275,11 @@ class SenadoAdapter:
                 await _client.aclose()
 
     async def buscar_id_por_identificacao(
-        self, tipo: str, numero: str, ano: int, client: Optional[httpx.AsyncClient] = None
+        self,
+        tipo: str,
+        numero: str,
+        ano: int,
+        client: Optional[httpx.AsyncClient] = None,
     ) -> Optional[int]:
         """Localiza o ID interno do Senado para uma matéria conhecida."""
         ids = await self.listar_recentes(tipo, 1, ano, client=client, numero=numero)
