@@ -12,7 +12,6 @@ import pytest
 from domain.classificar_evento import classificar_tipo_evento
 from domain.entities.tipo_evento import TipoEvento
 
-
 # ============================================================================
 # Casos normais — 1 descrição clara para cada tipo canônico
 # ============================================================================

@@ -1,10 +1,11 @@
 import pytest
-from sqlmodel import Session, create_engine, SQLModel
+from sqlmodel import Session, SQLModel, create_engine
+
+from domain.entities.proposicao import Proposicao
+from infrastructure.database.models.proposicao_model import ProposicaoModel
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
-from infrastructure.database.models.proposicao_model import ProposicaoModel
-from domain.entities.proposicao import Proposicao
 
 
 @pytest.fixture
