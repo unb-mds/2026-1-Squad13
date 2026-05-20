@@ -1,7 +1,8 @@
-import httpx
-import logging
 import asyncio
-from typing import Optional, List
+import logging
+
+import httpx
+
 from domain.entities.proposicao import Proposicao
 
 logger = logging.getLogger(__name__)
@@ -27,9 +28,9 @@ class SenadoAdapter:
         self,
         client: httpx.AsyncClient,
         url: str,
-        params: Optional[dict] = None,
-        headers: Optional[dict] = None,
-        timeout: Optional[int] = None,
+        params: dict | None = None,
+        headers: dict | None = None,
+        timeout: int | None = None,
     ) -> httpx.Response:
         """Helper para realizar GET com retry básico em caso de erros temporários."""
         max_retries = 2
@@ -80,8 +81,8 @@ class SenadoAdapter:
         raise httpx.RequestError("Máximo de tentativas excedido no Senado")
 
     async def buscar_por_id(
-        self, id_materia: int, client: Optional[httpx.AsyncClient] = None
-    ) -> Optional[Proposicao]:
+        self, id_materia: int, client: httpx.AsyncClient | None = None
+    ) -> Proposicao | None:
         """
         Busca detalhes de uma matéria legislativa no Senado.
         Tenta primeiro o endpoint de matéria (legado mas compatível com idMateria)
@@ -223,10 +224,10 @@ class SenadoAdapter:
         self,
         tipo: str,
         quantidade: int = 10,
-        ano: Optional[int] = None,
-        client: Optional[httpx.AsyncClient] = None,
-        numero: Optional[str] = None,
-    ) -> List[int]:
+        ano: int | None = None,
+        client: httpx.AsyncClient | None = None,
+        numero: str | None = None,
+    ) -> list[int]:
         """Busca uma lista de IDs das matérias de um determinado tipo no Senado, opcionalmente por ano e número."""
         url = f"{self.base_url}/processo"
 
@@ -279,8 +280,8 @@ class SenadoAdapter:
         tipo: str,
         numero: str,
         ano: int,
-        client: Optional[httpx.AsyncClient] = None,
-    ) -> Optional[int]:
+        client: httpx.AsyncClient | None = None,
+    ) -> int | None:
         """Localiza o ID interno do Senado para uma matéria conhecida."""
         ids = await self.listar_recentes(tipo, 1, ano, client=client, numero=numero)
         return ids[0] if ids else None
@@ -288,9 +289,9 @@ class SenadoAdapter:
     async def buscar_tramitacoes_brutas(
         self,
         id_materia: int,
-        client: Optional[httpx.AsyncClient] = None,
-        timeout: Optional[int] = None,
-    ) -> List[dict]:
+        client: httpx.AsyncClient | None = None,
+        timeout: int | None = None,
+    ) -> list[dict]:
         """
         Retorna payload bruto de cada tramitação do Senado.
         """
@@ -361,7 +362,7 @@ class SenadoAdapter:
             if client is None:
                 await _client.aclose()
 
-    async def coletar_em_lote(self, params: Optional[dict] = None) -> List[Proposicao]:
+    async def coletar_em_lote(self, params: dict | None = None) -> list[Proposicao]:
         """
         Busca proposições em lote no Senado.
         A API do Senado não possui paginação nativa idêntica à da Câmara no endpoint principal,

@@ -1,6 +1,7 @@
 import pytest
-from infrastructure.adapters.senado_adapter import SenadoAdapter
+
 from domain.entities.proposicao import Proposicao
+from infrastructure.adapters.senado_adapter import SenadoAdapter
 
 
 @pytest.mark.integration

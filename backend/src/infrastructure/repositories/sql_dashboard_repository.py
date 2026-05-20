@@ -1,15 +1,17 @@
-from typing import Dict, List, Optional, Any
-from sqlalchemy import func, case, or_, and_
+from typing import Any
+
+from sqlalchemy import and_, case, func, or_
 from sqlmodel import Session, select
-from infrastructure.database.models.proposicao_model import ProposicaoModel
+
 from domain.constants import LIMITE_DIAS_ATRASO
+from infrastructure.database.models.proposicao_model import ProposicaoModel
 
 
 class SQLDashboardRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def _aplicar_filtros(self, statement: Any, filtros: Optional[Dict]) -> Any:
+    def _aplicar_filtros(self, statement: Any, filtros: dict | None) -> Any:
         if not filtros:
             return statement
 
@@ -99,7 +101,7 @@ class SQLDashboardRepository:
             else_="Outros",
         )
 
-    def obter_metricas_gerais(self, filtros: Optional[Dict]) -> Dict:
+    def obter_metricas_gerais(self, filtros: dict | None) -> dict:
         status_agrupado = self._status_agrupado_case()
 
         stmt = select(
@@ -175,7 +177,7 @@ class SQLDashboardRepository:
             else 0,
         }
 
-    def obter_dados_tipo(self, filtros: Optional[Dict]) -> List[Dict]:
+    def obter_dados_tipo(self, filtros: dict | None) -> list[dict]:
         stmt = select(
             ProposicaoModel.tipo,
             func.count().label("quantidade"),
@@ -197,7 +199,7 @@ class SQLDashboardRepository:
             for row in rows
         ]
 
-    def obter_dados_comissao(self, filtros: Optional[Dict]) -> List[Dict]:
+    def obter_dados_comissao(self, filtros: dict | None) -> list[dict]:
         stmt = select(
             func.coalesce(ProposicaoModel.orgao_atual, "Desconhecido").label(
                 "comissao"
@@ -223,7 +225,7 @@ class SQLDashboardRepository:
             for row in rows
         ]
 
-    def obter_dados_status(self, filtros: Optional[Dict]) -> List[Dict]:
+    def obter_dados_status(self, filtros: dict | None) -> list[dict]:
         status_agrupado = self._status_agrupado_case()
 
         stmt_total = select(func.count()).select_from(ProposicaoModel)
@@ -247,7 +249,7 @@ class SQLDashboardRepository:
             for row in rows
         ]
 
-    def obter_gargalos(self, filtros: Optional[Dict]) -> List[Dict]:
+    def obter_gargalos(self, filtros: dict | None) -> list[dict]:
         stmt = select(
             func.coalesce(ProposicaoModel.orgao_atual, "Desconhecido").label("orgao"),
             func.count().label("quantidade"),
@@ -288,7 +290,7 @@ class SQLDashboardRepository:
 
         return sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
 
-    def obter_proposicoes_para_temas(self, filtros: Optional[Dict]) -> List[Dict]:
+    def obter_proposicoes_para_temas(self, filtros: dict | None) -> list[dict]:
         status_agrupado = self._status_agrupado_case()
         stmt = select(
             ProposicaoModel.tags,

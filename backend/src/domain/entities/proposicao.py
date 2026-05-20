@@ -1,6 +1,7 @@
+from datetime import date, datetime
+
 from sqlmodel import SQLModel
-from typing import Optional, List
-from datetime import datetime, date
+
 from domain.constants import LIMITE_DIAS_ATRASO
 
 
@@ -11,26 +12,26 @@ class Proposicao(SQLModel):
     Não possui dependências diretas de persistência (table=True).
     """
 
-    id: Optional[str] = None
-    tipo: Optional[str] = None
-    numero: Optional[str] = None
-    ano: Optional[int] = None
-    ementa: Optional[str] = None
-    ementa_resumida: Optional[str] = None
-    autor: Optional[str] = None
-    uf_autor: Optional[str] = None
-    orgao_origem: Optional[str] = None
-    status: Optional[str] = None
-    orgao_atual: Optional[str] = None
-    data_apresentacao: Optional[str] = None
-    data_ultima_movimentacao: Optional[str] = None
-    tempo_total_dias: Optional[int] = 0
-    tem_atraso: Optional[bool] = False
-    tem_previsao_ia: Optional[bool] = False
-    link_oficial: Optional[str] = None
-    data_encerramento: Optional[str] = None
-    previsao_aprovacao_dias: Optional[int] = None
-    tags: List[str] = []
+    id: str | None = None
+    tipo: str | None = None
+    numero: str | None = None
+    ano: int | None = None
+    ementa: str | None = None
+    ementa_resumida: str | None = None
+    autor: str | None = None
+    uf_autor: str | None = None
+    orgao_origem: str | None = None
+    status: str | None = None
+    orgao_atual: str | None = None
+    data_apresentacao: str | None = None
+    data_ultima_movimentacao: str | None = None
+    tempo_total_dias: int | None = 0
+    tem_atraso: bool | None = False
+    tem_previsao_ia: bool | None = False
+    link_oficial: str | None = None
+    data_encerramento: str | None = None
+    previsao_aprovacao_dias: int | None = None
+    tags: list[str] = []
 
     def normalizar_campo_status(self):
         """Normaliza o campo status para algo mais conciso e legível."""

@@ -1,31 +1,32 @@
-from typing import Optional, List
-from enum import Enum
-from fastapi import APIRouter, HTTPException, Query, Depends
+from enum import StrEnum
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+from sqlmodel import Session
+
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
-from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.gerar_estimativa_service import GerarEstimativaUseCase
+from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+from domain.value_objects.modo_movimentacao import ModoMovimentacao
+from infrastructure.adapters.camara_adapter import CamaraAdapter
+from infrastructure.adapters.senado_adapter import SenadoAdapter
+from infrastructure.database import get_session
 from infrastructure.repositories.sql_apensamento_repository import (
     SQLApensamentoRepository,
-)
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
 )
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
-from infrastructure.adapters.camara_adapter import CamaraAdapter
-from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
 )
-from infrastructure.database import get_session
-from sqlmodel import Session
-from domain.value_objects.modo_movimentacao import ModoMovimentacao
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 router = APIRouter()
 
@@ -40,14 +41,14 @@ class EventoTramitacaoResponse(BaseModel):
     proposicaoId: str = Field(alias="proposicaoId")
     dataEvento: str = Field(alias="dataEvento")
     sequencia: int
-    siglaOrgao: Optional[str] = Field(default=None, alias="siglaOrgao")
+    siglaOrgao: str | None = Field(default=None, alias="siglaOrgao")
     descricaoOriginal: str = Field(alias="descricaoOriginal")
     tipoEvento: str = Field(alias="tipoEvento")
-    faseAnaliticaId: Optional[int] = Field(default=None, alias="faseAnaliticaId")
+    faseAnaliticaId: int | None = Field(default=None, alias="faseAnaliticaId")
     deliberativo: bool
     mudouFase: bool = Field(alias="mudouFase")
     mudouOrgao: bool = Field(alias="mudouOrgao")
-    remessaOuRetorno: Optional[str] = Field(default=None, alias="remessaOuRetorno")
+    remessaOuRetorno: str | None = Field(default=None, alias="remessaOuRetorno")
     diasNaEtapa: int = Field(alias="diasNaEtapa")
     temAtraso: bool = Field(alias="temAtraso")
     relevante: bool
@@ -63,9 +64,9 @@ class ProposicaoResponse(BaseModel):
     numero: str
     ano: int
     ementa: str
-    ementaResumida: Optional[str] = Field(default=None, alias="ementaResumida")
+    ementaResumida: str | None = Field(default=None, alias="ementaResumida")
     autor: str
-    orgaoOrigem: Optional[str] = Field(default=None, alias="orgaoOrigem")
+    orgaoOrigem: str | None = Field(default=None, alias="orgaoOrigem")
     status: str
     orgaoAtual: str
     dataApresentacao: str
@@ -74,35 +75,35 @@ class ProposicaoResponse(BaseModel):
     temAtraso: bool
     atrasoCritico: bool = Field(alias="atrasoCritico")
     temPrevisaoIA: bool
-    tags: List[str]
-    linkOficial: Optional[str] = Field(default=None, alias="linkOficial")
-    codigoNormalizado: Optional[str] = Field(default=None, alias="codigoNormalizado")
-    dataEncerramento: Optional[str] = Field(default=None, alias="dataEncerramento")
-    previsaoAprovacaoDias: Optional[int] = Field(
+    tags: list[str]
+    linkOficial: str | None = Field(default=None, alias="linkOficial")
+    codigoNormalizado: str | None = Field(default=None, alias="codigoNormalizado")
+    dataEncerramento: str | None = Field(default=None, alias="dataEncerramento")
+    previsaoAprovacaoDias: int | None = Field(
         default=None, alias="previsaoAprovacaoDias"
     )
 
 
 class ProposicoesListResponse(BaseModel):
-    items: List[ProposicaoResponse]
+    items: list[ProposicaoResponse]
     total: int
     pagina: int
     totalPaginas: int = Field(alias="totalPaginas")
 
 
-class StatusEstimativa(str, Enum):
+class StatusEstimativa(StrEnum):
     CALCULADA = "CALCULADA"
     DADOS_INSUFICIENTES = "DADOS_INSUFICIENTES"
 
 
 class EventoResumoResponse(BaseModel):
-    eventoId: Optional[int] = Field(default=None, alias="eventoId")
+    eventoId: int | None = Field(default=None, alias="eventoId")
     tipoEvento: str = Field(alias="tipoEvento")
     descricaoOriginal: str = Field(alias="descricaoOriginal")
     dataEvento: str = Field(alias="dataEvento")
-    siglaOrgao: Optional[str] = Field(default=None, alias="siglaOrgao")
+    siglaOrgao: str | None = Field(default=None, alias="siglaOrgao")
     deliberativo: bool
-    diasNaEtapa: Optional[int] = Field(default=None, alias="diasNaEtapa")
+    diasNaEtapa: int | None = Field(default=None, alias="diasNaEtapa")
     marcaApensacao: bool = Field(alias="marcaApensacao")
 
 
@@ -112,15 +113,15 @@ class PeriodoFaseResponse(BaseModel):
     ordemLogica: int = Field(alias="ordemLogica")
     ocorrencia: int
     dataEntrada: str = Field(alias="dataEntrada")
-    dataSaida: Optional[str] = Field(default=None, alias="dataSaida")
+    dataSaida: str | None = Field(default=None, alias="dataSaida")
     diasCorridos: int = Field(alias="diasCorridos")
-    eventosRelevantes: List[EventoResumoResponse] = Field(alias="eventosRelevantes")
+    eventosRelevantes: list[EventoResumoResponse] = Field(alias="eventosRelevantes")
 
 
 class EstimativaAprovacaoResponse(BaseModel):
     """Schema para retorno da estimativa de aprovação"""
 
-    previsaoAprovacaoDias: Optional[int] = Field(
+    previsaoAprovacaoDias: int | None = Field(
         default=None,
         alias="previsaoAprovacaoDias",
         description="Estimativa em dias. null se insuficiente.",
@@ -213,7 +214,7 @@ def _to_periodo_response(p) -> dict:
 
 @router.get(
     "/proposicoes/{id}/movimentacoes",
-    response_model=List[dict],
+    response_model=list[dict],
 )
 async def listar_movimentacoes(
     id: str,
@@ -257,12 +258,12 @@ async def listar_movimentacoes(
 
 @router.get("/proposicoes", response_model=ProposicoesListResponse)
 def buscar_proposicoes(
-    busca: Optional[str] = Query(default=None),
-    tipo: Optional[str] = Query(default=None),
-    status: Optional[str] = Query(default=None),
-    orgao_origem: Optional[str] = Query(default=None, alias="orgaoOrigem"),
-    data_inicio: Optional[str] = Query(default=None, alias="dataInicio"),
-    data_fim: Optional[str] = Query(default=None, alias="dataFim"),
+    busca: str | None = Query(default=None),
+    tipo: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    orgao_origem: str | None = Query(default=None, alias="orgaoOrigem"),
+    data_inicio: str | None = Query(default=None, alias="dataInicio"),
+    data_fim: str | None = Query(default=None, alias="dataFim"),
     pagina: int = Query(default=1, ge=1),
     itens_por_pagina: int = Query(default=10, ge=1, le=100),
     session: Session = Depends(get_session),

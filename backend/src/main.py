@@ -1,16 +1,17 @@
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from presentation.controllers import (
-    proposicao_controller,
-    dashboard_controller,
-    auth_controller,
-    health_controller,
-)
-from infrastructure.database import get_session, init_redis, close_redis
+
 from infrastructure.config import settings
-from sqlmodel import Session, text
+from infrastructure.database import close_redis, init_redis
+from presentation.controllers import (
+    auth_controller,
+    dashboard_controller,
+    health_controller,
+    proposicao_controller,
+)
 from src import init_db
 
 # Configuração de Logging Estruturado

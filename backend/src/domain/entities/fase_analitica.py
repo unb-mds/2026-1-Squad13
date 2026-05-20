@@ -1,4 +1,4 @@
-from typing import Optional
+
 from sqlmodel import SQLModel
 
 
@@ -7,7 +7,7 @@ class FaseAnalitica(SQLModel):
     Entidade de Domínio para Fase Analítica.
     """
 
-    id: Optional[int] = None
+    id: int | None = None
     codigo: str
     nome: str
     ordem_logica: int

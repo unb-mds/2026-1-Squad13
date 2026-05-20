@@ -1,10 +1,12 @@
-import pytest
 from unittest.mock import Mock
-from domain.entities.proposicao import Proposicao
-from domain.entities.evento_tramitacao import EventoTramitacao
-from domain.entities.tipo_evento import TipoEvento
-from domain.entities.fase_analitica import FaseAnalitica
+
+import pytest
+
 from application.services.dashboard_service import DashboardService
+from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.fase_analitica import FaseAnalitica
+from domain.entities.proposicao import Proposicao
+from domain.entities.tipo_evento import TipoEvento
 
 
 @pytest.fixture
