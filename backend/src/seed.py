@@ -7,16 +7,23 @@ import argparse
 import asyncio
 import logging
 import sys
-from typing import List
-import httpx
-from sqlmodel import Session, select, func
 
+import httpx
+from sqlmodel import Session, func, select
+
+from application.services.dashboard_service import DashboardService
+from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+from domain.constants import LIMITE_DIAS_ATRASO
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import init_db, get_session, get_redis_client, engine
+from infrastructure.cache.redis_client import RedisClient
+from infrastructure.database import engine, get_redis_client, get_session, init_db
 from infrastructure.database.models.proposicao_model import ProposicaoModel
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
+)
+from infrastructure.repositories.sql_evento_tramitacao_repository import (
+    SQLEventoTramitacaoRepository,
 )
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
@@ -24,16 +31,9 @@ from infrastructure.repositories.sql_fase_analitica_repository import (
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
 )
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
 )
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
-)
-from infrastructure.cache.redis_client import RedisClient
-from application.services.listar_movimentacoes_service import ListarMovimentacoesService
-from application.services.dashboard_service import DashboardService
-from domain.constants import LIMITE_DIAS_ATRASO
 from init_db import seed_demo_user
 
 # Configuração de logging
@@ -56,9 +56,9 @@ async def get_varied_ids(
     camara: CamaraAdapter,
     senado: SenadoAdapter,
     client: httpx.AsyncClient,
-    sources: List[str],
-    years: List[int],
-    types: List[str],
+    sources: list[str],
+    years: list[int],
+    types: list[str],
     limit_per_batch: int,
 ):
     logger.info(

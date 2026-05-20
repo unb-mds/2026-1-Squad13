@@ -1,7 +1,8 @@
-import httpx
-import logging
 import asyncio
-from typing import Optional, List
+import logging
+
+import httpx
+
 from domain.entities.proposicao import Proposicao
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class CamaraAdapter:
         }
 
     async def _get_with_retry(
-        self, client: httpx.AsyncClient, url: str, params: Optional[dict] = None
+        self, client: httpx.AsyncClient, url: str, params: dict | None = None
     ) -> httpx.Response:
         """Helper para realizar GET com retry básico em caso de erros temporários."""
         max_retries = 3
@@ -64,8 +65,8 @@ class CamaraAdapter:
         raise httpx.RequestError("Máximo de tentativas excedido na Câmara")
 
     async def buscar_por_id(
-        self, id_proposicao: int, client: Optional[httpx.AsyncClient] = None
-    ) -> Optional[Proposicao]:
+        self, id_proposicao: int, client: httpx.AsyncClient | None = None
+    ) -> Proposicao | None:
         url_proposicao = f"{self.base_url}/proposicoes/{id_proposicao}"
         url_autores = f"{url_proposicao}/autores"
 
@@ -142,10 +143,10 @@ class CamaraAdapter:
         self,
         tipo: str,
         quantidade: int = 10,
-        ano: Optional[int] = None,
-        client: Optional[httpx.AsyncClient] = None,
-        numero: Optional[str] = None,
-    ) -> List[int]:
+        ano: int | None = None,
+        client: httpx.AsyncClient | None = None,
+        numero: str | None = None,
+    ) -> list[int]:
         """Busca uma lista de IDs das proposições filtrando por tipo, ano e opcionalmente número."""
         url = f"{self.base_url}/proposicoes"
         params = {
@@ -179,15 +180,15 @@ class CamaraAdapter:
         tipo: str,
         numero: str,
         ano: int,
-        client: Optional[httpx.AsyncClient] = None,
-    ) -> Optional[int]:
+        client: httpx.AsyncClient | None = None,
+    ) -> int | None:
         """Localiza o ID interno da Câmara para uma proposição conhecida."""
         ids = await self.listar_recentes(tipo, 1, ano, client=client, numero=numero)
         return ids[0] if ids else None
 
     async def buscar_tramitacoes_brutas(
-        self, id_proposicao: int, client: Optional[httpx.AsyncClient] = None
-    ) -> List[dict]:
+        self, id_proposicao: int, client: httpx.AsyncClient | None = None
+    ) -> list[dict]:
         """
         Retorna payload bruto de cada tramitação da Câmara.
         """
@@ -233,7 +234,7 @@ class CamaraAdapter:
             if client is None:
                 await _client.aclose()
 
-    async def coletar_em_lote(self, params: Optional[dict] = None) -> List[Proposicao]:
+    async def coletar_em_lote(self, params: dict | None = None) -> list[Proposicao]:
         """
         Busca proposições em lote utilizando paginação automática (máximo 100 itens/página).
         Garante o retorno completo dos objetos Proposicao buscando os detalhes de cada um.
