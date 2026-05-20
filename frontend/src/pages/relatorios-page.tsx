@@ -1,23 +1,26 @@
 import { useState, useEffect } from 'react'
 import { BarChart3, AlertTriangle, TrendingUp, FileDown } from 'lucide-react'
 import { TabelaGargalos, ComparacaoTemas, BotaoExportar } from '@/features/relatorios/RelatorioComponents'
+import { PainelFiltros, FILTROS_VAZIOS } from '@/features/filtros/PainelFiltros'
 import { Card, CardBody } from '@/shared/ui'
 import { obterGargalos, obterComparacaoTemas } from '@/shared/lib/api'
-import type { GargaloInstitucional, ComparacaoTema } from '@/shared/types'
+import type { GargaloInstitucional, ComparacaoTema, FiltrosProposicao } from '@/shared/types'
 
 export function RelatoriosPage() {
+  const [filtros, setFiltros] = useState<FiltrosProposicao>(FILTROS_VAZIOS)
   const [gargalos, setGargalos] = useState<GargaloInstitucional[]>([])
   const [temas, setTemas] = useState<ComparacaoTema[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([obterGargalos(), obterComparacaoTemas()])
+    setLoading(true)
+    Promise.all([obterGargalos(filtros), obterComparacaoTemas(filtros)])
       .then(([g, t]) => {
         setGargalos(g)
         setTemas(t)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [filtros])
 
   const principalGargalo = gargalos[0]
   const maisRapido = [...temas].sort((a, b) => a.tempoMedioDias - b.tempoMedioDias)[0]
@@ -31,11 +34,14 @@ export function RelatoriosPage() {
           <BarChart3 className="w-5 h-5 text-volt-400" />
           <h1 className="font-display font-700 text-2xl text-white">Relatórios Analíticos</h1>
         </div>
+
         <BotaoExportar />
       </div>
 
-      {/* Resumo top */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <PainelFiltros filtros={filtros} onChange={setFiltros} />
+
+      {/* Cards de Insight Rápido */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-rose-500/25 bg-rose-500/5">
           <CardBody className="flex items-start gap-3">
             <div className="p-2 bg-rose-500/15 rounded-lg shrink-0">
@@ -89,10 +95,10 @@ export function RelatoriosPage() {
       </div>
 
       {/* Gargalos */}
-      <TabelaGargalos />
+      <TabelaGargalos filtros={filtros} />
 
       {/* Comparação temas */}
-      <ComparacaoTemas />
+      <ComparacaoTemas filtros={filtros} />
     </div>
   )
 }
