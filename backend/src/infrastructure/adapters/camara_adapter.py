@@ -173,3 +173,61 @@ class CamaraAdapter:
                     f"Erro ao buscar tramitações brutas da Câmara para ID {id_proposicao}: {e}"
                 )
                 return []
+
+    async def coletar_em_lote(self, params: Optional[dict] = None) -> List[Proposicao]:
+        """
+        Busca proposições em lote utilizando paginação automática (máximo 100 itens/página).
+        Garante o retorno completo dos objetos Proposicao buscando os detalhes de cada um.
+        """
+        url = f"{self.base_url}/proposicoes"
+        if params is None:
+            params = {}
+        
+        # Otimiza paginação para o limite máximo da API da Câmara (100)
+        params["itens"] = 100
+        params["pagina"] = 1
+        
+        ids_coletados = []
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            while True:
+                try:
+                    resp = await self._get_with_retry(client, url, params=params)
+                    dados = resp.json().get("dados", [])
+                    
+                    if not dados:
+                        break
+                        
+                    ids_coletados.extend([d["id"] for d in dados])
+                    
+                    # Verifica se há próxima página baseando-se nos links de HATEOAS
+                    links = resp.json().get("links", [])
+                    has_next = any(link.get("rel") == "next" for link in links)
+                    
+                    if not has_next:
+                        break
+                        
+                    params["pagina"] += 1
+                except Exception as e:
+                    logger.error(f"Erro na paginação da Câmara (página {params.get('pagina')}): {e}")
+                    break
+        
+        # Busca os detalhes completos para montar as entidades Proposicao
+        proposicoes_completas = []
+        semaphore = asyncio.Semaphore(15)  # Limite de concorrência para não sobrecarregar
+        
+        async def fetch_full(id_prop: int):
+            async with semaphore:
+                return await self.buscar_por_id(id_prop)
+                
+        tasks = [fetch_full(id_prop) for id_prop in ids_coletados]
+        resultados = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for res in resultados:
+            if isinstance(res, Proposicao):
+                proposicoes_completas.append(res)
+            elif isinstance(res, Exception):
+                logger.error(f"Erro na coleta em lote de proposição: {res}")
+                
+        return proposicoes_completas
+
