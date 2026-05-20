@@ -202,6 +202,9 @@ class CamaraAdapter:
                     f"Erro ao buscar tramitações brutas da Câmara para ID {id_proposicao}: {e}"
                 )
                 return []
+        finally:
+            if client is None:
+                await _client.aclose()
 
     async def coletar_em_lote(self, params: Optional[dict] = None) -> List[Proposicao]:
         """
@@ -263,8 +266,3 @@ class CamaraAdapter:
                 logger.error(f"Erro na coleta em lote de proposição: {res}")
 
         return proposicoes_completas
-=======
-        finally:
-            if client is None:
-                await _client.aclose()
->>>>>>> origin/develop
