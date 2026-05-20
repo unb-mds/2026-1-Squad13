@@ -65,7 +65,7 @@ class SQLEventoTramitacaoRepository:
         )
 
         if somente_relevantes:
-            statement = statement.where(EventoTramitacaoModel.relevante == True)
+            statement = statement.where(EventoTramitacaoModel.relevante)
 
         statement = statement.order_by(
             EventoTramitacaoModel.data_evento.asc(),
