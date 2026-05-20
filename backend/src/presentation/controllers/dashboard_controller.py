@@ -13,6 +13,7 @@ from infrastructure.repositories.sql_evento_tramitacao_repository import (
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
+from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
 from sqlmodel import Session
 
 router = APIRouter()
@@ -73,10 +74,15 @@ def get_dashboard_service(session: Session = Depends(get_session)) -> DashboardS
     repository = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
     fase_repo = SQLFaseAnaliticaRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
     redis_conn = get_redis_client()
     cache_provider = RedisClient(redis_conn)
     return DashboardService(
-        repository, evento_repo, fase_repo=fase_repo, cache_provider=cache_provider
+        repository,
+        evento_repo,
+        fase_repo=fase_repo,
+        cache_provider=cache_provider,
+        dashboard_repo=dashboard_repo,
     )
 
 
@@ -90,6 +96,7 @@ class DashboardFilterParams(BaseModel):
 
     def to_dict(self) -> dict:
         return self.model_dump(exclude_none=True, by_alias=False)
+
 
 def _montar_filtros(params: DashboardFilterParams) -> dict:
     return params.to_dict()
