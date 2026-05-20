@@ -1,9 +1,11 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timezone, timedelta
 from jose import jwt
+
 from application.services.auth_service import AuthService
-from infrastructure.config import settings
 from domain.exceptions import TokenRevogadoError
+from infrastructure.config import settings
 
 
 class MockTokenBlacklistProvider:
@@ -30,7 +32,7 @@ def auth_service(mock_blacklist):
 
 def test_logout_adiciona_token_na_blacklist(auth_service, mock_blacklist):
     # 1. Gerar um token válido
-    exp = datetime.now(timezone.utc) + timedelta(minutes=15)
+    exp = datetime.now(UTC) + timedelta(minutes=15)
     token = jwt.encode(
         {"sub": "user@test.com", "exp": exp},
         settings.SECRET_KEY,
@@ -56,7 +58,7 @@ def test_verificar_token_blacklist_lanca_excecao(auth_service, mock_blacklist):
 
 def test_logout_calcula_ttl_corretamente(auth_service, mock_blacklist, monkeypatch):
     # Fixar o tempo atual (usando um ano no futuro para garantir que não expire)
-    now_fixed = datetime(2030, 5, 17, 12, 0, 0, tzinfo=timezone.utc)
+    now_fixed = datetime(2030, 5, 17, 12, 0, 0, tzinfo=UTC)
 
     # Mock datetime.now dentro do módulo do serviço
     class MockDatetime:

@@ -1,6 +1,8 @@
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
-from unittest.mock import MagicMock, patch, AsyncMock
+import pytest
+
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 
 

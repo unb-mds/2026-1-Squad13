@@ -1,9 +1,11 @@
-import logging
 import asyncio
+import logging
+
 from celery import shared_task
 from sqlmodel import Session
-from infrastructure.database import engine
+
 from application.services.coletar_em_lote_service import ColetarEmLoteService
+from infrastructure.database import engine
 
 logger = logging.getLogger(__name__)
 

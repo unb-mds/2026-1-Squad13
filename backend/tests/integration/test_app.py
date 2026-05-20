@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+
 from main import app
 
 
@@ -17,8 +18,9 @@ def test_health_success(http_client: TestClient):
 
 def test_health_failure(http_client: TestClient):
     # Mock do get_session para falhar
-    from infrastructure.database import get_session
     from unittest.mock import Mock
+
+    from infrastructure.database import get_session
 
     mock_session = Mock()
     mock_session.exec.side_effect = Exception("DB error")

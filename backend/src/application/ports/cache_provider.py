@@ -1,4 +1,4 @@
-from typing import Protocol, Any, Optional
+from typing import Any, Protocol
 
 
 class CacheProvider(Protocol):
@@ -7,11 +7,11 @@ class CacheProvider(Protocol):
     Permite desacoplar a camada de Aplicação da biblioteca de infraestrutura (ex: Redis).
     """
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Recupera um valor do cache."""
         ...
 
-    def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: int | None = None) -> None:
         """Salva um valor no cache com um tempo de vida (TTL) opcional."""
         ...
 

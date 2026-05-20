@@ -1,5 +1,7 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+
 from application.services.coletar_em_lote_service import ColetarEmLoteService
 from domain.entities.proposicao import Proposicao
 

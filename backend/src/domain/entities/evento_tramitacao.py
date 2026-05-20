@@ -1,7 +1,8 @@
 import re
-from typing import Optional
-from sqlmodel import SQLModel
+
 from pydantic import field_validator
+from sqlmodel import SQLModel
+
 from domain.entities.tipo_evento import TipoEvento
 
 # Regex para validar formato ISO: YYYY-MM-DD com hora opcional
@@ -32,22 +33,22 @@ class EventoTramitacao(SQLModel):
     Evento de tramitação legislativa — entidade de domínio pura.
     """
 
-    evento_id: Optional[int] = None
+    evento_id: int | None = None
     proposicao_id: str
     data_evento: str
     sequencia: int
-    sigla_orgao: Optional[str] = None
+    sigla_orgao: str | None = None
     descricao_original: str
 
     # Campos analíticos
     tipo_evento: str
-    fase_analitica_id: Optional[int] = None
+    fase_analitica_id: int | None = None
 
     # Flags de controle analítico
     deliberativo: bool = False
     mudou_fase: bool = False
     mudou_orgao: bool = False
-    remessa_ou_retorno: Optional[str] = None
+    remessa_ou_retorno: str | None = None
 
     # Campos de análise temporal
     dias_na_etapa: int = 0
@@ -56,7 +57,7 @@ class EventoTramitacao(SQLModel):
     relevante: bool = False
 
     # Auditoria
-    payload_bruto: Optional[dict] = None
+    payload_bruto: dict | None = None
 
     @field_validator("data_evento")
     @classmethod
@@ -91,7 +92,7 @@ class EventoTramitacao(SQLModel):
 
     @field_validator("remessa_ou_retorno")
     @classmethod
-    def validar_remessa_ou_retorno(cls, v: Optional[str]) -> Optional[str]:
+    def validar_remessa_ou_retorno(cls, v: str | None) -> str | None:
         if v not in _REMESSA_RETORNO_VALIDOS:
             raise ValueError(
                 f"remessa_ou_retorno deve ser None, 'REMESSA' ou 'RETORNO', "

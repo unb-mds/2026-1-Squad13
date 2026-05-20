@@ -9,12 +9,14 @@ Garante que o banco de dados esteja consistente, identificando:
 """
 
 from collections import Counter
+
 from sqlmodel import select
+
+from domain.constants import LIMITE_DIAS_ATRASO
 from infrastructure.database import get_session
-from infrastructure.database.models.proposicao_model import ProposicaoModel
 from infrastructure.database.models.evento_tramitacao_model import EventoTramitacaoModel
 from infrastructure.database.models.fase_analitica_model import FaseAnaliticaModel
-from domain.constants import LIMITE_DIAS_ATRASO
+from infrastructure.database.models.proposicao_model import ProposicaoModel
 
 
 def audit_db() -> None:

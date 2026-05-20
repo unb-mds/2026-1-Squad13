@@ -1,24 +1,26 @@
 import logging
-from fastapi import APIRouter, Depends, status, BackgroundTasks, HTTPException
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel
-from presentation.auth_dependencies import (
-    get_auth_service,
-    get_solicitar_recuperacao_usecase,
-    get_redefinir_senha_usecase,
-    oauth2_scheme,
-)
+
 from application.services.auth_service import AuthService
 from application.services.recuperacao_senha_service import (
-    SolicitarRecuperacaoSenhaUseCase,
     RedefinirSenhaUseCase,
+    SolicitarRecuperacaoSenhaUseCase,
 )
-from domain.entities.user import UserCreate, UserLogin, UserResponse, Token
+from domain.entities.user import Token, UserCreate, UserLogin, UserResponse
 from domain.exceptions import (
-    UsuarioNaoEncontradoError,
-    TokenInvalidoError,
     ContaBloqueadaError,
     CredenciaisInvalidasError,
     EmailJaCadastradoError,
+    TokenInvalidoError,
+    UsuarioNaoEncontradoError,
+)
+from presentation.auth_dependencies import (
+    get_auth_service,
+    get_redefinir_senha_usecase,
+    get_solicitar_recuperacao_usecase,
+    oauth2_scheme,
 )
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])

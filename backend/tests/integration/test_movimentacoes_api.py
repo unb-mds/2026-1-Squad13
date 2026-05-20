@@ -1,8 +1,10 @@
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
+
 from domain.entities.evento_tramitacao import EventoTramitacao
-from domain.entities.tipo_evento import TipoEvento
 from domain.entities.proposicao import Proposicao
+from domain.entities.tipo_evento import TipoEvento
 
 
 def _evento_mock(id_prop: str) -> EventoTramitacao:
