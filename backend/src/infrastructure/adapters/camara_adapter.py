@@ -175,7 +175,11 @@ class CamaraAdapter:
                 await _client.aclose()
 
     async def buscar_id_por_identificacao(
-        self, tipo: str, numero: str, ano: int, client: Optional[httpx.AsyncClient] = None
+        self,
+        tipo: str,
+        numero: str,
+        ano: int,
+        client: Optional[httpx.AsyncClient] = None,
     ) -> Optional[int]:
         """Localiza o ID interno da Câmara para uma proposição conhecida."""
         ids = await self.listar_recentes(tipo, 1, ano, client=client, numero=numero)
@@ -240,12 +244,12 @@ class CamaraAdapter:
 
         # Otimiza paginação para o limite máximo da API da Câmara (100)
         limite_total = params.get("limite_total", 500)
-        
+
         # Cria uma cópia para não poluir os parâmetros passados com dados internos
         api_params = params.copy()
         if "limite_total" in api_params:
             del api_params["limite_total"]
-            
+
         api_params["itens"] = 100
         api_params["pagina"] = 1
 
@@ -261,7 +265,7 @@ class CamaraAdapter:
                         break
 
                     ids_coletados.extend([d["id"] for d in dados])
-                    
+
                     # Corta se exceder o limite solicitado
                     if len(ids_coletados) >= limite_total:
                         ids_coletados = ids_coletados[:limite_total]

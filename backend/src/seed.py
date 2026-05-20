@@ -238,7 +238,9 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
                         atualizados += 1
 
                     # Massa de dados: Eventos
-                    eventos = await listar_service.executar(str(prop_db.id), client=client)
+                    eventos = await listar_service.executar(
+                        str(prop_db.id), client=client
+                    )
 
                     # Atualiza métricas reais baseadas no histórico completo
                     tempo = dashboard_service._calcular_tempo_total(
