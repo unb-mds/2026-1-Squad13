@@ -3,6 +3,12 @@ from infrastructure.database import init_db, engine
 from sqlmodel import Session, select
 from infrastructure.database.models.user_model import UserModel
 from infrastructure.adapters.security_adapter import get_password_hash
+from infrastructure.repositories.sql_fase_analitica_repository import (
+    SQLFaseAnaliticaRepository,
+)
+from infrastructure.repositories.sql_orgao_legislativo_repository import (
+    SQLOrgaoLegislativoRepository,
+)
 
 # Importando modelos para registro no metadata
 from infrastructure.database.models.proposicao_model import ProposicaoModel  # noqa: F401
@@ -31,10 +37,18 @@ def seed_demo_user():
             logger.info("Usuário de demonstração já existe.")
 
 
+def seed_lookup_tables():
+    logger.info("Inserindo tabelas de referência (Fases e Órgãos)...")
+    with Session(engine) as session:
+        SQLFaseAnaliticaRepository(session).seed_fases()
+        SQLOrgaoLegislativoRepository(session).seed_orgaos()
+
+
 def run():
     logger.info("Criando tabelas no banco de dados...")
     init_db()
     seed_demo_user()
+    seed_lookup_tables()
     logger.info("Tabelas e dados iniciais configurados com sucesso!")
 
 
