@@ -6,32 +6,35 @@ from infrastructure.database import engine
 from infrastructure.database.models.log_coleta_model import LogColetaModel
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 logger = logging.getLogger(__name__)
 
-def _registrar_log(session: Session, fonte: str, status: str, itens: int, erro: str = None):
+
+def _registrar_log(
+    session: Session, fonte: str, status: str, itens: int, erro: str = None
+):
     log = LogColetaModel(
-        fonte=fonte,
-        status=status,
-        itens_coletados=itens,
-        mensagem_erro=erro
+        fonte=fonte, status=status, itens_coletados=itens, mensagem_erro=erro
     )
     session.add(log)
     session.commit()
 
+
 async def _coletar_e_salvar() -> dict:
     camara_adapter = CamaraAdapter()
     senado_adapter = SenadoAdapter()
-    
+
     resumo = {
         "camara": {"status": "pendente", "itens_coletados": 0, "erro": None},
-        "senado": {"status": "pendente", "itens_coletados": 0, "erro": None}
+        "senado": {"status": "pendente", "itens_coletados": 0, "erro": None},
     }
-    
+
     with Session(engine) as session:
         repo = SQLProposicaoRepository(session)
-        
+
         # Isolamento de Falha: Câmara
         try:
             logger.info("Iniciando coleta em lote da Câmara dos Deputados...")
@@ -65,8 +68,9 @@ async def _coletar_e_salvar() -> dict:
             resumo["senado"]["status"] = "falha"
             resumo["senado"]["erro"] = str(e)
             _registrar_log(session, "senado", "falha", 0, str(e))
-            
+
     return resumo
+
 
 @shared_task(name="coletar_proposicoes_diario")
 def task_coletar_proposicoes_diario():
@@ -75,10 +79,10 @@ def task_coletar_proposicoes_diario():
     Retorna um resumo da execução para ser visível no log/Flower.
     """
     logger.info("Iniciando worker: task_coletar_proposicoes_diario")
-    
+
     # Como as bibliotecas do httpx estão rodando código assíncrono,
     # precisamos iniciar o event loop do asyncio dentro do worker síncrono do Celery.
     resumo = asyncio.run(_coletar_e_salvar())
-    
+
     logger.info(f"Worker finalizado. Resumo: {resumo}")
     return resumo

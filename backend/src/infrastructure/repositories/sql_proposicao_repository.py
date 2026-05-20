@@ -44,7 +44,7 @@ class SQLProposicaoRepository:
         for prop in proposicoes:
             model = self._to_model(prop)
             existing = None
-            
+
             if model.tipo and model.numero and model.ano:
                 statement = select(ProposicaoModel).where(
                     func.lower(ProposicaoModel.tipo) == model.tipo.lower(),
@@ -55,14 +55,16 @@ class SQLProposicaoRepository:
 
             if existing:
                 # Atualiza os dados da proposição encontrada, preservando ID e chave canônica
-                for key, value in model.model_dump(exclude={"id", "tipo", "numero", "ano"}).items():
+                for key, value in model.model_dump(
+                    exclude={"id", "tipo", "numero", "ano"}
+                ).items():
                     if value is not None:
                         setattr(existing, key, value)
                 self.session.add(existing)
             else:
                 # Caso não exista, é um insert (adiciona o novo modelo)
                 self.session.add(model)
-                
+
         self.session.commit()
 
     def buscar_por_id(self, id: str) -> Optional[Proposicao]:
