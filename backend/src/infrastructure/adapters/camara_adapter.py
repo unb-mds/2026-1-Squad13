@@ -26,11 +26,8 @@ class CamaraAdapter:
             try:
                 resp = await client.get(url, params=params, timeout=self.timeout)
                 # Apenas erros 5xx configuram instabilidade do servidor para retry
-                if (
-                    resp.status_code >= 500
-                    and attempt < max_retries - 1
-                ):
-                    wait_time = 2 ** attempt  # Backoff exponencial: 1s, 2s, 4s
+                if resp.status_code >= 500 and attempt < max_retries - 1:
+                    wait_time = 2**attempt  # Backoff exponencial: 1s, 2s, 4s
                     logger.warning(
                         f"Erro {resp.status_code} na Câmara. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
                     )
@@ -42,11 +39,14 @@ class CamaraAdapter:
                 # HTTPStatusError será levantado se não for 5xx (já tratado acima) e não for 2xx.
                 # Não fazemos retry para RequestError que não sejam de conexão, mas por segurança de rede,
                 # mantemos o retry para RequestError bruto (timeout, conection drop) que não chegou a ter status.
-                if isinstance(e, httpx.HTTPStatusError) and e.response.status_code < 500:
+                if (
+                    isinstance(e, httpx.HTTPStatusError)
+                    and e.response.status_code < 500
+                ):
                     raise  # Não tenta retry para 4xx
-                
+
                 if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt
+                    wait_time = 2**attempt
                     logger.warning(
                         f"Falha na conexão com Câmara: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
                     )
@@ -189,52 +189,55 @@ class CamaraAdapter:
         url = f"{self.base_url}/proposicoes"
         if params is None:
             params = {}
-        
+
         # Otimiza paginação para o limite máximo da API da Câmara (100)
         params["itens"] = 100
         params["pagina"] = 1
-        
+
         ids_coletados = []
-        
+
         async with httpx.AsyncClient(follow_redirects=True) as client:
             while True:
                 try:
                     resp = await self._get_with_retry(client, url, params=params)
                     dados = resp.json().get("dados", [])
-                    
+
                     if not dados:
                         break
-                        
+
                     ids_coletados.extend([d["id"] for d in dados])
-                    
+
                     # Verifica se há próxima página baseando-se nos links de HATEOAS
                     links = resp.json().get("links", [])
                     has_next = any(link.get("rel") == "next" for link in links)
-                    
+
                     if not has_next:
                         break
-                        
+
                     params["pagina"] += 1
                 except Exception as e:
-                    logger.error(f"Erro na paginação da Câmara (página {params.get('pagina')}): {e}")
+                    logger.error(
+                        f"Erro na paginação da Câmara (página {params.get('pagina')}): {e}"
+                    )
                     break
-        
+
         # Busca os detalhes completos para montar as entidades Proposicao
         proposicoes_completas = []
-        semaphore = asyncio.Semaphore(15)  # Limite de concorrência para não sobrecarregar
-        
+        semaphore = asyncio.Semaphore(
+            15
+        )  # Limite de concorrência para não sobrecarregar
+
         async def fetch_full(id_prop: int):
             async with semaphore:
                 return await self.buscar_por_id(id_prop)
-                
+
         tasks = [fetch_full(id_prop) for id_prop in ids_coletados]
         resultados = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         for res in resultados:
             if isinstance(res, Proposicao):
                 proposicoes_completas.append(res)
             elif isinstance(res, Exception):
                 logger.error(f"Erro na coleta em lote de proposição: {res}")
-                
-        return proposicoes_completas
 
+        return proposicoes_completas

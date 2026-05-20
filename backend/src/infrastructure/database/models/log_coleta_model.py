@@ -2,10 +2,12 @@ from typing import Optional
 from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field
 
+
 class LogColetaModel(SQLModel, table=True):
     """
     Representa o log de execução de uma tarefa de coleta em lote (batch).
     """
+
     __tablename__ = "log_coleta_batch"
 
     id: Optional[int] = Field(default=None, primary_key=True)

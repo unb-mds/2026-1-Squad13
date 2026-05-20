@@ -6,10 +6,10 @@ celery_app = Celery(
     "monitor_legislativo",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["infrastructure.workers.coleta_worker"]
+    include=["infrastructure.workers.coleta_worker"],
 )
 
-celery_app.conf.timezone = 'America/Sao_Paulo'
+celery_app.conf.timezone = "America/Sao_Paulo"
 celery_app.conf.beat_schedule = {
     "coleta-diaria-camara-senado": {
         "task": "coletar_proposicoes_diario",
