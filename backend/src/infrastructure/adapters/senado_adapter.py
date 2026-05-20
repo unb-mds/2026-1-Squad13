@@ -31,11 +31,12 @@ class SenadoAdapter:
                 resp = await client.get(
                     url, params=params, headers=headers, timeout=self.timeout
                 )
+                # Apenas erros 5xx configuram instabilidade do servidor para retry
                 if (
-                    resp.status_code in [429, 500, 502, 503, 504]
+                    resp.status_code >= 500
                     and attempt < max_retries - 1
                 ):
-                    wait_time = (attempt + 1) * 2
+                    wait_time = 2 ** attempt  # Backoff exponencial: 1s, 2s, 4s
                     logger.warning(
                         f"Erro {resp.status_code} no Senado. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
                     )
@@ -46,8 +47,11 @@ class SenadoAdapter:
                     resp.raise_for_status()
                 return resp
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
+                if isinstance(e, httpx.HTTPStatusError) and e.response.status_code < 500:
+                    raise  # Não tenta retry para 4xx
+
                 if attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 2
+                    wait_time = 2 ** attempt
                     logger.warning(
                         f"Falha na conexão com Senado: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
                     )
