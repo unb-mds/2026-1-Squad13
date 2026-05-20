@@ -78,5 +78,39 @@ services:
     depends_on:
       - backend
 
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: monitor_worker
+    restart: always
+    command: uv run celery -A infrastructure.workers.celery_app worker --loglevel=info
+    env_file:
+      - .env
+    volumes:
+      - ./backend/src:/app/src
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: monitor_beat
+    restart: always
+    command: uv run celery -A infrastructure.workers.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    volumes:
+      - ./backend/src:/app/src
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
 volumes:
   postgres_data:

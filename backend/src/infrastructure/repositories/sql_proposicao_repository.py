@@ -36,6 +36,62 @@ class SQLProposicaoRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
+    def upsert_em_lote_por_numero_canonico(self, proposicoes: List[Proposicao]) -> None:
+        """
+        Executa um upsert em lote garantindo idempotência com alta performance.
+        Busca todos os registros existentes em uma única query e processa em memória.
+        """
+        if not proposicoes:
+            return
+
+        # 1. Extrai chaves canônicas únicas do lote
+        chaves_lote = []
+        for p in proposicoes:
+            if p.tipo and p.numero and p.ano:
+                chaves_lote.append((p.tipo.lower(), str(p.numero), p.ano))
+
+        if not chaves_lote:
+            return
+
+        # 2. Busca todos os registros existentes que batem com as chaves do lote em uma única query
+        # Nota: SQLModel/SQLAlchemy lidam com tuplas em IN clauses de forma eficiente no Postgres
+        from sqlalchemy import tuple_
+
+        statement = select(ProposicaoModel).where(
+            tuple_(
+                func.lower(ProposicaoModel.tipo),
+                ProposicaoModel.numero,
+                ProposicaoModel.ano,
+            ).in_(chaves_lote)
+        )
+        existentes = self.session.exec(statement).all()
+
+        # 3. Mapeia os existentes em um dicionário para busca O(1)
+        mapa_existentes = {
+            (m.tipo.lower(), str(m.numero), m.ano): m for m in existentes
+        }
+
+        # 4. Processa o upsert
+        for prop in proposicoes:
+            chave = (prop.tipo.lower(), str(prop.numero), prop.ano)
+            model_novo = self._to_model(prop)
+
+            existing = mapa_existentes.get(chave)
+
+            if existing:
+                # Atualiza os dados preservando ID e chaves canônicas
+                for key, value in model_novo.model_dump(
+                    exclude={"id", "tipo", "numero", "ano"}
+                ).items():
+                    if value is not None:
+                        setattr(existing, key, value)
+                self.session.add(existing)
+            else:
+                # Caso não exista, é um insert
+                self.session.add(model_novo)
+
+        self.session.commit()
+
     def buscar_por_id(self, id: str) -> Optional[Proposicao]:
         model = self.session.get(ProposicaoModel, id)
         return self._to_entity(model) if model else None
