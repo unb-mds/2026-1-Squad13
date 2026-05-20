@@ -277,12 +277,28 @@ class DashboardService:
             else:
                 dados = self._obter_dados_em_lote(todas)
                 total = len(dados)
-                aprovadas = [d for d in dados if self._agrupar_status(d["status"]) == "Aprovada/Sancionada"]
-                em_tramitacao = [d for d in dados if self._agrupar_status(d["status"]) == "Em tramitação"]
-                rejeitadas = [d for d in dados if self._agrupar_status(d["status"]) == "Rejeitada/Arquivada"]
+                aprovadas = [
+                    d
+                    for d in dados
+                    if self._agrupar_status(d["status"]) == "Aprovada/Sancionada"
+                ]
+                em_tramitacao = [
+                    d
+                    for d in dados
+                    if self._agrupar_status(d["status"]) == "Em tramitação"
+                ]
+                rejeitadas = [
+                    d
+                    for d in dados
+                    if self._agrupar_status(d["status"]) == "Rejeitada/Arquivada"
+                ]
                 com_atraso = [d for d in dados if d["atraso_critico"]]
 
-                tempos = [d["tempo_total_dias"] for d in dados if d["tempo_total_dias"] is not None]
+                tempos = [
+                    d["tempo_total_dias"]
+                    for d in dados
+                    if d["tempo_total_dias"] is not None
+                ]
                 tempo_medio = sum(tempos) / len(tempos) if tempos else 0
 
                 orgaos: Dict[str, List[int]] = {}
@@ -293,7 +309,11 @@ class DashboardService:
                         orgaos[d["orgao_atual"]].append(d["tempo_total_dias"])
 
                 medias_orgaos = {org: sum(t) / len(t) for org, t in orgaos.items()}
-                pior_orgao = max(medias_orgaos, key=medias_orgaos.get) if medias_orgaos else "N/A"
+                pior_orgao = (
+                    max(medias_orgaos, key=medias_orgaos.get)
+                    if medias_orgaos
+                    else "N/A"
+                )
                 pior_media = medias_orgaos.get(pior_orgao, 0)
 
                 resultado = {
@@ -324,15 +344,27 @@ class DashboardService:
             tipos: Dict[str, Dict] = {}
             for d in dados:
                 if d["tipo"] not in tipos:
-                    tipos[d["tipo"]] = {"tipo": d["tipo"], "tempos": [], "quantidade": 0}
+                    tipos[d["tipo"]] = {
+                        "tipo": d["tipo"],
+                        "tempos": [],
+                        "quantidade": 0,
+                    }
                 tipos[d["tipo"]]["quantidade"] += 1
                 if d["tempo_total_dias"] is not None:
                     tipos[d["tipo"]]["tempos"].append(d["tempo_total_dias"])
 
             resultado = []
             for info in tipos.values():
-                tempo_medio = sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
-                resultado.append({"tipo": info["tipo"], "tempoMedio": int(tempo_medio), "quantidade": info["quantidade"]})
+                tempo_medio = (
+                    sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
+                )
+                resultado.append(
+                    {
+                        "tipo": info["tipo"],
+                        "tempoMedio": int(tempo_medio),
+                        "quantidade": info["quantidade"],
+                    }
+                )
             resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
 
         self._set_cache(cache_key, resultado)
@@ -360,9 +392,19 @@ class DashboardService:
 
             resultado = []
             for info in orgaos.values():
-                tempo_medio = sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
-                resultado.append({"comissao": info["comissao"], "tempoMedio": int(tempo_medio), "quantidade": info["quantidade"]})
-            resultado = sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
+                tempo_medio = (
+                    sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
+                )
+                resultado.append(
+                    {
+                        "comissao": info["comissao"],
+                        "tempoMedio": int(tempo_medio),
+                        "quantidade": info["quantidade"],
+                    }
+                )
+            resultado = sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[
+                :10
+            ]
 
         self._set_cache(cache_key, resultado)
         return resultado
@@ -386,7 +428,14 @@ class DashboardService:
                 status_agrupado = self._agrupar_status(d["status"])
                 contagem[status_agrupado] = contagem.get(status_agrupado, 0) + 1
 
-            resultado = [{"status": status, "quantidade": qtd, "percentual": round((qtd / total) * 100)} for status, qtd in contagem.items()]
+            resultado = [
+                {
+                    "status": status,
+                    "quantidade": qtd,
+                    "percentual": round((qtd / total) * 100),
+                }
+                for status, qtd in contagem.items()
+            ]
             resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
 
         self._set_cache(cache_key, resultado)
@@ -407,7 +456,12 @@ class DashboardService:
             for d in dados:
                 orgao = d["orgao_atual"] or "Desconhecido"
                 if orgao not in orgaos:
-                    orgaos[orgao] = {"orgao": orgao, "tempos": [], "proposicoes": 0, "atrasos": 0}
+                    orgaos[orgao] = {
+                        "orgao": orgao,
+                        "tempos": [],
+                        "proposicoes": 0,
+                        "atrasos": 0,
+                    }
                 orgaos[orgao]["proposicoes"] += 1
                 if d["atraso_critico"]:
                     orgaos[orgao]["atrasos"] += 1
@@ -416,9 +470,24 @@ class DashboardService:
 
             resultado = []
             for info in orgaos.values():
-                tempo_medio_meses = (sum(info["tempos"]) / len(info["tempos"]) / 30) if info["tempos"] else 0
-                taxa_atraso = (info["atrasos"] / info["proposicoes"] * 100) if info["proposicoes"] else 0
-                resultado.append({"orgao": info["orgao"], "tempoMedioMeses": round(tempo_medio_meses, 1), "quantidadeProposicoes": info["proposicoes"], "taxaAtraso": round(taxa_atraso)})
+                tempo_medio_meses = (
+                    (sum(info["tempos"]) / len(info["tempos"]) / 30)
+                    if info["tempos"]
+                    else 0
+                )
+                taxa_atraso = (
+                    (info["atrasos"] / info["proposicoes"] * 100)
+                    if info["proposicoes"]
+                    else 0
+                )
+                resultado.append(
+                    {
+                        "orgao": info["orgao"],
+                        "tempoMedioMeses": round(tempo_medio_meses, 1),
+                        "quantidadeProposicoes": info["proposicoes"],
+                        "taxaAtraso": round(taxa_atraso),
+                    }
+                )
             resultado = sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
 
         self._set_cache(cache_key, resultado)
@@ -440,7 +509,12 @@ class DashboardService:
                 for tag in tags:
                     tag_formatada = tag.capitalize()
                     if tag_formatada not in temas:
-                        temas[tag_formatada] = {"tema": tag_formatada, "tempos": [], "total": 0, "aprovadas": 0}
+                        temas[tag_formatada] = {
+                            "tema": tag_formatada,
+                            "tempos": [],
+                            "total": 0,
+                            "aprovadas": 0,
+                        }
                     temas[tag_formatada]["total"] += 1
                     if d.get("tempo_total_dias") is not None:
                         temas[tag_formatada]["tempos"].append(d["tempo_total_dias"])
@@ -456,7 +530,12 @@ class DashboardService:
                 for tag in d["tags"]:
                     tag_formatada = tag.capitalize()
                     if tag_formatada not in temas:
-                        temas[tag_formatada] = {"tema": tag_formatada, "tempos": [], "total": 0, "aprovadas": 0}
+                        temas[tag_formatada] = {
+                            "tema": tag_formatada,
+                            "tempos": [],
+                            "total": 0,
+                            "aprovadas": 0,
+                        }
                     temas[tag_formatada]["total"] += 1
                     if d["tempo_total_dias"] is not None:
                         temas[tag_formatada]["tempos"].append(d["tempo_total_dias"])
