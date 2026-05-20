@@ -18,7 +18,7 @@ class CamaraAdapter:
         self.timeout = 25  # Timeout aumentado para lidar com lentidão eventual
         self.headers = {
             "Accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 (MonitorLegislativo/1.0)"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 (MonitorLegislativo/1.0)",
         }
 
     async def _get_with_retry(
@@ -28,12 +28,13 @@ class CamaraAdapter:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                resp = await client.get(url, params=params, headers=self.headers, timeout=self.timeout)
+                resp = await client.get(
+                    url, params=params, headers=self.headers, timeout=self.timeout
+                )
                 # Erros 5xx ou 429 (Rate Limit) configuram instabilidade/limitação para retry
                 if (
-                    (resp.status_code >= 500 or resp.status_code == 429)
-                    and attempt < max_retries - 1
-                ):
+                    resp.status_code >= 500 or resp.status_code == 429
+                ) and attempt < max_retries - 1:
                     wait_time = 2**attempt  # Backoff exponencial: 1s, 2s, 4s
                     logger.warning(
                         f"⚠️ Erro {resp.status_code} na Câmara. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
@@ -62,7 +63,9 @@ class CamaraAdapter:
                     raise
         raise httpx.RequestError("Máximo de tentativas excedido na Câmara")
 
-    async def buscar_por_id(self, id_proposicao: int, client: Optional[httpx.AsyncClient] = None) -> Optional[Proposicao]:
+    async def buscar_por_id(
+        self, id_proposicao: int, client: Optional[httpx.AsyncClient] = None
+    ) -> Optional[Proposicao]:
         url_proposicao = f"{self.base_url}/proposicoes/{id_proposicao}"
         url_autores = f"{url_proposicao}/autores"
 
@@ -112,10 +115,14 @@ class CamaraAdapter:
                 )
 
             except httpx.ConnectError:
-                logger.error(f"❌ Erro de CONEXÃO com a Câmara para ID {id_proposicao}. Verifique se o container tem acesso à internet (DNS/Firewall).")
+                logger.error(
+                    f"❌ Erro de CONEXÃO com a Câmara para ID {id_proposicao}. Verifique se o container tem acesso à internet (DNS/Firewall)."
+                )
                 return None
             except httpx.TimeoutException:
-                logger.error(f"⏳ TIMEOUT ao acessar Câmara para ID {id_proposicao} após {self.timeout}s.")
+                logger.error(
+                    f"⏳ TIMEOUT ao acessar Câmara para ID {id_proposicao} após {self.timeout}s."
+                )
                 return None
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
                 logger.error(
@@ -132,7 +139,11 @@ class CamaraAdapter:
                 await _client.aclose()
 
     async def listar_recentes(
-        self, tipo: str, quantidade: int = 10, ano: Optional[int] = None, client: Optional[httpx.AsyncClient] = None
+        self,
+        tipo: str,
+        quantidade: int = 10,
+        ano: Optional[int] = None,
+        client: Optional[httpx.AsyncClient] = None,
     ) -> List[int]:
         """Busca uma lista de IDs das proposições de um determinado tipo, opcionalmente por ano."""
         url = f"{self.base_url}/proposicoes"
@@ -160,7 +171,9 @@ class CamaraAdapter:
             if client is None:
                 await _client.aclose()
 
-    async def buscar_tramitacoes_brutas(self, id_proposicao: int, client: Optional[httpx.AsyncClient] = None) -> List[dict]:
+    async def buscar_tramitacoes_brutas(
+        self, id_proposicao: int, client: Optional[httpx.AsyncClient] = None
+    ) -> List[dict]:
         """
         Retorna payload bruto de cada tramitação da Câmara.
         """
