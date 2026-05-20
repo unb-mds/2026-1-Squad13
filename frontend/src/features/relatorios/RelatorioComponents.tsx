@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, Download } from 'lucide-react'
 import { obterGargalos, obterComparacaoTemas } from '@/shared/lib/api'
-import type { GargaloInstitucional, ComparacaoTema } from '@/shared/types'
+import type { GargaloInstitucional, ComparacaoTema, FiltrosProposicao } from '@/shared/types'
 import { Card, CardHeader, CardBody, Badge, Button, Spinner } from '@/shared/ui'
 
-export function TabelaGargalos() {
+export function TabelaGargalos({ filtros }: { filtros?: Partial<FiltrosProposicao> }) {
   const [gargalos, setGargalos] = useState<GargaloInstitucional[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    obterGargalos().then(setGargalos).finally(() => setLoading(false))
-  }, [])
+    setLoading(true)
+    obterGargalos(filtros).then(setGargalos).finally(() => setLoading(false))
+  }, [filtros])
 
   return (
     <Card>
@@ -66,13 +67,14 @@ export function TabelaGargalos() {
   )
 }
 
-export function ComparacaoTemas() {
+export function ComparacaoTemas({ filtros }: { filtros?: Partial<FiltrosProposicao> }) {
   const [temas, setTemas] = useState<ComparacaoTema[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    obterComparacaoTemas().then(setTemas).finally(() => setLoading(false))
-  }, [])
+    setLoading(true)
+    obterComparacaoTemas(filtros).then(setTemas).finally(() => setLoading(false))
+  }, [filtros])
 
   const rapidos = temas.filter((t) => t.velocidade === 'rapido')
   const lentos = temas.filter((t) => t.velocidade === 'lento')

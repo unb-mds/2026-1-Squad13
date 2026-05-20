@@ -172,14 +172,14 @@ export async function obterDadosStatus(filtros?: Partial<FiltrosProposicao>): Pr
 }
 
 // --- Relatórios ---
-export async function obterGargalos(): Promise<GargaloInstitucional[]> {
-  const response = await fetch(`${API_BASE}/dashboard/gargalos`)
+export async function obterGargalos(filtros?: Partial<FiltrosProposicao>): Promise<GargaloInstitucional[]> {
+  const response = await fetch(`${API_BASE}/dashboard/gargalos${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar gargalos da API')
   return await response.json()
 }
 
-export async function obterComparacaoTemas(): Promise<ComparacaoTema[]> {
-  const response = await fetch(`${API_BASE}/dashboard/comparacao-temas`)
+export async function obterComparacaoTemas(filtros?: Partial<FiltrosProposicao>): Promise<ComparacaoTema[]> {
+  const response = await fetch(`${API_BASE}/dashboard/comparacao-temas${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar comparação de temas')
   return await response.json()
 }

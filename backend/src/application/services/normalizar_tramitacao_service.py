@@ -11,6 +11,7 @@ from typing import List, Optional
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
 from domain.entities.tipo_evento import TipoEvento
+from domain.constants import LIMITE_DIAS_ATRASO
 from domain.classificar_evento import (
     classificar_tipo_evento,
     determinar_fase_analitica,
@@ -178,7 +179,7 @@ class NormalizarTramitacaoService:
                 dias = (hoje - data_atual).days
 
             atual.dias_na_etapa = max(0, dias)
-            # Regra de negócio: mais de 180 dias sem movimentação é considerado atraso
-            atual.tem_atraso = atual.dias_na_etapa > 180
+            # Regra de negócio: mais de LIMITE_DIAS_ATRASO dias sem movimentação é considerado atraso
+            atual.tem_atraso = atual.dias_na_etapa > LIMITE_DIAS_ATRASO
 
         return eventos

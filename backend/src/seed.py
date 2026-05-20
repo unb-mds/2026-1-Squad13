@@ -7,7 +7,7 @@ import argparse
 import asyncio
 import logging
 import sys
-from typing import List
+from typing import List, Optional
 import httpx
 from sqlmodel import Session, select, func
 
@@ -33,6 +33,7 @@ from infrastructure.repositories.sql_apensamento_repository import (
 from infrastructure.cache.redis_client import RedisClient
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.dashboard_service import DashboardService
+from domain.constants import LIMITE_DIAS_ATRASO
 from init_db import seed_demo_user
 
 # Configuração de logging
@@ -159,7 +160,7 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
             for id_p in ids_c:
                 try:
                     p = await camara.buscar_por_id(id_p, client=client)
-                    if p:
+                    if p and p.tipo in types:
                         p.atualizar_metricas()
                         p.normalizar_campo_status()
                         proposicoes.append(p)
@@ -177,7 +178,7 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
                     break
                 try:
                     p = await senado.buscar_por_id(id_p, client=client)
-                    if p:
+                    if p and p.tipo in types:
                         p.atualizar_metricas()
                         p.normalizar_campo_status()
                         proposicoes.append(p)
@@ -210,7 +211,7 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
                 orgao_repo,
                 camara,
                 senado,
-                apensamento_repo,
+                apensamento_repo=apensamento_repo,
             )
             dashboard_service = DashboardService(repo, evento_repo)
 
@@ -229,16 +230,35 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
                         prop_db = repo.salvar(p)
                         inseridos += 1
                     else:
+                        prop_db.ementa_resumida = p.ementa_resumida
+                        prop_db.tags = p.tags
                         prop_db.status = p.status
                         prop_db.normalizar_campo_status()
                         repo.salvar(prop_db)
                         atualizados += 1
 
-                    await listar_service.executar(str(prop_db.id), client=client)
+                    # Massa de dados: Eventos
+                    eventos = await listar_service.executar(str(prop_db.id), client=client)
+
+                    # Atualiza métricas reais baseadas no histórico completo
+                    tempo = dashboard_service._calcular_tempo_total(
+                        eventos, prop_db.tempo_total_dias or 0, prop_db
+                    )
+                    status = dashboard_service._extrair_status_atual(
+                        eventos, prop_db.status
+                    )
+
+                    prop_db.tempo_total_dias = tempo
+                    prop_db.tem_atraso = (tempo > LIMITE_DIAS_ATRASO) and (
+                        prop_db.data_encerramento is None
+                    )
+                    prop_db.status = status
+
+                    repo.salvar(prop_db)
 
                     if (inseridos + atualizados) % 5 == 0:
                         print(
-                            f"  [Progress] {inseridos + atualizados}/{len(proposicoes)}...",
+                            f"  [Progress] {inseridos + atualizados}/{len(proposicoes)}... (OK: {p.nome_canonico})",
                             end="\r",
                         )
 
@@ -247,7 +267,7 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
                     logger.error(f"❌ Erro em {p.id}: {e}")
 
         logger.info(
-            f"\n✨ Finalizado! Inseridos/Atualizados: {inseridos + atualizados}"
+            f"\n✨ Finalizado! Inseridos: {inseridos}, Atualizados: {atualizados}"
         )
 
         try:
