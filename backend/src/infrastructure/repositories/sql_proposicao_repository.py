@@ -36,6 +36,35 @@ class SQLProposicaoRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
+    def upsert_em_lote_por_numero_canonico(self, proposicoes: List[Proposicao]) -> None:
+        """
+        Executa um upsert em lote garantindo idempotência.
+        Usa o Número Canônico (Tipo, Número, Ano) como chave de identificação natural (Alternative Key).
+        """
+        for prop in proposicoes:
+            model = self._to_model(prop)
+            existing = None
+            
+            if model.tipo and model.numero and model.ano:
+                statement = select(ProposicaoModel).where(
+                    func.lower(ProposicaoModel.tipo) == model.tipo.lower(),
+                    ProposicaoModel.numero == str(model.numero),
+                    ProposicaoModel.ano == model.ano,
+                )
+                existing = self.session.exec(statement).first()
+
+            if existing:
+                # Atualiza os dados da proposição encontrada, preservando ID e chave canônica
+                for key, value in model.model_dump(exclude={"id", "tipo", "numero", "ano"}).items():
+                    if value is not None:
+                        setattr(existing, key, value)
+                self.session.add(existing)
+            else:
+                # Caso não exista, é um insert (adiciona o novo modelo)
+                self.session.add(model)
+                
+        self.session.commit()
+
     def buscar_por_id(self, id: str) -> Optional[Proposicao]:
         model = self.session.get(ProposicaoModel, id)
         return self._to_entity(model) if model else None
