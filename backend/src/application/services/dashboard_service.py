@@ -1,22 +1,22 @@
-import json
 import hashlib
-from typing import Dict, List, Optional, Any
-from datetime import datetime, date
+import json
+from datetime import date, datetime
+from typing import Any
 
 from application.ports.cache_provider import CacheProvider
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
+from domain.constants import LIMITE_DIAS_ATRASO
+from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.tipo_evento import TipoEvento
+from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
-from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
-from domain.entities.evento_tramitacao import EventoTramitacao
-from domain.entities.tipo_evento import TipoEvento
-from domain.constants import LIMITE_DIAS_ATRASO
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 
 class DashboardService:
@@ -29,9 +29,9 @@ class DashboardService:
         self,
         repository: SQLProposicaoRepository,
         evento_repo: SQLEventoTramitacaoRepository,
-        fase_repo: Optional[SQLFaseAnaliticaRepository] = None,
-        cache_provider: Optional[CacheProvider] = None,
-        dashboard_repo: Optional[SQLDashboardRepository] = None,
+        fase_repo: SQLFaseAnaliticaRepository | None = None,
+        cache_provider: CacheProvider | None = None,
+        dashboard_repo: SQLDashboardRepository | None = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
@@ -40,7 +40,7 @@ class DashboardService:
         self.dashboard_repo = dashboard_repo
         self.cache_ttl = 86400  # 24 horas em segundos
 
-    def _get_cached(self, key: str) -> Optional[Any]:
+    def _get_cached(self, key: str) -> Any | None:
         if not self.cache_provider:
             return None
 
@@ -59,7 +59,7 @@ class DashboardService:
         if self.cache_provider:
             self.cache_provider.set(key, json.dumps(value), self.cache_ttl)
 
-    def _gerar_cache_key(self, base_key: str, filtros: Optional[Dict] = None) -> str:
+    def _gerar_cache_key(self, base_key: str, filtros: dict | None = None) -> str:
         """Gera uma chave de cache única baseada no hash dos filtros."""
         if not filtros:
             return base_key
@@ -78,9 +78,9 @@ class DashboardService:
 
     def _calcular_tempo_total(
         self,
-        eventos: List[EventoTramitacao],
+        eventos: list[EventoTramitacao],
         fallback_tempo: int,
-        proposicao: Optional[Any] = None,
+        proposicao: Any | None = None,
     ) -> int:
         if not eventos:
             return fallback_tempo
@@ -131,7 +131,7 @@ class DashboardService:
             return fallback_tempo
 
     def _extrair_status_atual(
-        self, eventos: List[EventoTramitacao], fallback_status: str
+        self, eventos: list[EventoTramitacao], fallback_status: str
     ) -> str:
         if not eventos:
             return fallback_status
@@ -161,7 +161,7 @@ class DashboardService:
 
         return fallback_status
 
-    def _obter_dados_em_lote(self, proposicoes) -> List[dict]:
+    def _obter_dados_em_lote(self, proposicoes) -> list[dict]:
         if not proposicoes:
             return []
 
@@ -254,7 +254,7 @@ class DashboardService:
 
         return "Outros"
 
-    def obter_metricas(self, filtros: Optional[Dict] = None) -> Dict:
+    def obter_metricas(self, filtros: dict | None = None) -> dict:
         cache_key = self._gerar_cache_key("dashboard:metricas", filtros)
 
         cached = self._get_cached(cache_key)
@@ -268,7 +268,7 @@ class DashboardService:
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_dados_tipo(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_dados_tipo(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:dados_tipo", filtros)
         cached = self._get_cached(cache_key)
         if cached:
@@ -281,7 +281,7 @@ class DashboardService:
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_dados_comissao(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_dados_comissao(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:dados_comissao", filtros)
         cached = self._get_cached(cache_key)
         if cached:
@@ -296,7 +296,7 @@ class DashboardService:
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_dados_status(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_dados_status(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:dados_status", filtros)
         cached = self._get_cached(cache_key)
         if cached:
@@ -309,7 +309,7 @@ class DashboardService:
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_gargalos(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_gargalos(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:gargalos", filtros)
         cached = self._get_cached(cache_key)
         if cached:
@@ -322,7 +322,7 @@ class DashboardService:
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_comparacao_temas(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_comparacao_temas(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:comparacao_temas", filtros)
         cached = self._get_cached(cache_key)
         if cached:
@@ -334,7 +334,7 @@ class DashboardService:
             )
 
         dados_db = self.dashboard_repo.obter_proposicoes_para_temas(filtros)
-        temas: Dict[str, Dict] = {}
+        temas: dict[str, dict] = {}
         for d in dados_db:
             tags = d.get("tags")
             if not tags:
@@ -383,7 +383,7 @@ class DashboardService:
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_tempo_por_fase(self) -> List[Dict]:
+    def obter_tempo_por_fase(self) -> list[dict]:
         """
         Calcula o tempo médio que proposições passam em cada fase analítica.
 
@@ -410,7 +410,7 @@ class DashboardService:
         mapa_eventos = self.evento_repo.buscar_por_multiplas_proposicoes(ids)
 
         # {fase_id: {"dias": [...], "proposicoes": set()}}
-        acumulador: Dict[int, Dict] = {}
+        acumulador: dict[int, dict] = {}
 
         for prop in todas:
             eventos = mapa_eventos.get(str(prop.id), [])
@@ -419,8 +419,8 @@ class DashboardService:
             if not eventos_com_fase:
                 continue
 
-            fase_atual: Optional[int] = None
-            data_entrada: Optional[str] = None
+            fase_atual: int | None = None
+            data_entrada: str | None = None
 
             for evento in eventos_com_fase:
                 if evento.fase_analitica_id != fase_atual:

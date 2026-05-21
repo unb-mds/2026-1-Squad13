@@ -9,7 +9,6 @@ Usam apenas os enums TipoEvento e FaseCodigo.
 """
 
 import re
-from typing import Optional
 
 from domain.entities.fase_codigo import FaseCodigo
 from domain.entities.tipo_evento import TipoEvento
@@ -195,7 +194,7 @@ _FASE_FALLBACK = FaseCodigo.PROTOCOLO_INICIAL
 
 def determinar_fase_analitica(
     tipo_evento: TipoEvento,
-    fase_atual: Optional[FaseCodigo],
+    fase_atual: FaseCodigo | None,
 ) -> FaseCodigo:
     """Determina a fase analítica resultante de um evento.
 

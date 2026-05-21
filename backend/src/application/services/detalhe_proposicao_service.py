@@ -1,7 +1,7 @@
 from domain.entities.proposicao import Proposicao
-from infrastructure.repositories.proposicao_repository import ProposicaoRepository
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
+from infrastructure.repositories.proposicao_repository import ProposicaoRepository
 
 
 class DetalheProposicaoService:
@@ -44,7 +44,7 @@ class DetalheProposicaoService:
         try:
             id_int = int(id_proposicao)
         except ValueError:
-            raise ValueError(f"Proposição não encontrada: {id_proposicao}")
+            raise ValueError(f"Proposição não encontrada: {id_proposicao}") from None
 
         # Tenta na Câmara
         proposicao = await self.camara_adapter.buscar_por_id(id_int)

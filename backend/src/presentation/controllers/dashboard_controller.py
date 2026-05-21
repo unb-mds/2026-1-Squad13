@@ -1,20 +1,20 @@
-from typing import List, Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlmodel import Session
+
 from application.services.dashboard_service import DashboardService
 from infrastructure.cache.redis_client import RedisClient
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
-from infrastructure.database import get_session, get_redis_client
+from infrastructure.database import get_redis_client, get_session
+from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
-from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
-from sqlmodel import Session
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 router = APIRouter()
 
@@ -87,12 +87,12 @@ def get_dashboard_service(session: Session = Depends(get_session)) -> DashboardS
 
 
 class DashboardFilterParams(BaseModel):
-    busca: Optional[str] = Field(default=None)
-    tipo: Optional[str] = Field(default=None)
-    status: Optional[str] = Field(default=None)
-    orgao_origem: Optional[str] = Field(default=None, alias="orgaoOrigem")
-    data_inicio: Optional[str] = Field(default=None, alias="dataInicio")
-    data_fim: Optional[str] = Field(default=None, alias="dataFim")
+    busca: str | None = Field(default=None)
+    tipo: str | None = Field(default=None)
+    status: str | None = Field(default=None)
+    orgao_origem: str | None = Field(default=None, alias="orgaoOrigem")
+    data_inicio: str | None = Field(default=None, alias="dataInicio")
+    data_fim: str | None = Field(default=None, alias="dataFim")
 
     def to_dict(self) -> dict:
         return self.model_dump(exclude_none=True, by_alias=False)
@@ -111,7 +111,7 @@ def obter_metricas(
     return service.obter_metricas(filtros_dict or None)
 
 
-@router.get("/dashboard/grafico-tipo", response_model=List[DadosGraficoTipoResponse])
+@router.get("/dashboard/grafico-tipo", response_model=list[DadosGraficoTipoResponse])
 def obter_dados_tipo(
     filtros: DashboardFilterParams = Depends(),
     service: DashboardService = Depends(get_dashboard_service),
@@ -121,7 +121,7 @@ def obter_dados_tipo(
 
 
 @router.get(
-    "/dashboard/grafico-comissao", response_model=List[DadosGraficoComissaoResponse]
+    "/dashboard/grafico-comissao", response_model=list[DadosGraficoComissaoResponse]
 )
 def obter_dados_comissao(
     filtros: DashboardFilterParams = Depends(),
@@ -132,7 +132,7 @@ def obter_dados_comissao(
 
 
 @router.get(
-    "/dashboard/grafico-status", response_model=List[DadosGraficoStatusResponse]
+    "/dashboard/grafico-status", response_model=list[DadosGraficoStatusResponse]
 )
 def obter_dados_status(
     filtros: DashboardFilterParams = Depends(),
@@ -142,7 +142,7 @@ def obter_dados_status(
     return service.obter_dados_status(filtros_dict or None)
 
 
-@router.get("/dashboard/gargalos", response_model=List[GargaloInstitucionalResponse])
+@router.get("/dashboard/gargalos", response_model=list[GargaloInstitucionalResponse])
 def obter_gargalos(
     filtros: DashboardFilterParams = Depends(),
     service: DashboardService = Depends(get_dashboard_service),
@@ -151,7 +151,7 @@ def obter_gargalos(
     return service.obter_gargalos(filtros_dict or None)
 
 
-@router.get("/dashboard/comparacao-temas", response_model=List[ComparacaoTemaResponse])
+@router.get("/dashboard/comparacao-temas", response_model=list[ComparacaoTemaResponse])
 def obter_comparacao_temas(
     filtros: DashboardFilterParams = Depends(),
     service: DashboardService = Depends(get_dashboard_service),
@@ -160,6 +160,6 @@ def obter_comparacao_temas(
     return service.obter_comparacao_temas(filtros_dict or None)
 
 
-@router.get("/dashboard/tempo-por-fase", response_model=List[TempoPorFaseResponse])
+@router.get("/dashboard/tempo-por-fase", response_model=list[TempoPorFaseResponse])
 def obter_tempo_por_fase(service: DashboardService = Depends(get_dashboard_service)):
     return service.obter_tempo_por_fase()

@@ -7,17 +7,17 @@ deleção seletiva, contagem por tipo e persistência de campos JSON/bool.
 """
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.proposicao import Proposicao
 from domain.entities.tipo_evento import TipoEvento
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
+)
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
 )
 
 
@@ -75,6 +75,7 @@ def _criar_evento(
     deliberativo: bool = False,
     mudou_fase: bool = False,
     mudou_orgao: bool = False,
+    relevante: bool = False,
 ) -> EventoTramitacao:
     """Factory de EventoTramitacao para testes."""
     return EventoTramitacao(
@@ -87,6 +88,7 @@ def _criar_evento(
         deliberativo=deliberativo,
         mudou_fase=mudou_fase,
         mudou_orgao=mudou_orgao,
+        relevante=relevante,
     )
 
 
@@ -267,3 +269,38 @@ def test_evento_terminal_via_property(session: Session):
     eventos = repo.buscar_por_proposicao("123")
     assert eventos[0].eh_evento_terminal is False
     assert eventos[1].eh_evento_terminal is True
+
+
+def test_buscar_por_proposicao_filtra_relevantes_corretamente(session: Session):
+    repo = SQLEventoTramitacaoRepository(session)
+    repo.salvar_lote(
+        [
+            _criar_evento(sequencia=1, relevante=True),
+            _criar_evento(sequencia=2, relevante=False),
+            _criar_evento(sequencia=3, relevante=True),
+        ]
+    )
+
+    # Buscar todos
+    todos = repo.buscar_por_proposicao("123", somente_relevantes=False)
+    assert len(todos) == 3
+
+    # Buscar apenas relevantes
+    relevantes = repo.buscar_por_proposicao("123", somente_relevantes=True)
+    assert len(relevantes) == 2
+    assert relevantes[0].sequencia == 1
+    assert relevantes[1].sequencia == 3
+    for r in relevantes:
+        assert r.relevante is True
+
+
+def test_existe_algum_evento_retorna_corretamente(session: Session):
+    repo = SQLEventoTramitacaoRepository(session)
+
+    # Antes de inserir
+    assert repo.existe_algum_evento("123") is False
+
+    # Depois de inserir
+    repo.salvar(_criar_evento(relevante=False))
+    assert repo.existe_algum_evento("123") is True
+    assert repo.existe_algum_evento("456") is False

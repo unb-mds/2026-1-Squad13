@@ -1,4 +1,5 @@
-from typing import Protocol, List
+from typing import Protocol
+
 from infrastructure.config import settings
 from src.domain.services.estimativa_aprovacao_service import (
     EstimativaAprovacaoService,
@@ -12,7 +13,7 @@ class ProposicaoRepositoryInterface(Protocol):
     Seguindo a inversão de dependência, a Aplicação define o que precisa.
     """
 
-    def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> List[int]:
+    def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> list[int]:
         """Busca apenas os dias de tramitação de proposições similares já concluídas."""
         ...
 

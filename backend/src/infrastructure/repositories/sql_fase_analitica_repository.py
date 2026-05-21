@@ -5,8 +5,6 @@ As 8 fases são inseridas via seed e nunca criadas em runtime.
 Este repositório oferece consulta e seed idempotente.
 """
 
-from typing import List, Optional
-
 from sqlmodel import Session, select
 
 from domain.entities.fase_analitica import FASES_SEED, FaseAnalitica
@@ -25,7 +23,7 @@ class SQLFaseAnaliticaRepository:
     def _to_model(self, entity: FaseAnalitica) -> FaseAnaliticaModel:
         return FaseAnaliticaModel.model_validate(entity.model_dump())
 
-    def buscar_por_codigo(self, codigo: str) -> Optional[FaseAnalitica]:
+    def buscar_por_codigo(self, codigo: str) -> FaseAnalitica | None:
         """Busca uma fase pelo seu código único."""
         statement = select(FaseAnaliticaModel).where(
             FaseAnaliticaModel.codigo == codigo
@@ -33,7 +31,7 @@ class SQLFaseAnaliticaRepository:
         model = self.session.exec(statement).first()
         return self._to_entity(model) if model else None
 
-    def buscar_todas(self) -> List[FaseAnalitica]:
+    def buscar_todas(self) -> list[FaseAnalitica]:
         """Lista todas as fases ordenadas por ordem_logica."""
         statement = select(FaseAnaliticaModel).order_by(
             FaseAnaliticaModel.ordem_logica.asc()

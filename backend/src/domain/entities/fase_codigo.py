@@ -9,10 +9,10 @@ type-safety sem dependência de banco.
 As 8 fases seguem a ordem lógica definida no MIGRATION_SCOPE.md.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 
-class FaseCodigo(str, Enum):
+class FaseCodigo(StrEnum):
     """
     8 códigos canônicos do ciclo de vida legislativo.
 

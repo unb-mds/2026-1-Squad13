@@ -1,4 +1,4 @@
-from typing import Protocol, Optional
+from typing import Protocol
 
 
 class PasswordResetTokenProvider(Protocol):
@@ -7,7 +7,7 @@ class PasswordResetTokenProvider(Protocol):
         Ao gerar um novo token, o anterior deve ser invalidado (ex: sobrescrevendo a chave no Redis)."""
         ...
 
-    def validar_token(self, token: str) -> Optional[str]:
+    def validar_token(self, token: str) -> str | None:
         """Valida o token e retorna o e-mail associado, ou None se inválido/expirado."""
         ...
 

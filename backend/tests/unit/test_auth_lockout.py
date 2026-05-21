@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from application.services.auth_service import AuthService
 from domain.entities.user import User, UserLogin
 from domain.exceptions import ContaBloqueadaError, CredenciaisInvalidasError
