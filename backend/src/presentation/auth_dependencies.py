@@ -2,19 +2,20 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlmodel import Session
-from infrastructure.database import get_session, get_redis_client
-from infrastructure.repositories.sql_user_repository import SQLUserRepository
-from infrastructure.adapters.security_adapter import decode_access_token
-from infrastructure.adapters.redis_blacklist_adapter import RedisTokenBlacklistAdapter
-from infrastructure.adapters.redis_login_attempt_adapter import RedisLoginAttemptAdapter
-from infrastructure.adapters.dummy_email_sender import DummyEmailSender
-from infrastructure.cache.redis_token_provider import RedisPasswordResetTokenProvider
+
 from application.services.auth_service import AuthService
 from application.services.recuperacao_senha_service import (
-    SolicitarRecuperacaoSenhaUseCase,
     RedefinirSenhaUseCase,
+    SolicitarRecuperacaoSenhaUseCase,
 )
 from domain.exceptions import TokenRevogadoError
+from infrastructure.adapters.dummy_email_sender import DummyEmailSender
+from infrastructure.adapters.redis_blacklist_adapter import RedisTokenBlacklistAdapter
+from infrastructure.adapters.redis_login_attempt_adapter import RedisLoginAttemptAdapter
+from infrastructure.adapters.security_adapter import decode_access_token
+from infrastructure.cache.redis_token_provider import RedisPasswordResetTokenProvider
+from infrastructure.database import get_redis_client, get_session
+from infrastructure.repositories.sql_user_repository import SQLUserRepository
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -73,7 +74,7 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token revogado. Faça login novamente.",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from None
 
     # 2. Decodificar e validar JWT
     try:
@@ -82,7 +83,7 @@ def get_current_user(
         if email is None:
             raise credentials_exception
     except JWTError:
-        raise credentials_exception
+        raise credentials_exception from None
 
     user = auth_service.user_repository.buscar_por_email(email)
     if user is None:

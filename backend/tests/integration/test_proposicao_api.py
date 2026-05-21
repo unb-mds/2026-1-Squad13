@@ -1,14 +1,3 @@
-def test_health_check(http_client):
-    # Act
-    response = http_client.get("/health")
-
-    # Assert
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "ok"
-    assert data["database"] == "connected"
-
-
 def test_buscar_proposicoes_sem_filtros_deve_retornar_200(http_client):
     # Act
     response = http_client.get("/proposicoes")

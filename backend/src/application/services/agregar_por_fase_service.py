@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import List, Optional, Dict
+
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.value_objects.periodo_fase import PeriodoFase
 from infrastructure.repositories.sql_fase_analitica_repository import (
@@ -20,28 +20,60 @@ class AgregarPorFaseService:
 
     def executar(
         self,
-        eventos: List[EventoTramitacao],
+        eventos: list[EventoTramitacao],
         proposicao_encerrada: bool = False,
-        data_encerramento: Optional[date] = None,
-    ) -> List[PeriodoFase]:
+        data_encerramento: date | None = None,
+    ) -> list[PeriodoFase]:
         """
         Transforma lista de eventos em lista de períodos por fase.
         """
         if not eventos:
             return []
 
-        # Garante ordenação cronológica
-        eventos_ordenados = sorted(eventos, key=lambda e: (e.data_evento, e.sequencia))
+        # Garante ordenação cronológica e por progressão lógica de fase
+        def get_ordem(ev: EventoTramitacao) -> int:
+            fase = self._fases_map.get(ev.fase_analitica_id)
+            return fase.ordem_logica if fase else 0
 
-        periodos: List[PeriodoFase] = []
-        fase_atual_id: Optional[int] = None
-        periodo_atual: Optional[PeriodoFase] = None
-        ocorrencias_fase: Dict[int, int] = {}
+        eventos_ordenados = sorted(
+            eventos,
+            key=lambda e: (e.data_evento, get_ordem(e), e.sequencia or 0),
+        )
+
+        # Suavização: Se um evento é 'Encerrada' (ID 8) mas há eventos não-8 
+        # depois no mesmo dia, ele não deveria mudar a fase para 8.
+        # (Provavelmente uma rejeição de emenda ou arquivamento acessório)
+        fases_suavizadas = []
+        for i in range(len(eventos_ordenados)):
+            ev = eventos_ordenados[i]
+            fase_id = ev.fase_analitica_id
+            
+            if fase_id == 8: # ENCERRADA
+                data_atual = ev.data_evento[:10]
+                tem_posterior_ativa_mesmo_dia = False
+                for j in range(i + 1, len(eventos_ordenados)):
+                    ev_futuro = eventos_ordenados[j]
+                    if ev_futuro.data_evento[:10] != data_atual:
+                        break
+                    if ev_futuro.fase_analitica_id not in {None, 8}:
+                        tem_posterior_ativa_mesmo_dia = True
+                        break
+                
+                if tem_posterior_ativa_mesmo_dia:
+                    # Usa a fase anterior (ou a próxima ativa se for o primeiro)
+                    fase_id = fases_suavizadas[-1] if fases_suavizadas else 1
+            
+            fases_suavizadas.append(fase_id)
+
+        periodos: list[PeriodoFase] = []
+        fase_atual_id: int | None = None
+        periodo_atual: PeriodoFase | None = None
+        ocorrencias_fase: dict[int, int] = {}
 
         hoje = date.today()
 
-        for evento in eventos_ordenados:
-            fase_evento_id = evento.fase_analitica_id
+        for idx, evento in enumerate(eventos_ordenados):
+            fase_evento_id = fases_suavizadas[idx]
 
             # Se o evento não tem fase (ex: NAO_CLASSIFICADO), ele pertence à fase anterior
             if fase_evento_id is None:

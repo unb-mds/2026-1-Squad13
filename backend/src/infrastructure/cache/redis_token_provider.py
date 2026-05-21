@@ -1,7 +1,8 @@
-import redis
-import uuid
 import logging
-from typing import Optional
+import uuid
+
+import redis
+
 from application.ports.password_reset_token_provider import PasswordResetTokenProvider
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ class RedisPasswordResetTokenProvider(PasswordResetTokenProvider):
             )
             raise
 
-    def validar_token(self, token: str) -> Optional[str]:
+    def validar_token(self, token: str) -> str | None:
         """Valida o token e retorna o e-mail associado, ou None se inválido/expirado."""
         chave_token = f"{self.prefix_token_to_email}{token}"
         try:

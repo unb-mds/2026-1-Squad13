@@ -1,9 +1,9 @@
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
+
 from sqlmodel import SQLModel
 
 
-class CasaLegislativa(str, Enum):
+class CasaLegislativa(StrEnum):
     """Casa legislativa a que o órgão pertence."""
 
     CAMARA = "CAMARA"
@@ -16,11 +16,11 @@ class OrgaoLegislativo(SQLModel):
     Entidade de Domínio Pura para Órgão Legislativo.
     """
 
-    id: Optional[int] = None
+    id: int | None = None
     sigla: str
-    nome: Optional[str] = None
+    nome: str | None = None
     casa: CasaLegislativa
-    id_origem: Optional[str] = None
+    id_origem: str | None = None
 
 
 # Seed mínimo para órgãos implícitos

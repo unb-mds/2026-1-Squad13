@@ -1,28 +1,29 @@
-import pytest
 import json
-from sqlmodel import Session, SQLModel, create_engine
-from typing import Any, Optional
+from typing import Any
 
+import pytest
+from sqlmodel import Session, SQLModel, create_engine
+
+from application.ports.cache_provider import CacheProvider
+from application.services.dashboard_service import DashboardService
 from domain.entities.proposicao import Proposicao
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
+from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
-from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
-from application.services.dashboard_service import DashboardService
-from application.ports.cache_provider import CacheProvider
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 
 class MockCacheProvider(CacheProvider):
     def __init__(self):
         self.store = {}
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         return self.store.get(key)
 
-    def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: int | None = None) -> None:
         self.store[key] = value
 
     def delete(self, key: str) -> None:

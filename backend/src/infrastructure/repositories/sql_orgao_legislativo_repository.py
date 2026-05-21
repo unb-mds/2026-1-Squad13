@@ -7,13 +7,11 @@ Os adapters criam/atualizam órgãos conforme encontram novas siglas.
 Seed mínimo: 3 órgãos implícitos (PLEN, MESA, SECCJ).
 """
 
-from typing import List, Optional
-
 from sqlmodel import Session, select
 
 from domain.entities.orgao_legislativo import (
-    CasaLegislativa,
     ORGAOS_SEED,
+    CasaLegislativa,
     OrgaoLegislativo,
 )
 from infrastructure.database.models.orgao_legislativo_model import OrgaoLegislativoModel
@@ -35,8 +33,8 @@ class SQLOrgaoLegislativoRepository:
         self,
         sigla: str,
         casa: CasaLegislativa,
-        nome: Optional[str] = None,
-        id_origem: Optional[str] = None,
+        nome: str | None = None,
+        id_origem: str | None = None,
     ) -> OrgaoLegislativo:
         """
         Upsert por (sigla, casa).
@@ -60,7 +58,7 @@ class SQLOrgaoLegislativoRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
-    def buscar_por_sigla(self, sigla: str) -> List[OrgaoLegislativo]:
+    def buscar_por_sigla(self, sigla: str) -> list[OrgaoLegislativo]:
         """Lista todos os órgãos com a sigla fornecida (pode haver um por Casa)."""
         statement = select(OrgaoLegislativoModel).where(
             OrgaoLegislativoModel.sigla == sigla

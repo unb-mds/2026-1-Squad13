@@ -1,5 +1,4 @@
 from sqlmodel import SQLModel
-from typing import Optional
 
 
 class User(SQLModel):
@@ -7,7 +6,7 @@ class User(SQLModel):
     Entidade de Domínio Pura para Usuário.
     """
 
-    id: Optional[int] = None
+    id: int | None = None
     nome: str
     email: str
     hashed_password: str
@@ -39,4 +38,4 @@ class Token(SQLModel):
 
 
 class TokenData(SQLModel):
-    email: Optional[str] = None
+    email: str | None = None
