@@ -148,7 +148,7 @@ class ListarMovimentacoesService:
                         id_senado = await self.senado_adapter.buscar_id_por_identificacao(
                             "PLC", numero_prop, ano_prop, client=client
                         )
-                    
+
                     # Verificação de integridade: garante que o Senado refere-se à mesma proposição
                     if id_senado:
                         p_sen = await self.senado_adapter.buscar_por_id(id_senado, client=client)
@@ -176,7 +176,7 @@ class ListarMovimentacoesService:
                                     break
                             except Exception:
                                 continue
-                    
+
                     # Fallback: busca direta pelo mesmo nome
                     if not id_camara:
                         id_camara = await self.camara_adapter.buscar_id_por_identificacao(
