@@ -6,7 +6,6 @@ from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.fase_analitica import FaseAnalitica
 from domain.entities.tipo_evento import TipoEvento
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

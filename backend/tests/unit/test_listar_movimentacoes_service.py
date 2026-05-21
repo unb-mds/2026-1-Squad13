@@ -4,8 +4,10 @@ import pytest
 
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.fase_analitica import FaseAnalitica
 from domain.entities.tipo_evento import TipoEvento
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
+from domain.value_objects.periodo_fase import PeriodoFase
 
 
 @pytest.fixture
@@ -215,9 +217,9 @@ async def test_executar_nao_vai_para_api_se_houver_dados_no_cache_mesmo_sem_rele
 
 @pytest.mark.asyncio
 async def test_listar_modo_resumido_retorna_periodos_de_fase():
-    # AgregarPorFaseService.__init__ chama buscar_todas — fase_repo deve ser configurado
+    # AgregarPorFaseService.__init__ chama buscar_todas - fase_repo deve ser configurado
     # ANTES de instanciar ListarMovimentacoesService.
-    fase = FaseAnalitica(codigo="ANALISE_COMISSOES", nome="Análise em comissões", ordem_logica=2)
+    fase = FaseAnalitica(codigo="ANALISE_COMISSOES", nome="Analise em comissoes", ordem_logica=2)
     fase.id = 1
     fase_repo = MagicMock()
     fase_repo.buscar_todas.return_value = [fase]  # configurado ANTES do __init__
