@@ -1,10 +1,11 @@
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
+
+from domain.constants import LIMITE_DIAS_ATRASO
 from domain.entities.proposicao import Proposicao
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
-from domain.constants import LIMITE_DIAS_ATRASO
 
 
 @pytest.fixture(name="session")

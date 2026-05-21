@@ -1,5 +1,4 @@
-from typing import Optional
-from sqlalchemy import Column, JSON, Index
+from sqlalchemy import JSON, Column, Index
 from sqlmodel import Field, SQLModel
 
 
@@ -18,11 +17,11 @@ class EventoTramitacaoModel(SQLModel, table=True):
         ),
     )
 
-    evento_id: Optional[int] = Field(default=None, primary_key=True)
+    evento_id: int | None = Field(default=None, primary_key=True)
     proposicao_id: str = Field(foreign_key="proposicao.id", index=True)
     data_evento: str
     sequencia: int
-    sigla_orgao: Optional[str] = Field(default=None, index=True)
+    sigla_orgao: str | None = Field(default=None, index=True)
     descricao_original: str
 
     # Campos analíticos
@@ -30,7 +29,7 @@ class EventoTramitacaoModel(SQLModel, table=True):
         index=True,
         description="Valor do enum TipoEvento (armazenado como string)",
     )
-    fase_analitica_id: Optional[int] = Field(
+    fase_analitica_id: int | None = Field(
         default=None,
         foreign_key="fase_analitica.id",
         index=True,
@@ -49,7 +48,7 @@ class EventoTramitacaoModel(SQLModel, table=True):
         default=False,
         description="True se o órgão mudou em relação ao evento anterior",
     )
-    remessa_ou_retorno: Optional[str] = Field(
+    remessa_ou_retorno: str | None = Field(
         default=None,
         description="'REMESSA' ou 'RETORNO' when there's transit between Houses",
     )
@@ -74,7 +73,7 @@ class EventoTramitacaoModel(SQLModel, table=True):
     )
 
     # Auditoria
-    payload_bruto: Optional[dict] = Field(
+    payload_bruto: dict | None = Field(
         default=None,
         sa_column=Column(JSON),
         description="JSON original da API para rastreabilidade",

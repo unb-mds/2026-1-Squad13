@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ModoMovimentacao(str, Enum):
+class ModoMovimentacao(StrEnum):
     RESUMIDO = "resumido"
     COMPLETO = "completo"
     RELEVANTE = "relevante"

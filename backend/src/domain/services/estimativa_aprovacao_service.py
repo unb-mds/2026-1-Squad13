@@ -1,4 +1,3 @@
-from typing import List, Optional
 from dataclasses import dataclass
 
 
@@ -6,7 +5,7 @@ from dataclasses import dataclass
 class ResultadoEstimativa:
     """Objeto de valor que representa o resultado do cálculo de domínio."""
 
-    dias: Optional[int]
+    dias: int | None
     status: str
     amostra: int
 
@@ -20,7 +19,7 @@ class EstimativaAprovacaoService:
     def __init__(self, threshold_minimo_amostra: int = 50):
         self.threshold_minimo_amostra = threshold_minimo_amostra
 
-    def calcular_estimativa(self, dias_historico: List[int]) -> ResultadoEstimativa:
+    def calcular_estimativa(self, dias_historico: list[int]) -> ResultadoEstimativa:
         """
         Executa o cálculo baseado em uma lista de durações (em dias).
         """

@@ -1,24 +1,26 @@
 import logging
-from fastapi import APIRouter, Depends, status, BackgroundTasks, HTTPException
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel
-from presentation.auth_dependencies import (
-    get_auth_service,
-    get_solicitar_recuperacao_usecase,
-    get_redefinir_senha_usecase,
-    oauth2_scheme,
-)
+
 from application.services.auth_service import AuthService
 from application.services.recuperacao_senha_service import (
-    SolicitarRecuperacaoSenhaUseCase,
     RedefinirSenhaUseCase,
+    SolicitarRecuperacaoSenhaUseCase,
 )
-from domain.entities.user import UserCreate, UserLogin, UserResponse, Token
+from domain.entities.user import Token, UserCreate, UserLogin, UserResponse
 from domain.exceptions import (
-    UsuarioNaoEncontradoError,
-    TokenInvalidoError,
     ContaBloqueadaError,
     CredenciaisInvalidasError,
     EmailJaCadastradoError,
+    TokenInvalidoError,
+    UsuarioNaoEncontradoError,
+)
+from presentation.auth_dependencies import (
+    get_auth_service,
+    get_redefinir_senha_usecase,
+    get_solicitar_recuperacao_usecase,
+    oauth2_scheme,
 )
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
@@ -34,7 +36,9 @@ def register(user_in: UserCreate, service: AuthService = Depends(get_auth_servic
     try:
         return service.registrar_usuario(user_in)
     except EmailJaCadastradoError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
 
 
 @router.post("/login", response_model=Token)
@@ -46,13 +50,13 @@ def login(login_in: UserLogin, service: AuthService = Depends(get_auth_service))
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=e.message,
-        )
+        ) from e
     except CredenciaisInvalidasError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
 
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
@@ -110,6 +114,8 @@ def redefinir_senha(
         usecase.executar(request.token, request.nova_senha)
         return {"message": "Senha redefinida com sucesso."}
     except TokenInvalidoError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
     except UsuarioNaoEncontradoError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

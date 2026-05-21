@@ -1,12 +1,16 @@
-import logging
 import asyncio
+import logging
+
 import httpx
-from typing import Optional, List
 from sqlmodel import Session
+
+from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+from domain.entities.proposicao import Proposicao
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
+from infrastructure.database.models.log_coleta_model import LogColetaModel
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
 )
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
@@ -17,12 +21,9 @@ from infrastructure.repositories.sql_fase_analitica_repository import (
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
 )
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
 )
-from application.services.listar_movimentacoes_service import ListarMovimentacoesService
-from infrastructure.database.models.log_coleta_model import LogColetaModel
-from domain.entities.proposicao import Proposicao
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,8 @@ class ColetarEmLoteService:
     def __init__(
         self,
         session: Session,
-        camara_adapter: Optional[CamaraAdapter] = None,
-        senado_adapter: Optional[SenadoAdapter] = None,
+        camara_adapter: CamaraAdapter | None = None,
+        senado_adapter: SenadoAdapter | None = None,
     ):
         self.session = session
         self.repository = SQLProposicaoRepository(session)
@@ -114,7 +115,7 @@ class ColetarEmLoteService:
         return resumo
 
     async def _processar_proposicoes(
-        self, proposicoes: List[Proposicao], client: httpx.AsyncClient
+        self, proposicoes: list[Proposicao], client: httpx.AsyncClient
     ):
         """Salva proposições e coleta seus eventos de tramitação."""
         # 1. Upsert das proposições (rápido)
