@@ -70,6 +70,7 @@ class ListarMovimentacoesService:
         Retorna a lista de eventos normalizados para a proposição solicitada.
         Se não existirem no cache, busca na API, normaliza e salva.
         """
+        proposicao = None
         # 0. Resolução de slug se necessário (PL-1-2024)
         real_id = proposicao_id
         if "-" in proposicao_id:
