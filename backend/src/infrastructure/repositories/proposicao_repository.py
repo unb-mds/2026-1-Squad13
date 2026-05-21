@@ -1,4 +1,3 @@
-from typing import List, Optional
 from domain.entities.proposicao import Proposicao
 
 
@@ -42,18 +41,18 @@ class ProposicaoRepository:
             ),
         ]
 
-    def buscar_todos(self) -> List[Proposicao]:
+    def buscar_todos(self) -> list[Proposicao]:
         return self._dados
 
     def filtrar(
         self,
-        tipo: Optional[str] = None,
-        numero: Optional[int] = None,
-        ano: Optional[int] = None,
-        autor: Optional[str] = None,
-        uf_autor: Optional[str] = None,
-        status_tramitacao: Optional[str] = None,
-    ) -> List[Proposicao]:
+        tipo: str | None = None,
+        numero: int | None = None,
+        ano: int | None = None,
+        autor: str | None = None,
+        uf_autor: str | None = None,
+        status_tramitacao: str | None = None,
+    ) -> list[Proposicao]:
         resultados = self._dados
 
         if tipo:

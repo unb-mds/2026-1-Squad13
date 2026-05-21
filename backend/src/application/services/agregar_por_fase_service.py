@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import List, Optional, Dict
+
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.value_objects.periodo_fase import PeriodoFase
 from infrastructure.repositories.sql_fase_analitica_repository import (
@@ -20,10 +20,10 @@ class AgregarPorFaseService:
 
     def executar(
         self,
-        eventos: List[EventoTramitacao],
+        eventos: list[EventoTramitacao],
         proposicao_encerrada: bool = False,
-        data_encerramento: Optional[date] = None,
-    ) -> List[PeriodoFase]:
+        data_encerramento: date | None = None,
+    ) -> list[PeriodoFase]:
         """
         Transforma lista de eventos em lista de períodos por fase.
         """
@@ -65,10 +65,10 @@ class AgregarPorFaseService:
             
             fases_suavizadas.append(fase_id)
 
-        periodos: List[PeriodoFase] = []
-        fase_atual_id: Optional[int] = None
-        periodo_atual: Optional[PeriodoFase] = None
-        ocorrencias_fase: Dict[int, int] = {}
+        periodos: list[PeriodoFase] = []
+        fase_atual_id: int | None = None
+        periodo_atual: PeriodoFase | None = None
+        ocorrencias_fase: dict[int, int] = {}
 
         hoje = date.today()
 

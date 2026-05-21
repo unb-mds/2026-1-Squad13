@@ -1,4 +1,5 @@
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
+
 from infrastructure.workers.coleta_worker import task_coletar_proposicoes_diario
 
 

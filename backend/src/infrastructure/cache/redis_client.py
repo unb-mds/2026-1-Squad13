@@ -1,6 +1,8 @@
-import redis
 import logging
-from typing import Any, Optional
+from typing import Any
+
+import redis
+
 from application.ports.cache_provider import CacheProvider
 
 logger = logging.getLogger(__name__)
@@ -15,7 +17,7 @@ class RedisClient(CacheProvider):
         self.client = redis_client
         self.cache_ttl = 86400  # 24 horas em segundos
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Recupera um valor do cache."""
         try:
             return self.client.get(key)
@@ -23,7 +25,7 @@ class RedisClient(CacheProvider):
             logger.error(f"Erro ao acessar o Redis (GET): {e}")
             return None
 
-    def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: int | None = None) -> None:
         """Salva um valor no cache com um tempo de vida (TTL) opcional."""
         try:
             if ttl_seconds is not None:
