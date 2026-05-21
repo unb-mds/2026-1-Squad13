@@ -4,8 +4,10 @@ import pytest
 
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.fase_analitica import FaseAnalitica
 from domain.entities.tipo_evento import TipoEvento
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
+from domain.value_objects.periodo_fase import PeriodoFase
 
 
 @pytest.fixture
@@ -211,3 +213,55 @@ async def test_executar_nao_vai_para_api_se_houver_dados_no_cache_mesmo_sem_rele
     mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_not_called()
     # Deve ter verificado existência no repositório
     mocks["evento_repo"].existe_algum_evento.assert_called_with("123")
+
+
+@pytest.mark.asyncio
+async def test_listar_modo_resumido_retorna_periodos_de_fase():
+    # AgregarPorFaseService.__init__ chama buscar_todas - fase_repo deve ser configurado
+    # ANTES de instanciar ListarMovimentacoesService.
+    fase = FaseAnalitica(codigo="ANALISE_COMISSOES", nome="Analise em comissoes", ordem_logica=2)
+    fase.id = 1
+    fase_repo = MagicMock()
+    fase_repo.buscar_todas.return_value = [fase]  # configurado ANTES do __init__
+    # Proposição com tipo não unificável para usar o caminho de fallback simples
+    prop = Mock()
+    prop.orgao_origem = "Câmara dos Deputados"
+    prop.tipo = "REC"
+    prop.data_encerramento = None
+    prop.numero = "1"
+    prop.ano = 2024
+    evento_normalizado = EventoTramitacao(
+        proposicao_id="123",
+        data_evento="2024-01-01",
+        sequencia=1,
+        sigla_orgao="CCJ",
+        descricao_original="Teste",
+        tipo_evento=TipoEvento.DESPACHO.value,
+        deliberativo=False,
+        mudou_fase=False,
+        mudou_orgao=False,
+        fase_analitica_id=1,
+    )
+    evento_repo = MagicMock()
+    evento_repo.buscar_por_proposicao.return_value = []
+    proposicao_repo = MagicMock()
+    proposicao_repo.buscar_por_id.return_value = prop
+    camara_adapter = AsyncMock()
+    camara_adapter.buscar_tramitacoes_brutas.return_value = [{"descricao": "Teste"}]
+    service = ListarMovimentacoesService(
+        evento_repo=evento_repo,
+        proposicao_repo=proposicao_repo,
+        fase_repo=fase_repo,
+        orgao_repo=MagicMock(),
+        camara_adapter=camara_adapter,
+        senado_adapter=AsyncMock(),
+    )
+    with patch(
+        "application.services.listar_movimentacoes_service.NormalizarTramitacaoService"
+    ) as MockNorm:
+        MockNorm.return_value.normalizar.return_value = [evento_normalizado]
+        resultado = await service.executar("123", modo=ModoMovimentacao.RESUMIDO)
+    assert isinstance(resultado, list)
+    assert len(resultado) == 1
+    assert isinstance(resultado[0], PeriodoFase)
+    assert resultado[0].fase_codigo == "ANALISE_COMISSOES"
