@@ -229,19 +229,42 @@ Migrar a lógica de tramitação para o modelo analítico `EventoTramitacao`. O 
 
 ---
 
+#### feat: métricas de atraso e classificação de status (IAR, IAF, IEI)
+
+**Prioridade:** Alta
+
+##### 📝 Descrição
+
+Implementar a lógica de classificação de atraso baseada no **Índice de Atraso Relativo (IAR)**, complementada pelo **Índice de Atraso da Fase Atual (IAF)** e **Índice de Espera Improdutiva (IEI)**.
+
+##### 🏗️ Impacto Arquitetural
+
+- **Domínio:** Lógica de cálculo de IAR, IAF e IEI; definição de baselines (Bootstrap Seed + Dinâmico).
+- **Infraestrutura:** Tabela `baseline_tramitacao` e campos de métricas na tabela `proposicao`.
+- **Apresentação:** Expor status de atraso e índices nas APIs de listagem e detalhe.
+
+##### ✅ Critérios de Aceitação
+
+- [ ] Baselines de bootstrap carregados no banco.
+- [ ] Proposições classificadas em `NO_PRAZO`, `ATENCAO`, `ATRASADA` ou `CRITICA`.
+- [ ] Detalhamento explica o atraso via IAF e IEI.
+- [ ] Testes unitários cobrindo os cenários de fallback de baseline.
+
+---
+
 #### feat: tempo por fase com dados reais
 
 **Prioridade:** Média
 
 ##### 📝 Descrição
 
-Com `Tramitacao` existindo, o breakdown de tempo por fase/comissão na página de detalhe pode ser calculado e exibido.
+Cálculo de períodos de fase via `AgregarPorFaseService`. Exibição de breakdown temporal no dossiê.
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] Tempo por fase calculado a partir das tramitações reais.
-- [ ] Exibido abaixo do tempo total no dossiê.
-- [ ] Somente exibido quando há dados suficientes (≥ 2 tramitações).
+- [ ] Tempo por fase calculado a partir das tramitações reais (Issue #130).
+- [x] `TimelineTramitacao` funcional no frontend.
+- [ ] Exibição do tempo acumulado por fase abaixo do tempo total.
 
 ---
 
@@ -268,6 +291,22 @@ Os gráficos de tempo por tipo, por comissão e distribuição por status usam d
 - [x] Três endpoints de breakdown implementados e testados.
 - [x] Gráficos refletem dados reais do banco.
 - [x] Testes unitários nos métodos de agregação.
+
+---
+
+#### feat: dashboard analítico de atrasos e gargalos
+
+**Prioridade:** Alta
+
+##### 📝 Descrição
+
+Expandir o dashboard para refletir as métricas de atraso, permitindo visualizar o percentual de proposições atrasadas e o IEI médio.
+
+##### ✅ Critérios de Aceitação
+
+- [ ] Visualização agregada de `status_atraso`.
+- [ ] Ranking de órgãos/fases com maior IAF mediano.
+- [ ] Filtros ativos (tipo, regime, casa) recalculam baselines contextuais no dashboard.
 
 ---
 
