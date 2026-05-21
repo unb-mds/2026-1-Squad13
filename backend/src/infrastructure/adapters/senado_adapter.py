@@ -11,42 +11,24 @@ logger = logging.getLogger(__name__)
 class SenadoAdapter:
     """
     Adaptador para a API de Dados Abertos do Senado Federal.
-    Documentação: https://legis.senado.leg.br/dadosabertos/docs/
+    Realiza a coleta e normalização de matérias e tramitações.
     """
 
-    def __init__(self):
-        self.base_url = "https://legis.senado.leg.br/dadosabertos"
-        self.timeout = (
-            15  # Reduzido para 15s para não travar o frontend se o Senado estiver fora
-        )
-        self.headers = {
-            "Accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 (MonitorLegislativo/1.0)",
-        }
+    def __init__(self, base_url: str = "https://legis.senado.leg.br/dadosabertos"):
+        self.base_url = base_url
+        self.timeout = 30
 
     async def _get_with_retry(
-        self,
-        client: httpx.AsyncClient,
-        url: str,
-        params: dict | None = None,
-        headers: dict | None = None,
-        timeout: int | None = None,
+        self, client: httpx.AsyncClient, url: str, params=None, headers=None, timeout=None
     ) -> httpx.Response:
-        """Helper para realizar GET com retry básico em caso de erros temporários."""
-        max_retries = 2
-        # Merge de headers padrão com específicos da chamada
-        req_headers = self.headers.copy()
-        if headers:
-            req_headers.update(headers)
-
-        req_timeout = timeout or self.timeout
-
+        """Helper para realizar requisições com retry em caso de erro 5xx ou timeout."""
+        max_retries = 3
         for attempt in range(max_retries):
             try:
                 resp = await client.get(
-                    url, params=params, headers=req_headers, timeout=req_timeout
+                    url, params=params, headers=headers, timeout=timeout or self.timeout
                 )
-                # Erros 5xx ou 429 (Rate Limit) configuram instabilidade/limitação para retry
+
                 if (
                     resp.status_code >= 500 or resp.status_code == 429
                 ) and attempt < max_retries - 1:
@@ -112,6 +94,21 @@ class SenadoAdapter:
                         "DescricaoIdentificacaoMateria", ""
                     )
 
+                    # Tenta extrair outros números (origem na Câmara)
+                    outros_numeros = dados.get("OutrosNumerosDaMateria", {}).get("OutroNumeroDaMateria", [])
+                    if isinstance(outros_numeros, dict):
+                        outros_numeros = [outros_numeros]
+
+                    tags = []
+                    for on in outros_numeros:
+                        ident = on.get("IdentificacaoMateria", {})
+                        sigla = ident.get("SiglaSubtipoMateria")
+                        num = ident.get("NumeroMateria")
+                        ano_on = ident.get("AnoMateria")
+                        if sigla and num and ano_on:
+                            # Formato canônico: "PL 2681/1996"
+                            tags.append(f"{sigla} {int(num)}/{ano_on}")
+
                     id_processo = identificacao_obj.get("IdentificacaoProcesso")
                     if id_processo:
                         try:
@@ -122,12 +119,16 @@ class SenadoAdapter:
                             )
                             if resp_proc.status_code == 200:
                                 dados_proc = resp_proc.json()
-                                return self._processar_dados_processo(
+                                prop = self._processar_dados_processo(
                                     dados_proc, str(id_materia)
                                 )
+                                if prop:
+                                    prop.tags = tags
+                                    return prop
                         except Exception:
                             pass
 
+                    # Fallback para processamento manual se não tiver processo ou falhar
                     ementa = dados.get("DadosBasicosMateria", {}).get(
                         "EmentaMateria", "Sem ementa"
                     )
@@ -149,6 +150,37 @@ class SenadoAdapter:
                     situacao = situacao_atual_obj.get("Situacao", {})
                     status_atual = situacao.get("DescricaoSituacao", "Sem status")
                     data_ultima_movimentacao = situacao.get("DataSituacao", "")
+
+                    tipo = ""
+                    numero = 0
+                    ano = 0
+                    if identificacao and " " in identificacao:
+                        parts = identificacao.split(" ")
+                        tipo = parts[0]
+                        if len(parts) > 1 and "/" in parts[1]:
+                            num_str, ano_str = parts[1].split("/", 1)
+                            numero = int(num_str) if num_str.isdigit() else 0
+                            ano = int(ano_str) if ano_str.isdigit() else 0
+
+                    if not data_ultima_movimentacao:
+                        data_ultima_movimentacao = data_apresentacao
+
+                    return Proposicao(
+                        id=str(id_materia),
+                        tipo=tipo,
+                        numero=str(numero),
+                        ano=ano,
+                        autor=autor_nome,
+                        uf_autor="N/A",
+                        orgao_origem="Senado Federal",
+                        status=status_atual,
+                        ementa=ementa,
+                        data_apresentacao=data_apresentacao,
+                        data_ultima_movimentacao=data_ultima_movimentacao,
+                        orgao_atual="Senado Federal",
+                        link_oficial=f"https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id={id_materia}",
+                        tags=tags,
+                    )
                 elif (
                     "DetalheMateria" in dados_brutos
                     and "Materia" not in dados_brutos["DetalheMateria"]
@@ -164,37 +196,6 @@ class SenadoAdapter:
                     return None
                 else:
                     return self._processar_dados_processo(dados_brutos, str(id_materia))
-
-                tipo = ""
-                numero = 0
-                ano = 0
-                if identificacao and " " in identificacao:
-                    parts = identificacao.split(" ")
-                    tipo = parts[0]
-                    if len(parts) > 1 and "/" in parts[1]:
-                        num_str, ano_str = parts[1].split("/", 1)
-                        numero = int(num_str) if num_str.isdigit() else 0
-                        ano = int(ano_str) if ano_str.isdigit() else 0
-
-                if not data_ultima_movimentacao:
-                    data_ultima_movimentacao = data_apresentacao
-
-                return Proposicao(
-                    id=str(id_materia),
-                    tipo=tipo,
-                    numero=str(numero),
-                    ano=ano,
-                    autor=autor_nome,
-                    uf_autor="N/A",
-                    orgao_origem="Senado Federal",
-                    status=status_atual,
-                    ementa=ementa,
-                    data_apresentacao=data_apresentacao,
-                    data_ultima_movimentacao=data_ultima_movimentacao,
-                    orgao_atual="Senado Federal",
-                    link_oficial=f"https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id={id_materia}",
-                    tags=[],
-                )
 
             except httpx.ConnectError:
                 logger.error(
@@ -267,9 +268,7 @@ class SenadoAdapter:
                         break
                 return ids
             except Exception as e:
-                logger.error(
-                    f"Erro ao listar matérias no Senado (tipo={tipo}, ano={ano}, num={numero}): {e}"
-                )
+                logger.error(f"Erro ao listar recentes do Senado: {e}")
                 return []
         finally:
             if client is None:
@@ -331,22 +330,28 @@ class SenadoAdapter:
 
                 brutas = []
                 autuacoes = dados.get("autuacoes", [])
-                seq = 1
-                if autuacoes:
-                    situacoes = autuacoes[0].get("situacoes", [])
+                if not autuacoes:
+                    return []
 
-                    for s in reversed(situacoes):
-                        sigla_orgao = s.get("colegiado", {}).get("sigla") or "Senado"
-                        descricao = s.get("descricao", "").strip()
-                        if descricao:
-                            descricao = descricao.capitalize()
+                # O Senado agrupa tramitações por 'autuacao' (geralmente uma só)
+                seq = 1
+                for aut in autuacoes:
+                    situacoes = aut.get("situacoes", [])
+                    for s in situacoes:
+                        # Suporte a múltiplos formatos da API do Senado
+                        data = s.get("inicio") or s.get("DataSituacao")
+                        desc = s.get("descricao") or s.get("DescricaoSituacao")
+                        orgao = s.get("enteAdministrativo", {}).get("sigla") or s.get("Orgao", {}).get("SiglaOrgao")
+
+                        if not data or not desc:
+                            continue
 
                         brutas.append(
                             {
-                                "data_hora": s.get("inicio", ""),
+                                "data_hora": data,
                                 "sequencia": seq,
-                                "sigla_orgao": sigla_orgao,
-                                "descricao": descricao,
+                                "sigla_orgao": orgao,
+                                "descricao": desc,
                                 "payload_bruto": s,
                             }
                         )
@@ -448,9 +453,9 @@ class SenadoAdapter:
             situacoes = autuacoes[0].get("situacoes", [])
             if situacoes:
                 for s in reversed(situacoes):
-                    if s.get("inicio"):
-                        data_ultima_movimentacao = s["inicio"]
-                        status_atual = s.get("descricao", status_atual)
+                    status_atual = s.get("DescricaoSituacao", "Sem status")
+                    data_ultima_movimentacao = s.get("DataSituacao", "")
+                    if status_atual and data_ultima_movimentacao:
                         break
 
         tipo = ""
@@ -468,7 +473,7 @@ class SenadoAdapter:
             data_ultima_movimentacao = data_apresentacao
 
         return Proposicao(
-            id=id_materia,
+            id=str(id_materia),
             tipo=tipo,
             numero=str(numero),
             ano=ano,

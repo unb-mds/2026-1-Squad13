@@ -109,7 +109,7 @@ class ListarMovimentacoesService:
             dados_brutos = []
 
             # Se for PL ou PEC, tentamos buscar em AMBAS as casas para unificar o histórico
-            tipos_unificaveis = {"PL", "PEC", "PLP", "MPV"}
+            tipos_unificaveis = {"PL", "PEC", "PLP", "MPV", "PLC"}
 
             tipo_prop = proposicao.tipo if proposicao else None
             numero_prop = proposicao.numero if proposicao else None
@@ -143,12 +143,45 @@ class ListarMovimentacoesService:
                     id_senado = await self.senado_adapter.buscar_id_por_identificacao(
                         tipo_prop, numero_prop, ano_prop, client=client
                     )
+                    # Fallback para PLC se for PL da Câmara (comum em proposições antigas)
+                    if not id_senado and tipo_prop == "PL":
+                        id_senado = await self.senado_adapter.buscar_id_por_identificacao(
+                            "PLC", numero_prop, ano_prop, client=client
+                        )
+                    
+                    # Verificação de integridade: garante que o Senado refere-se à mesma proposição
+                    if id_senado:
+                        p_sen = await self.senado_adapter.buscar_por_id(id_senado, client=client)
+                        if p_sen:
+                            # Se o Senado diz que veio da Câmara com o mesmo nome canônico, ou se o nome é idêntico
+                            match = (proposicao.nome_canonico in p_sen.tags) or (p_sen.nome_canonico == proposicao.nome_canonico)
+                            if not match:
+                                logger.warning(f"Crossover ignorado: {p_sen.nome_canonico} no Senado não é {proposicao.nome_canonico}")
+                                id_senado = None
                 else:
                     id_senado = int(proposicao.id)
                     # Tenta achar o correspondente na Câmara
-                    id_camara = await self.camara_adapter.buscar_id_por_identificacao(
-                        tipo_prop, numero_prop, ano_prop, client=client
-                    )
+                    id_camara = None
+                    # Primeiro tenta via tags de origem (ex: "PL 2681/1996")
+                    for tag in (proposicao.tags or []):
+                        if " " in tag and "/" in tag:
+                            try:
+                                t_orig, rest = tag.split(" ", 1)
+                                n_orig, a_orig = rest.split("/", 1)
+                                id_camara = await self.camara_adapter.buscar_id_por_identificacao(
+                                    t_orig, n_orig, int(a_orig), client=client
+                                )
+                                if id_camara:
+                                    logger.info(f"Origem na Câmara encontrada via tags: {tag} (ID {id_camara})")
+                                    break
+                            except Exception:
+                                continue
+                    
+                    # Fallback: busca direta pelo mesmo nome
+                    if not id_camara:
+                        id_camara = await self.camara_adapter.buscar_id_por_identificacao(
+                            tipo_prop, numero_prop, ano_prop, client=client
+                        )
 
                 # 2. Coletar tramitações de onde encontramos ID
                 tramitacoes_camara = []

@@ -60,7 +60,7 @@ class NormalizarTramitacaoService:
         orgaos_cacheados = set()
 
         for item in dados_brutos:
-            descricao = item.get("descricao", "")
+            descricao = item.get("descricao") or ""
 
             # 1. Classificar o tipo
             tipo_evento = classificar_tipo_evento(descricao)
