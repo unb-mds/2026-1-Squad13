@@ -40,14 +40,14 @@ class AgregarPorFaseService:
             key=lambda e: (e.data_evento, get_ordem(e), e.sequencia or 0),
         )
 
-        # Suavização: Se um evento é 'Encerrada' (ID 8) mas há eventos não-8 
+        # Suavização: Se um evento é 'Encerrada' (ID 8) mas há eventos não-8
         # depois no mesmo dia, ele não deveria mudar a fase para 8.
         # (Provavelmente uma rejeição de emenda ou arquivamento acessório)
         fases_suavizadas = []
         for i in range(len(eventos_ordenados)):
             ev = eventos_ordenados[i]
             fase_id = ev.fase_analitica_id
-            
+
             if fase_id == 8: # ENCERRADA
                 data_atual = ev.data_evento[:10]
                 tem_posterior_ativa_mesmo_dia = False
@@ -58,11 +58,11 @@ class AgregarPorFaseService:
                     if ev_futuro.fase_analitica_id not in {None, 8}:
                         tem_posterior_ativa_mesmo_dia = True
                         break
-                
+
                 if tem_posterior_ativa_mesmo_dia:
                     # Usa a fase anterior (ou a próxima ativa se for o primeiro)
                     fase_id = fases_suavizadas[-1] if fases_suavizadas else 1
-            
+
             fases_suavizadas.append(fase_id)
 
         periodos: list[PeriodoFase] = []
