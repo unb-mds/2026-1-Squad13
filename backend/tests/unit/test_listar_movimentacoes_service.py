@@ -265,3 +265,62 @@ async def test_listar_modo_resumido_retorna_periodos_de_fase():
     assert len(resultado) == 1
     assert isinstance(resultado[0], PeriodoFase)
     assert resultado[0].fase_codigo == "ANALISE_COMISSOES"
+
+
+@pytest.mark.asyncio
+async def test_listar_modo_resumido_com_cache_hit_retorna_periodos_de_fase():
+    # fase_repo configurado ANTES de instanciar o service (AgregarPorFaseService.__init__
+    # chama buscar_todas imediatamente)
+    fase = FaseAnalitica(codigo="ANALISE_COMISSOES", nome="Analise em comissoes", ordem_logica=2)
+    fase.id = 1
+    fase_repo = MagicMock()
+    fase_repo.buscar_todas.return_value = [fase]
+
+    prop = Mock()
+    prop.data_encerramento = None
+
+    evento_cache = EventoTramitacao(
+        proposicao_id="123",
+        data_evento="2024-01-01",
+        sequencia=1,
+        sigla_orgao="CCJ",
+        descricao_original="Teste",
+        tipo_evento=TipoEvento.DESPACHO.value,
+        deliberativo=False,
+        mudou_fase=False,
+        mudou_orgao=False,
+        fase_analitica_id=1,
+    )
+
+    evento_repo = MagicMock()
+    evento_repo.buscar_por_proposicao.return_value = [evento_cache]  # cache hit
+
+    proposicao_repo = MagicMock()
+    proposicao_repo.buscar_por_id.return_value = prop
+
+    camara_adapter = AsyncMock()
+    senado_adapter = AsyncMock()
+
+    service = ListarMovimentacoesService(
+        evento_repo=evento_repo,
+        proposicao_repo=proposicao_repo,
+        fase_repo=fase_repo,
+        orgao_repo=MagicMock(),
+        camara_adapter=camara_adapter,
+        senado_adapter=senado_adapter,
+    )
+
+    # Act
+    resultado = await service.executar("123", modo=ModoMovimentacao.RESUMIDO)
+
+    # Assert — 1. retorna list[PeriodoFase]
+    assert isinstance(resultado, list)
+    assert len(resultado) == 1
+    assert isinstance(resultado[0], PeriodoFase)
+
+    # Assert — 2. não chama adapters externos (cache hit não deve tocar na API)
+    camara_adapter.buscar_tramitacoes_brutas.assert_not_called()
+    senado_adapter.buscar_tramitacoes_brutas.assert_not_called()
+
+    # Assert — 3. busca proposicao para montar prop_resumo (proposicao=None no cache hit)
+    proposicao_repo.buscar_por_id.assert_called_once_with("123")
