@@ -151,11 +151,12 @@ async def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
         assert len(tramitacoes) == 2
 
         # A API do Senado inverte (mais antigas ganham sequencia menor)
-        assert tramitacoes[0]["descricao"] == "Situação antiga"
+        # Nota: O adapter preserva o case original da descrição
+        assert tramitacoes[0]["descricao"] == "Situação Antiga"
         assert tramitacoes[0]["sigla_orgao"] == "PLEN"
         assert tramitacoes[0]["sequencia"] == 1
 
-        assert tramitacoes[1]["descricao"] == "Situação nova"
+        assert tramitacoes[1]["descricao"] == "Situação Nova"
         assert tramitacoes[1]["sigla_orgao"] == "CCJ"
         assert tramitacoes[1]["sequencia"] == 2
 

@@ -19,7 +19,12 @@ class SenadoAdapter:
         self.timeout = 30
 
     async def _get_with_retry(
-        self, client: httpx.AsyncClient, url: str, params=None, headers=None, timeout=None
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        params=None,
+        headers=None,
+        timeout=None,
     ) -> httpx.Response:
         """Helper para realizar requisições com retry em caso de erro 5xx ou timeout."""
         max_retries = 3
@@ -95,7 +100,9 @@ class SenadoAdapter:
                     )
 
                     # Tenta extrair outros números (origem na Câmara)
-                    outros_numeros = dados.get("OutrosNumerosDaMateria", {}).get("OutroNumeroDaMateria", [])
+                    outros_numeros = dados.get("OutrosNumerosDaMateria", {}).get(
+                        "OutroNumeroDaMateria", []
+                    )
                     if isinstance(outros_numeros, dict):
                         outros_numeros = [outros_numeros]
 
@@ -341,7 +348,9 @@ class SenadoAdapter:
                         # Suporte a múltiplos formatos da API do Senado
                         data = s.get("inicio") or s.get("DataSituacao")
                         desc = s.get("descricao") or s.get("DescricaoSituacao")
-                        orgao = s.get("enteAdministrativo", {}).get("sigla") or s.get("Orgao", {}).get("SiglaOrgao")
+                        orgao = s.get("enteAdministrativo", {}).get("sigla") or s.get(
+                            "Orgao", {}
+                        ).get("SiglaOrgao")
 
                         if not data or not desc:
                             continue
@@ -450,12 +459,16 @@ class SenadoAdapter:
         data_ultima_movimentacao = ""
         autuacoes = dados.get("autuacoes", [])
         if autuacoes:
-            situacoes = autuacoes[0].get("situacoes", [])
+            # Pega a última autuação (geralmente só tem uma)
+            situacoes = autuacoes[-1].get("situacoes", [])
             if situacoes:
+                # Percorre de trás pra frente para pegar o status MAIS RECENTE que tenha descrição
                 for s in reversed(situacoes):
-                    status_atual = s.get("DescricaoSituacao", "Sem status")
-                    data_ultima_movimentacao = s.get("DataSituacao", "")
-                    if status_atual and data_ultima_movimentacao:
+                    desc = s.get("descricao") or s.get("DescricaoSituacao")
+                    data = s.get("inicio") or s.get("DataSituacao")
+                    if desc:
+                        status_atual = desc
+                        data_ultima_movimentacao = data or ""
                         break
 
         tipo = ""
