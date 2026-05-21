@@ -341,12 +341,22 @@ class SenadoAdapter:
                     return []
 
                 # O Senado agrupa tramitações por 'autuacao' (geralmente uma só)
-                seq = 1
+                brutas = []
                 for aut in autuacoes:
                     situacoes = aut.get("situacoes", [])
-                    for s in situacoes:
-                        # Suporte a múltiplos formatos da API do Senado
-                        data = s.get("inicio") or s.get("DataSituacao")
+                    if not situacoes:
+                        continue
+
+                    # Garante que as situações da autuação estejam em ordem cronológica (antiga -> nova)
+                    # A API costuma retornar invertido ou inconsistente em versões diferentes.
+                    # 'inicio' ou 'DataSituacao' é a chave de data.
+                    def get_data(s):
+                        return s.get("inicio") or s.get("DataSituacao") or ""
+
+                    situacoes_ordenadas = sorted(situacoes, key=get_data)
+
+                    for s in situacoes_ordenadas:
+                        data = get_data(s)
                         desc = s.get("descricao") or s.get("DescricaoSituacao")
                         orgao = s.get("enteAdministrativo", {}).get("sigla") or s.get(
                             "Orgao", {}
@@ -358,15 +368,15 @@ class SenadoAdapter:
                         brutas.append(
                             {
                                 "data_hora": data,
-                                "sequencia": seq,
+                                "sequencia": len(brutas) + 1,
                                 "sigla_orgao": orgao,
                                 "descricao": desc,
                                 "payload_bruto": s,
                             }
                         )
-                        seq += 1
 
                 return brutas
+
             except Exception as e:
                 logger.error(
                     f"Erro ao buscar tramitações brutas do Senado para ID {id_materia} (Processo {id_processo}): {e}"
