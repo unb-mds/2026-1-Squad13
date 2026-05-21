@@ -335,3 +335,31 @@ def obter_estimativa_aprovacao(
         raise HTTPException(
             status_code=500, detail=f"Erro ao calcular estimativa: {str(e)}"
         )
+
+
+@router.post("/admin/coleta-batch", status_code=202)
+async def disparar_coleta_batch():
+    """
+    Dispara manualmente a coleta em lote (Câmara e Senado) via Celery.
+    Utilizado para testes ou atualizações sob demanda.
+    """
+    from infrastructure.workers.coleta_worker import task_coletar_proposicoes_diario
+
+    task = task_coletar_proposicoes_diario.delay()
+    return {"taskId": task.id, "status": "Coleta disparada em background"}
+
+
+@router.get("/admin/coleta-logs")
+def listar_logs_coleta(
+    limite: int = Query(default=10, ge=1, le=100),
+    session: Session = Depends(get_session),
+):
+    """
+    Retorna os últimos logs de execução da coleta batch.
+    """
+    from infrastructure.database.models.log_coleta_model import LogColetaModel
+    from sqlmodel import select
+
+    statement = select(LogColetaModel).order_by(LogColetaModel.data_hora.desc()).limit(limite)
+    results = session.exec(statement).all()
+    return results

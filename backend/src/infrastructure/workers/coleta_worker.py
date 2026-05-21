@@ -14,14 +14,26 @@ def task_coletar_proposicoes_diario():
     Task diária do Celery para buscar proposições em lote (Câmara e Senado).
     Delega a orquestração para o Application Service.
     """
-    logger.info("Iniciando worker: task_coletar_proposicoes_diario")
+    logger.info("📅 INICIANDO WORKER: Coleta Diária em Lote (Câmara e Senado)")
 
     async def _run():
         with Session(engine) as session:
             service = ColetarEmLoteService(session)
             return await service.executar_coleta_diaria()
 
-    resumo = asyncio.run(_run())
+    try:
+        resumo = asyncio.run(_run())
+        logger.info(f"✅ Worker finalizado com sucesso. Resumo: {resumo}")
+        return resumo
+    except Exception as e:
+        logger.exception(f"❌ Erro crítico no worker de coleta: {e}")
+        raise
 
-    logger.info(f"Worker finalizado. Resumo: {resumo}")
-    return resumo
+
+@shared_task(name="worker_heartbeat")
+def task_worker_heartbeat():
+    """
+    Tarefa simples para confirmar que o worker e o beat estão operacionais.
+    """
+    logger.info("💓 HEARTBEAT: Worker operacional e processando tarefas.")
+    return "OK"
