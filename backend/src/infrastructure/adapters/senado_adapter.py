@@ -358,9 +358,15 @@ class SenadoAdapter:
                     for s in situacoes_ordenadas:
                         data = get_data(s)
                         desc = s.get("descricao") or s.get("DescricaoSituacao")
-                        orgao = s.get("enteAdministrativo", {}).get("sigla") or s.get(
-                            "Orgao", {}
-                        ).get("SiglaOrgao")
+
+                        # Extração robusta do órgão
+                        orgao = None
+                        if s.get("enteAdministrativo"):
+                            orgao = s["enteAdministrativo"].get("sigla")
+                        if not orgao and s.get("Orgao"):
+                            orgao = s["Orgao"].get("SiglaOrgao")
+                        if not orgao and s.get("colegiado"):
+                            orgao = s["colegiado"].get("sigla")
 
                         if not data or not desc:
                             continue
