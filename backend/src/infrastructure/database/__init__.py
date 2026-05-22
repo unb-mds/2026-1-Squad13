@@ -15,7 +15,9 @@ from infrastructure.database.models.orgao_legislativo_model import (
     OrgaoLegislativoModel,  # noqa: F401
 )
 
-# Importando modelos para garantir que sejam registrados antes de init_db
+from infrastructure.database.models.baseline_tramitacao_model import (
+    BaselineTramitacaoModel,  # noqa: F401
+)
 from infrastructure.database.models.proposicao_model import (
     ProposicaoModel,  # noqa: F401
 )

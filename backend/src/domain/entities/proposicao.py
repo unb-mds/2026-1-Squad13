@@ -31,6 +31,14 @@ class Proposicao(SQLModel):
     link_oficial: str | None = None
     data_encerramento: str | None = None
     previsao_aprovacao_dias: int | None = None
+    indice_atraso_relativo: float | None = None
+    indice_atraso_fase_atual: float | None = None
+    indice_espera_improdutiva: float | None = None
+    status_atraso: str | None = None
+    dias_decorridos_total: int | None = None
+    dias_esperados_total: int | None = None
+    baseline_grupo_id: str | None = None
+    data_calculo_metricas: datetime | None = None
     tags: list[str] = []
 
     def normalizar_campo_status(self):
