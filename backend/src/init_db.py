@@ -1,10 +1,10 @@
 import logging
 import os
+
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import text
 from sqlmodel import Session, select
-
-from alembic.config import Config
-from alembic import command
 
 from infrastructure.adapters.security_adapter import get_password_hash
 from infrastructure.database import engine
@@ -33,10 +33,10 @@ def run_migrations():
             alembic_ini_path = os.path.join(
                 os.path.dirname(os.path.dirname(__file__)), "alembic.ini"
             )
-            
+
     if not os.path.exists(alembic_ini_path):
-        raise FileNotFoundError(f"Arquivo alembic.ini não encontrado!")
-        
+        raise FileNotFoundError("Arquivo alembic.ini não encontrado!")
+
     alembic_cfg = Config(alembic_ini_path)
     try:
         command.upgrade(alembic_cfg, "head")
@@ -87,19 +87,26 @@ def seed_bootstrap_baselines():
         # Tenta também caso esteja rodando de outra estrutura
         seed_file_path = os.path.join(
             os.path.dirname(__file__),
-            "backend", "src", "infrastructure", "database", "seeds", "bootstrap_seeds.sql"
+            "backend",
+            "src",
+            "infrastructure",
+            "database",
+            "seeds",
+            "bootstrap_seeds.sql",
         )
         if not os.path.exists(seed_file_path):
             raise FileNotFoundError(f"Arquivo de seed não encontrado: {seed_file_path}")
-            
-    with open(seed_file_path, "r", encoding="utf-8") as f:
+
+    with open(seed_file_path, encoding="utf-8") as f:
         sql_content = f.read()
-        
+
     with Session(engine) as session:
         try:
             session.execute(text(sql_content))
             session.commit()
-            logger.info("Seed de Bootstrap para baseline_tramitacao aplicado com sucesso!")
+            logger.info(
+                "Seed de Bootstrap para baseline_tramitacao aplicado com sucesso!"
+            )
         except Exception as e:
             session.rollback()
             logger.error(f"Erro ao aplicar o seed de Bootstrap: {e}")

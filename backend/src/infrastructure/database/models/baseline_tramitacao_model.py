@@ -1,5 +1,5 @@
-from sqlmodel import Field, SQLModel
 from sqlalchemy import UniqueConstraint
+from sqlmodel import Field, SQLModel
 
 
 class BaselineTramitacaoModel(SQLModel, table=True):
@@ -18,7 +18,9 @@ class BaselineTramitacaoModel(SQLModel, table=True):
         default=None, index=True, description="Ex: 'ORDINARIO', 'URGENCIA'"
     )
     fase_codigo: str | None = Field(
-        default=None, index=True, description="Código da fase (nulo se escopo for TOTAL)"
+        default=None,
+        index=True,
+        description="Código da fase (nulo se escopo for TOTAL)",
     )
     mediana_dias: int = Field(default=0, description="O valor de referência em dias")
     origem_dados: str = Field(

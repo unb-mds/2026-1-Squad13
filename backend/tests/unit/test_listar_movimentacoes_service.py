@@ -219,7 +219,9 @@ async def test_executar_nao_vai_para_api_se_houver_dados_no_cache_mesmo_sem_rele
 async def test_listar_modo_resumido_retorna_periodos_de_fase():
     # AgregarPorFaseService.__init__ chama buscar_todas - fase_repo deve ser configurado
     # ANTES de instanciar ListarMovimentacoesService.
-    fase = FaseAnalitica(codigo="ANALISE_COMISSOES", nome="Analise em comissoes", ordem_logica=2)
+    fase = FaseAnalitica(
+        codigo="ANALISE_COMISSOES", nome="Analise em comissoes", ordem_logica=2
+    )
     fase.id = 1
     fase_repo = MagicMock()
     fase_repo.buscar_todas.return_value = [fase]  # configurado ANTES do __init__
@@ -271,7 +273,9 @@ async def test_listar_modo_resumido_retorna_periodos_de_fase():
 async def test_listar_modo_resumido_com_cache_hit_retorna_periodos_de_fase():
     # fase_repo configurado ANTES de instanciar o service (AgregarPorFaseService.__init__
     # chama buscar_todas imediatamente)
-    fase = FaseAnalitica(codigo="ANALISE_COMISSOES", nome="Analise em comissoes", ordem_logica=2)
+    fase = FaseAnalitica(
+        codigo="ANALISE_COMISSOES", nome="Analise em comissoes", ordem_logica=2
+    )
     fase.id = 1
     fase_repo = MagicMock()
     fase_repo.buscar_todas.return_value = [fase]
