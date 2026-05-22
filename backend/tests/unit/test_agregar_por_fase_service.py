@@ -64,10 +64,12 @@ def test_sequencia_simples_duas_fases():
     fase2 = _fase(2, "ANALISE_COMISSOES", "Análise em comissões", 2)
     service = AgregarPorFaseService(_repo(fase1, fase2))
 
-    periodos = service.executar([
-        _evento(1, "2024-01-01", fase_id=1),
-        _evento(2, "2024-02-01", fase_id=2),
-    ])
+    periodos = service.executar(
+        [
+            _evento(1, "2024-01-01", fase_id=1),
+            _evento(2, "2024-02-01", fase_id=2),
+        ]
+    )
 
     assert len(periodos) == 2
     assert periodos[0].fase_codigo == "PROTOCOLO_INICIAL"
