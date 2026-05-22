@@ -1,6 +1,7 @@
 from logging.config import fileConfig
-from sqlalchemy import pool, create_engine
+
 from alembic import context
+from sqlalchemy import create_engine, pool
 from sqlmodel import SQLModel
 
 # Importar o pacote de banco para registrar todos os modelos no MetaData
@@ -58,9 +59,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
