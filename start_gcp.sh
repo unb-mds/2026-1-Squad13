@@ -53,7 +53,8 @@ sed -i "s|ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=http://${GCP_IP}:5173|g" .env
 
 # 4. Subir Ambiente (Tudo de uma vez - Healthchecks cuidam da ordem)
 echo -e "${YELLOW}⚙️  Subindo containers (build e infra)...${NC}"
-docker compose ${COMPOSE_FILES} up -d --build
+# Adicionamos --profile worker para garantir que o Celery suba no GCP
+docker compose ${COMPOSE_FILES} --profile worker up -d --build
 
 # 5. Polling para garantir que a API está pronta
 echo -e "${BLUE}⏳ Aguardando backend responder (healthcheck)...${NC}"
