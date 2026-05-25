@@ -172,6 +172,18 @@ class SenadoAdapter:
                     if not data_ultima_movimentacao:
                         data_ultima_movimentacao = data_apresentacao
 
+                    regime_obj = dados.get("DadosBasicosMateria", {}).get(
+                        "RegimeTramitacao", {}
+                    )
+                    regime_raw = (
+                        (regime_obj.get("DescricaoRegime") or "").upper()
+                        if isinstance(regime_obj, dict)
+                        else ""
+                    )
+                    regime_tramitacao = (
+                        "URGENCIA" if "URG" in regime_raw else "ORDINARIO"
+                    )
+
                     return Proposicao(
                         id=str(id_materia),
                         tipo=tipo,
@@ -186,6 +198,7 @@ class SenadoAdapter:
                         data_ultima_movimentacao=data_ultima_movimentacao,
                         orgao_atual="Senado Federal",
                         link_oficial=f"https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id={id_materia}",
+                        regime_tramitacao=regime_tramitacao,
                         tags=tags,
                     )
                 elif (
@@ -515,5 +528,6 @@ class SenadoAdapter:
             data_ultima_movimentacao=data_ultima_movimentacao,
             orgao_atual="Senado Federal",
             link_oficial=f"https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id={id_materia}",
+            regime_tramitacao="ORDINARIO",
             tags=[],
         )

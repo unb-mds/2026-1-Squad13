@@ -96,6 +96,9 @@ class CamaraAdapter:
                 ):
                     orgao_atual = f"Apensada ao {orgao_atual}"
 
+                regime_raw = (dados.get("regime") or "").upper()
+                regime_tramitacao = "URGENCIA" if "URG" in regime_raw else "ORDINARIO"
+
                 return Proposicao(
                     id=str(id_proposicao),
                     tipo=dados.get("siglaTipo", ""),
@@ -112,6 +115,7 @@ class CamaraAdapter:
                     data_ultima_movimentacao=data_ultima_movimentacao,
                     orgao_atual=orgao_atual,
                     link_oficial=f"https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao={id_proposicao}",
+                    regime_tramitacao=regime_tramitacao,
                     tags=[],
                 )
 
