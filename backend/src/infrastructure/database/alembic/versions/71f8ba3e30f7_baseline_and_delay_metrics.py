@@ -181,6 +181,9 @@ def upgrade() -> None:
             "data_calculo_metricas": sa.Column(
                 "data_calculo_metricas", sa.DateTime(), nullable=True
             ),
+            "regime_tramitacao": sa.Column(
+                "regime_tramitacao", sqlmodel.sql.sqltypes.AutoString(), nullable=True
+            ),
         }
 
         for col_name, col_obj in new_cols.items():
@@ -234,6 +237,9 @@ def upgrade() -> None:
             sa.Column("dias_esperados_total", sa.Integer(), nullable=True),
             sa.Column(
                 "baseline_grupo_id", sqlmodel.sql.sqltypes.AutoString(), nullable=True
+            ),
+            sa.Column(
+                "regime_tramitacao", sqlmodel.sql.sqltypes.AutoString(), nullable=True
             ),
             sa.Column("data_calculo_metricas", sa.DateTime(), nullable=True),
             sa.Column(
