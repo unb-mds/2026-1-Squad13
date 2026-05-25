@@ -82,6 +82,21 @@ class ProposicaoResponse(BaseModel):
     previsaoAprovacaoDias: int | None = Field(
         default=None, alias="previsaoAprovacaoDias"
     )
+    indiceAtrasoRelativo: float | None = Field(
+        default=None, alias="indiceAtrasoRelativo"
+    )
+    indiceAtrasoFaseAtual: float | None = Field(
+        default=None, alias="indiceAtrasoFaseAtual"
+    )
+    indiceEsperaImprodutiva: float | None = Field(
+        default=None, alias="indiceEsperaImprodutiva"
+    )
+    statusAtraso: str | None = Field(default=None, alias="statusAtraso")
+    diasDecorridosTotal: int | None = Field(default=None, alias="diasDecorridosTotal")
+    diasEsperadosTotal: int | None = Field(default=None, alias="diasEsperadosTotal")
+    baselineGrupoId: str | None = Field(default=None, alias="baselineGrupoId")
+    dataCalculoMetricas: str | None = Field(default=None, alias="dataCalculoMetricas")
+    regimeTramitacao: str | None = Field(default=None, alias="regimeTramitacao")
 
 
 class ProposicoesListResponse(BaseModel):
@@ -156,6 +171,17 @@ def _to_response(p) -> dict:
         "codigoNormalizado": p.codigo_normalizado,
         "dataEncerramento": p.data_encerramento,
         "previsaoAprovacaoDias": p.previsao_aprovacao_dias,
+        "indiceAtrasoRelativo": p.indice_atraso_relativo,
+        "indiceAtrasoFaseAtual": p.indice_atraso_fase_atual,
+        "indiceEsperaImprodutiva": p.indice_espera_improdutiva,
+        "statusAtraso": p.status_atraso,
+        "diasDecorridosTotal": p.dias_decorridos_total,
+        "diasEsperadosTotal": p.dias_esperados_total,
+        "baselineGrupoId": p.baseline_grupo_id,
+        "dataCalculoMetricas": p.data_calculo_metricas.isoformat()
+        if p.data_calculo_metricas
+        else None,
+        "regimeTramitacao": p.regime_tramitacao,
     }
 
 

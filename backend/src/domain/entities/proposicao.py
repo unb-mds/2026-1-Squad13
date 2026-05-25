@@ -39,6 +39,7 @@ class Proposicao(SQLModel):
     dias_esperados_total: int | None = None
     baseline_grupo_id: str | None = None
     data_calculo_metricas: datetime | None = None
+    regime_tramitacao: str | None = None
     tags: list[str] = []
 
     def normalizar_campo_status(self):
