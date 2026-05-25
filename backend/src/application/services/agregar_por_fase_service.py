@@ -48,7 +48,7 @@ class AgregarPorFaseService:
             ev = eventos_ordenados[i]
             fase_id = ev.fase_analitica_id
 
-            if fase_id == 8: # ENCERRADA
+            if fase_id == 8:  # ENCERRADA
                 data_atual = ev.data_evento[:10]
                 tem_posterior_ativa_mesmo_dia = False
                 for j in range(i + 1, len(eventos_ordenados)):
