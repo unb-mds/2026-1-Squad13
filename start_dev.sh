@@ -35,38 +35,19 @@ if [ ! -f ".env" ]; then
     fi
 fi
 
-# 4. Subir a infraestrutura (Banco e Cache) primeiro
-echo -e "${YELLOW}🐘 Subindo Banco de Dados e Cache...${NC}"
-docker compose up -d db redis
+# 4. Subir toda a infraestrutura e aplicações
+echo -e "${YELLOW}⚙️  Iniciando todos os serviços (Banco, Cache, Backend, Frontend, Workers)...${NC}"
+echo -e "${BLUE}Nota: O Docker Compose aguardará os healthchecks para garantir que tudo esteja pronto.${NC}"
+# Adicionamos --profile worker para incluir o Celery por padrão no dev local
+docker compose --profile worker up -d --build --wait
 
-# Aguardar um pouco para o banco estabilizar
-echo -e "${BLUE}⏳ Aguardando serviços de infra estabilizarem...${NC}"
-sleep 5
+# 5. Popular o Banco com Dados Reais (Variados) se necessário
+echo -e "${YELLOW}🌱 Verificando necessidade de popular o banco (Seed)...${NC}"
+echo -e "${BLUE}Nota: O script detecta automaticamente se o banco já possui dados.${NC}"
+# Passamos argumentos para evitar o menu interativo e agilizar o processo inicial
+docker compose exec -T backend uv run python src/seed.py --source camara --limit 3
 
-# 3. Subir as aplicações
-echo -e "${YELLOW}⚙️  Subindo Backend, Frontend e Workers...${NC}"
-docker compose up -d --build backend frontend celery_worker celery_beat
-
-# 4. Verificar se o backend subiu
-echo -e "${BLUE}⏳ Verificando saúde do backend...${NC}"
-sleep 5
-if ! docker ps | grep -q monitor_backend; then
-    echo -e "${RED}❌ Erro: O container do backend não está rodando.${NC}"
-    echo -e "${YELLOW}Logs do erro:${NC}"
-    docker logs monitor_backend
-    exit 1
-fi
-
-# 5. Inicializar o Banco de Dados (Criar tabelas)
-echo -e "${YELLOW}🗄️  Inicializando tabelas do banco de dados...${NC}"
-docker compose exec -T backend uv run python src/init_db.py
-
-# 6. Popular o Banco com Dados Reais (Variados)
-echo -e "${YELLOW}🌱 Populando o banco com dados reais (Seed Variado)...${NC}"
-echo -e "${BLUE}Nota: O script detecta se o banco já está povoado para evitar lentidão.${NC}"
-docker compose exec -T backend uv run python src/seed.py
-
-# 7. Verificar status
+# 6. Verificar status final
 echo -e "\n${BLUE}📊 Status dos Containers:${NC}"
 docker compose ps
 
