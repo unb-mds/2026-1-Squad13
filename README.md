@@ -25,7 +25,13 @@ VITE_API_URL=http://localhost:8000
 - **Backend:** http://localhost:8000
 - **Docs (Swagger):** http://localhost:8000/docs
 
-### 2. Rodar Todos os Testes e Validações
+### 2. Rodar Workers Celery (Tarefas Assíncronas)
+Caso precise testar a coleta em lote ou outras tarefas de background:
+```bash
+./start_workers.sh
+```
+
+### 3. Rodar Todos os Testes e Validações
 Executa linting, checagem de tipos e todos os testes (Unitários e Integração) de ambos os apps.
 ```bash
 ./test_all.sh

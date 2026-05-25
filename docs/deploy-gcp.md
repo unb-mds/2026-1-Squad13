@@ -141,12 +141,16 @@ O CD executa na VM:
 
 ```bash
 git pull origin develop
-docker compose up -d --build
+./start_gcp.sh
 ```
 
 > **O `.env` nunca é sobrescrito pelo CD.** Ele é criado manualmente no primeiro setup e permanece na VM. Se precisar alterar variáveis, edite o `.env` diretamente na VM e reinicie os containers afetados.
 
-Se precisar redeployar manualmente:
+Se precisar redeployar manualmente, utilize o script de automação que já lida com healthchecks e workers:
+
+```bash
+./start_gcp.sh
+```
 
 ```bash
 cd 2026-1-Squad13
