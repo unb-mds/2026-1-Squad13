@@ -42,6 +42,7 @@ class ProposicaoModel(SQLModel, table=True):
     dias_esperados_total: int | None = Field(default=None, nullable=True)
     baseline_grupo_id: str | None = Field(default=None, nullable=True)
     data_calculo_metricas: datetime | None = Field(default=None, nullable=True)
+    regime_tramitacao: str | None = Field(default=None, nullable=True)
 
     # Armazenar lista como JSONB no Postgres para busca eficiente (@>),
     # mas mantendo JSON genérico para compatibilidade com SQLite nos testes.
