@@ -14,6 +14,7 @@ from sqlmodel import Session, func, select
 from application.services.dashboard_service import DashboardService
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from domain.constants import LIMITE_DIAS_ATRASO
+from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.cache.redis_client import RedisClient
@@ -239,7 +240,9 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
 
                     # Massa de dados: Eventos
                     eventos = await listar_service.executar(
-                        str(prop_db.id), client=client
+                        str(prop_db.id),
+                        modo=ModoMovimentacao.COMPLETO,
+                        client=client,
                     )
 
                     # Atualiza métricas reais baseadas no histórico completo
