@@ -4,7 +4,6 @@ from datetime import date, datetime
 from typing import Any
 
 from application.ports.cache_provider import CacheProvider
-from domain.constants import LIMITE_DIAS_ATRASO
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
 from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
@@ -160,99 +159,6 @@ class DashboardService:
                 return mapa_status[e.tipo_evento]
 
         return fallback_status
-
-    def _obter_dados_em_lote(self, proposicoes) -> list[dict]:
-        if not proposicoes:
-            return []
-
-        ids = [str(p.id) for p in proposicoes]
-        mapa_eventos = self.evento_repo.buscar_por_multiplas_proposicoes(ids)
-
-        dados = []
-        for p in proposicoes:
-            eventos = mapa_eventos.get(str(p.id), [])
-            tempo = self._calcular_tempo_total(eventos, p.tempo_total_dias or 0, p)
-            status = self._extrair_status_atual(eventos, p.status)
-
-            # Atraso crítico só faz sentido se a proposição ainda estiver aberta
-            atraso_critico = (tempo > LIMITE_DIAS_ATRASO) and (
-                p.data_encerramento is None
-            )
-
-            dados.append(
-                {
-                    "prop": p,
-                    "tempo_total_dias": tempo,
-                    "status": status,
-                    "atraso_critico": atraso_critico,
-                    "orgao_atual": p.orgao_atual,
-                    "tipo": p.tipo,
-                    "tags": p.tags,
-                }
-            )
-        return dados
-
-    def _agrupar_status(self, status_raw: str) -> str:
-        status = status_raw.lower()
-
-        # 1. Aprovadas / Concluídas positivamente
-        if any(
-            term in status
-            for term in [
-                "aprovad",
-                "sancionad",
-                "norma jurídica",
-                "promulgad",
-                "transformad",
-                "enviado à sanção",
-                "ofício ao senado - sancionado",
-            ]
-        ):
-            return "Aprovada/Sancionada"
-
-        # 2. Rejeitadas / Concluídas negativamente / Arquivadas
-        if any(
-            term in status
-            for term in [
-                "rejeitad",
-                "arquivad",
-                "retirad",
-                "prejudicad",
-                "indiferid",
-                "devolvida",
-                "negado",
-                "materia despachada",
-            ]
-        ):
-            return "Rejeitada/Arquivada"
-
-        # 3. Em tramitação / Ativas
-        if (
-            any(
-                term in status
-                for term in [
-                    "tramitação",
-                    "análise",
-                    "votação",
-                    "pauta",
-                    "apresentação",
-                    "mesa",
-                    "relator",
-                    "parecer",
-                    "aguardando",
-                    "comissão",
-                    "ofício",
-                    "recebimento",
-                    "leitura",
-                    "despacho",
-                    "relatório",
-                ]
-            )
-            or status == "sem status"
-        ):
-            return "Em tramitação"
-
-        return "Outros"
 
     def obter_metricas(self, filtros: dict | None = None) -> dict:
         cache_key = self._gerar_cache_key("dashboard:metricas", filtros)

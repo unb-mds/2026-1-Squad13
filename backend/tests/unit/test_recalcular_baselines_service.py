@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -170,3 +172,20 @@ def test_calcular_mediana():
     assert (
         RecalcularBaselinesService.calcular_mediana([1, 2, 3, 4]) == 3
     )  # (2+3)/2 = 2.5 rounded is 3
+
+
+def test_recalcular_baselines_error(session):
+    # Mock de um dos repositórios para subir erro
+    mock_repo = MagicMock()
+    mock_repo.filtrar.side_effect = Exception("Erro DB")
+
+    service = RecalcularBaselinesService(
+        proposicao_repo=mock_repo,
+        evento_repo=MagicMock(),
+        fase_repo=MagicMock(),
+        baseline_repo=MagicMock(),
+    )
+
+    with pytest.raises(Exception) as exc:
+        service.executar()
+    assert "Erro DB" in str(exc.value)
