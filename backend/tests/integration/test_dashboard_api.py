@@ -4,6 +4,9 @@ def test_dashboard_metricas_sem_filtros(http_client):
     data = response.json()
     assert "totalProposicoes" in data
     assert "tempoMedioTramitacao" in data
+    assert "iarMedio" in data
+    assert "ieiMedio" in data
+    assert "percentualAtrasadas" in data
     assert data["totalProposicoes"] >= 1
 
 

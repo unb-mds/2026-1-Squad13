@@ -19,33 +19,35 @@ def test_obter_metricas_gerais(session: Session):
     repo = SQLDashboardRepository(session)
 
     # Adiciona dados de teste
-    # P1: Aprovada, 100 dias (Sem atraso)
     p1 = ProposicaoModel(
         id="1",
         tipo="PL",
         numero="1",
         ano=2024,
-        autor="Autor A",
+        autor="A",
         status="Aprovada",
-        orgao_atual="CCJ",
+        orgao_atual="LENTO",
         ementa="E1",
         data_apresentacao="2024-01-01",
         data_ultima_movimentacao="2024-01-01",
-        tempo_total_dias=100,
+        tempo_total_dias=100 + LIMITE_DIAS_ATRASO,
+        indice_atraso_relativo=1.5,
+        indice_espera_improdutiva=0.5,
     )
-    # P2: Em tramitação, atraso crítico (LIMITE + 20), Orgao Lento
     p2 = ProposicaoModel(
         id="2",
         tipo="PEC",
         numero="2",
         ano=2024,
-        autor="Autor B",
+        autor="B",
         status="Em tramitação",
-        orgao_atual="LENTO",
+        orgao_atual="RAPIDO",
         ementa="E2",
         data_apresentacao="2024-01-01",
         data_ultima_movimentacao="2024-01-01",
-        tempo_total_dias=LIMITE_DIAS_ATRASO + 20,
+        tempo_total_dias=20,
+        indice_atraso_relativo=0.5,
+        indice_espera_improdutiva=0.1,
     )
 
     session.add(p1)
@@ -60,6 +62,9 @@ def test_obter_metricas_gerais(session: Session):
     assert metricas["proposicoesComAtraso"] == 1
     assert metricas["tempoMedioTramitacao"] == (100 + LIMITE_DIAS_ATRASO + 20) // 2
     assert metricas["comissaoMaiorTempo"] == "LENTO"
+    assert metricas["iarMedio"] == 1.0  # (1.5 + 0.5) / 2
+    assert metricas["ieiMedio"] == 0.3  # (0.5 + 0.1) / 2
+    assert metricas["percentualAtrasadas"] == 50
 
 
 def test_obter_metricas_com_filtros(session: Session):
@@ -149,3 +154,50 @@ def test_obter_dados_graficos(session: Session):
 
     dados_status = repo.obter_dados_status(None)
     assert any(d["status"] == "Aprovada/Sancionada" for d in dados_status)
+
+
+def test_obter_gargalos(session: Session):
+    repo = SQLDashboardRepository(session)
+    p1 = ProposicaoModel(
+        id="1",
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        autor="A",
+        status="Em tramitação",
+        orgao_atual="CCJ",
+        ementa="E1",
+        data_apresentacao="2024-01-01",
+        data_ultima_movimentacao="2024-01-01",
+        tempo_total_dias=200,
+    )
+    session.add(p1)
+    session.commit()
+
+    gargalos = repo.obter_gargalos(None)
+    assert len(gargalos) == 1
+    assert gargalos[0]["orgao"] == "CCJ"
+
+
+def test_obter_proposicoes_para_temas(session: Session):
+    repo = SQLDashboardRepository(session)
+    p1 = ProposicaoModel(
+        id="1",
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        autor="A",
+        status="Aprovada",
+        orgao_atual="O1",
+        ementa="E1",
+        data_apresentacao="2024-01-01",
+        data_ultima_movimentacao="2024-01-01",
+        tempo_total_dias=100,
+        tags=["Saúde", "Educação"],
+    )
+    session.add(p1)
+    session.commit()
+
+    temas = repo.obter_proposicoes_para_temas(None)
+    assert len(temas) == 1
+    assert "Saúde" in temas[0]["tags"]
