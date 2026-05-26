@@ -25,4 +25,5 @@ jobs:
           script: |
             cd ${{ secrets.GCP_PROJECT_PATH }}
             git pull origin develop
+            bash migrate.sh
             docker compose up -d --build
