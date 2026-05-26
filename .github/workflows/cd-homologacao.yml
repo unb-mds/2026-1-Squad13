@@ -9,6 +9,8 @@ on:
       - 'frontend/**'
       - 'docker-compose.yml'
       - '.env.example'
+      - 'migrate.sh'
+      - '.github/workflows/cd-homologacao.yml'
 
 jobs:
   deploy:
