@@ -16,6 +16,9 @@ class DashboardMetricasResponse(BaseModel):
     totalRejeitadas: int
     comissaoMaiorTempo: str
     comissaoMaiorTempoMedia: int
+    iarMedio: float
+    ieiMedio: float
+    percentualAtrasadas: int
 
 
 class DadosGraficoTipoResponse(BaseModel):

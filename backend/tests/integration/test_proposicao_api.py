@@ -51,6 +51,9 @@ def test_obterProposicaoPorId_idExistente_retorna200(http_client):
     data = response.json()
     assert data["id"] == "1"
     assert data["tipo"] == "PL"
+    assert "indiceAtrasoRelativo" in data
+    assert "indiceEsperaImprodutiva" in data
+    assert "statusAtraso" in data
 
 
 def test_obterProposicaoPorId_idInexistente_retorna404(http_client):
