@@ -1,5 +1,5 @@
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from domain.entities.proposicao import Proposicao
 from infrastructure.database.models.proposicao_model import ProposicaoModel
@@ -88,7 +88,7 @@ def test_upsert_em_lote_multiplos(session):
 
     repo.upsert_em_lote_por_numero_canonico(props)
 
-    assert session.query(ProposicaoModel).count() == 2
+    assert len(session.exec(select(ProposicaoModel)).all()) == 2
     assert repo.buscar_por_codigo("PL", "101", 2024) is not None
     assert repo.buscar_por_codigo("PEC", "1", 2024) is not None
 
@@ -119,4 +119,4 @@ def test_upsert_em_lote_case_insensitivity(session):
     session.expire_all()
     saved = repo.buscar_por_codigo("pL", "200", 2024)
     assert saved.autor == "Novo Autor"
-    assert session.query(ProposicaoModel).count() == 1
+    assert len(session.exec(select(ProposicaoModel)).all()) == 1
