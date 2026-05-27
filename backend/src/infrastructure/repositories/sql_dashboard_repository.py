@@ -130,6 +130,12 @@ class SQLDashboardRepository:
             func.sum(
                 case((status_agrupado == "Rejeitada/Arquivada", 1), else_=0)
             ).label("rejeitadas"),
+            func.coalesce(func.avg(ProposicaoModel.indice_atraso_relativo), 0).label(
+                "iar_medio"
+            ),
+            func.coalesce(func.avg(ProposicaoModel.indice_espera_improdutiva), 0).label(
+                "iei_medio"
+            ),
         )
         stmt = self._aplicar_filtros(stmt, filtros)
 
@@ -144,6 +150,9 @@ class SQLDashboardRepository:
                 "totalRejeitadas": 0,
                 "comissaoMaiorTempo": "N/A",
                 "comissaoMaiorTempoMedia": 0,
+                "iarMedio": 0.0,
+                "ieiMedio": 0.0,
+                "percentualAtrasadas": 0,
             }
 
         stmt_orgao = select(
@@ -169,11 +178,14 @@ class SQLDashboardRepository:
             "totalAprovadas": int(row.aprovadas or 0),
             "totalEmTramitacao": int(row.em_tramitacao or 0),
             "totalRejeitadas": int(row.rejeitadas or 0),
-            "comissaoMaiorTempo": pior_orgao_row.orgao_atual
+            "comissaoMaiorTempo": pior_orgao_row[0] if pior_orgao_row else "N/A",
+            "comissaoMaiorTempoMedia": int(pior_orgao_row[1] or 0)
             if pior_orgao_row
-            else "N/A",
-            "comissaoMaiorTempoMedia": int(pior_orgao_row.media_tempo or 0)
-            if pior_orgao_row
+            else 0,
+            "iarMedio": round(float(row.iar_medio or 0.0), 2),
+            "ieiMedio": round(float(row.iei_medio or 0.0), 2),
+            "percentualAtrasadas": int((row.com_atraso or 0) / row.total * 100)
+            if row.total > 0
             else 0,
         }
 
