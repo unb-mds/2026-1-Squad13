@@ -149,3 +149,50 @@ def test_obter_dados_graficos(session: Session):
 
     dados_status = repo.obter_dados_status(None)
     assert any(d["status"] == "Aprovada/Sancionada" for d in dados_status)
+
+
+def test_obter_gargalos(session: Session):
+    repo = SQLDashboardRepository(session)
+    p1 = ProposicaoModel(
+        id="1",
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        autor="A",
+        status="Em tramitação",
+        orgao_atual="CCJ",
+        ementa="E1",
+        data_apresentacao="2024-01-01",
+        data_ultima_movimentacao="2024-01-01",
+        tempo_total_dias=200,
+    )
+    session.add(p1)
+    session.commit()
+
+    gargalos = repo.obter_gargalos(None)
+    assert len(gargalos) == 1
+    assert gargalos[0]["orgao"] == "CCJ"
+
+
+def test_obter_proposicoes_para_temas(session: Session):
+    repo = SQLDashboardRepository(session)
+    p1 = ProposicaoModel(
+        id="1",
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        autor="A",
+        status="Aprovada",
+        orgao_atual="O1",
+        ementa="E1",
+        data_apresentacao="2024-01-01",
+        data_ultima_movimentacao="2024-01-01",
+        tempo_total_dias=100,
+        tags=["Saúde", "Educação"],
+    )
+    session.add(p1)
+    session.commit()
+
+    temas = repo.obter_proposicoes_para_temas(None)
+    assert len(temas) == 1
+    assert "Saúde" in temas[0]["tags"]

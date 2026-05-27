@@ -1,7 +1,9 @@
 from domain.entities.proposicao import Proposicao
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.repositories.proposicao_repository import ProposicaoRepository
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 
 class DetalheProposicaoService:
@@ -12,7 +14,7 @@ class DetalheProposicaoService:
 
     def __init__(
         self,
-        repository: ProposicaoRepository,
+        repository: SQLProposicaoRepository,
         camara_adapter: CamaraAdapter,
         senado_adapter: SenadoAdapter,
     ):

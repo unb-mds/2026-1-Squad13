@@ -112,3 +112,21 @@ def test_acumula_apenas_eventos_relevantes():
     assert len(periodos[0].eventos_relevantes) == 2
     assert periodos[0].eventos_relevantes[0].sequencia == 1
     assert periodos[0].eventos_relevantes[1].sequencia == 3
+
+
+def test_suavizacao_fase_encerrada_mesmo_dia():
+    fase1 = _fase(1, "ATIVO", "Ativo", 1)
+    fase8 = _fase(8, "ENCERRADA", "Encerrada", 8)
+    service = AgregarPorFaseService(_repo(fase1, fase8))
+
+    # Se temos uma fase 8 seguida de uma fase 1 no mesmo dia,
+    # a fase 8 deve ser suavizada (não deve mudar para 8).
+    eventos = [
+        _evento(1, "2024-01-01T10:00:00", fase_id=8),
+        _evento(2, "2024-01-01T11:00:00", fase_id=1),
+    ]
+    periodos = service.executar(eventos)
+
+    # Deve ter apenas um período (fase 1)
+    assert len(periodos) == 1
+    assert periodos[0].fase_codigo == "ATIVO"
