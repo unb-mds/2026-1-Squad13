@@ -20,8 +20,9 @@ COPY pyproject.toml uv.lock ./
 # Instala as dependências
 RUN uv sync --frozen --no-install-project
 
-# Copia o código fonte
+# Copia o código fonte e configurações
 COPY src ./src
+COPY alembic.ini ./alembic.ini
 
 # Expõe a porta do FastAPI
 EXPOSE 8000
