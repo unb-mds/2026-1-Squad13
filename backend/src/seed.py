@@ -11,6 +11,7 @@ import sys
 import httpx
 from sqlmodel import Session, func, select
 
+import init_db
 from application.services.dashboard_service import DashboardService
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from domain.constants import LIMITE_DIAS_ATRASO
@@ -35,7 +36,6 @@ from infrastructure.repositories.sql_orgao_legislativo_repository import (
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
-import init_db
 
 # Configuração de logging
 logging.basicConfig(
