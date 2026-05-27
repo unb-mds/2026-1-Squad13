@@ -2,33 +2,20 @@ from enum import StrEnum
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
-from sqlmodel import Session
 
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
 from application.services.gerar_estimativa_service import GerarEstimativaUseCase
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
-from infrastructure.adapters.camara_adapter import CamaraAdapter
-from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import get_session
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
-)
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
-)
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
-from infrastructure.repositories.sql_orgao_legislativo_repository import (
-    SQLOrgaoLegislativoRepository,
-)
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
+from presentation.proposicao_dependencies import (
+    get_buscar_proposicoes_service,
+    get_detalhe_proposicao_service,
+    get_gerar_estimativa_use_case,
+    get_listar_movimentacoes_service,
 )
 
-router = APIRouter()
+router = APIRouter(tags=["Proposições"])
 
 # --- Schemas ---
 
@@ -245,27 +232,8 @@ def _to_periodo_response(p) -> dict:
 async def listar_movimentacoes(
     id: str,
     modo: ModoMovimentacao = Query(default=ModoMovimentacao.RESUMIDO),
-    session: Session = Depends(get_session),
+    service: ListarMovimentacoesService = Depends(get_listar_movimentacoes_service),
 ):
-    evento_repo = SQLEventoTramitacaoRepository(session)
-    proposicao_repo = SQLProposicaoRepository(session)
-    camara_adapter = CamaraAdapter()
-    senado_adapter = SenadoAdapter()
-
-    fase_repo = SQLFaseAnaliticaRepository(session)
-    orgao_repo = SQLOrgaoLegislativoRepository(session)
-    apensamento_repo = SQLApensamentoRepository(session)
-
-    service = ListarMovimentacoesService(
-        evento_repo,
-        proposicao_repo,
-        fase_repo,
-        orgao_repo,
-        camara_adapter,
-        senado_adapter,
-        apensamento_repo,
-    )
-
     try:
         resultado = await service.executar(id, modo=modo)
 
@@ -292,11 +260,8 @@ def buscar_proposicoes(
     data_fim: str | None = Query(default=None, alias="dataFim"),
     pagina: int = Query(default=1, ge=1),
     itens_por_pagina: int = Query(default=10, ge=1, le=100),
-    session: Session = Depends(get_session),
+    service: BuscarProposicoesService = Depends(get_buscar_proposicoes_service),
 ):
-    repository = SQLProposicaoRepository(session)
-    service = BuscarProposicoesService(repository)
-
     filtros = {
         "busca": busca,
         "tipo": tipo,
@@ -322,12 +287,9 @@ def buscar_proposicoes(
 
 
 @router.get("/proposicoes/{id}", response_model=ProposicaoResponse)
-async def obter_detalhe_proposicao(id: str, session: Session = Depends(get_session)):
-    repository = SQLProposicaoRepository(session)
-    camara_adapter = CamaraAdapter()
-    senado_adapter = SenadoAdapter()
-    service = DetalheProposicaoService(repository, camara_adapter, senado_adapter)
-
+async def obter_detalhe_proposicao(
+    id: str, service: DetalheProposicaoService = Depends(get_detalhe_proposicao_service)
+):
     try:
         proposicao = await service.executar(id)
         return _to_response(proposicao)
@@ -341,15 +303,14 @@ async def obter_detalhe_proposicao(id: str, session: Session = Depends(get_sessi
     "/proposicoes/estimativa/{tipo}/{tema}", response_model=EstimativaAprovacaoResponse
 )
 def obter_estimativa_aprovacao(
-    tipo: str, tema: str, session: Session = Depends(get_session)
+    tipo: str,
+    tema: str,
+    use_case: GerarEstimativaUseCase = Depends(get_gerar_estimativa_use_case),
 ):
     """
     Retorna a estimativa de tempo de aprovação para um tipo e tema específicos.
     A lógica de negócio e o threshold de 50 registros estão isolados no Domínio.
     """
-    repository = SQLProposicaoRepository(session)
-    use_case = GerarEstimativaUseCase(repository)
-
     try:
         resultado = use_case.executar(tipo, tema)
 
