@@ -11,6 +11,7 @@ import sys
 import httpx
 from sqlmodel import Session, func, select
 
+import init_db
 from application.services.dashboard_service import DashboardService
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from domain.constants import LIMITE_DIAS_ATRASO
@@ -18,7 +19,7 @@ from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.cache.redis_client import RedisClient
-from infrastructure.database import engine, get_redis_client, get_session, init_db
+from infrastructure.database import engine, get_redis_client, get_session
 from infrastructure.database.models.proposicao_model import ProposicaoModel
 from infrastructure.repositories.sql_apensamento_repository import (
     SQLApensamentoRepository,
@@ -35,7 +36,6 @@ from infrastructure.repositories.sql_orgao_legislativo_repository import (
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
-from init_db import seed_demo_user
 
 # Configuração de logging
 logging.basicConfig(
@@ -131,9 +131,8 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
     logger.info(f"🚀 Iniciando Seed (Fontes: {sources}, Limite: {limit})...")
 
     async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
-        # 1. Preparação
-        init_db()
-        seed_demo_user()
+        # 1. Preparação robusta com migrações
+        init_db.run()
 
         with Session(engine) as session:
             count = session.exec(select(func.count(ProposicaoModel.id))).one()
