@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from domain.entities.proposicao import Proposicao
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 
 
@@ -171,3 +172,110 @@ async def test_senado_adapter_buscar_tramitacoes_brutas_erro(adapter):
 
         # Assert
         assert tramitacoes == []
+
+
+@pytest.mark.asyncio
+async def test_senado_adapter_buscar_por_id_detalhe_materia(adapter):
+    """Testa o caminho onde a resposta contém DetalheMateria."""
+    mock_dados = {
+        "DetalheMateria": {
+            "Materia": {
+                "IdentificacaoMateria": {
+                    "DescricaoIdentificacaoMateria": "PL 123/2024",
+                },
+                "DadosBasicosMateria": {
+                    "EmentaMateria": "Ementa Teste",
+                    "DataApresentacao": "2024-01-01",
+                    "Autor": "Senador",
+                },
+                "SituacaoAtual": {
+                    "Autuacoes": {
+                        "Autuacao": {
+                            "Situacao": {
+                                "DescricaoSituacao": "Status",
+                                "DataSituacao": "2024-02-01",
+                            }
+                        }
+                    }
+                },
+            }
+        }
+    }
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_dados
+        mock_get.return_value = mock_response
+
+        proposicao = await adapter.buscar_por_id(123)
+
+        assert proposicao is not None
+        assert proposicao.tipo == "PL"
+        assert proposicao.numero == "123"
+        assert proposicao.status == "Status"
+
+
+@pytest.mark.asyncio
+async def test_senado_adapter_listar_recentes(adapter):
+    mock_dados = [
+        {"codigoMateria": 1},
+        {"codigoMateria": 2},
+    ]
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_dados
+        mock_get.return_value = mock_response
+
+        ids = await adapter.listar_recentes("PL", 2)
+
+        assert ids == [1, 2]
+
+
+@pytest.mark.asyncio
+async def test_senado_adapter_buscar_id_por_identificacao(adapter):
+    mock_dados = [
+        {"codigoMateria": 12345},
+    ]
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_dados
+        mock_get.return_value = mock_response
+
+        id_encontrado = await adapter.buscar_id_por_identificacao("PL", "101", 2024)
+
+        assert id_encontrado == 12345
+
+
+@pytest.mark.asyncio
+async def test_senado_adapter_coletar_em_lote_sucesso(adapter):
+    mock_dados_lote = [
+        {"codigoMateria": 100},
+        {"codigoMateria": 200},
+    ]
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_resp_lote = MagicMock()
+        mock_resp_lote.status_code = 200
+        mock_resp_lote.json.return_value = mock_dados_lote
+        mock_get.return_value = mock_resp_lote
+
+        # Patch buscar_por_id
+        with patch.object(
+            adapter, "buscar_por_id", new_callable=AsyncMock
+        ) as mock_buscar:
+            mock_buscar.side_effect = [
+                MagicMock(spec=Proposicao),
+                MagicMock(spec=Proposicao),
+            ]
+
+            # Act
+            proposicoes = await adapter.coletar_em_lote({"limite_total": 2})
+
+            # Assert
+            assert len(proposicoes) == 2
+            mock_get.assert_called_once()
