@@ -57,7 +57,8 @@ Crie issue apenas se:
 - nenhuma label fora do padrão do repositório.
 
 7. Criação:
-- usar `scripts/create-issue.sh`
+- usar `scripts/create-issue.sh` passando o título, a chave do template (`bug`, `feature`, `refactor`, `technical-debt` ou outra issue específica) e as labels completas.
+- O script validará as labels e alertará caso detecte potenciais duplicados. Se houver alertas, analise-os antes de prosseguir.
 - retornar URL da issue criada
 
 ## Regras adicionais
