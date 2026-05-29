@@ -39,7 +39,10 @@ Antes de gerar qualquer comentário, você deve carregar esses dois arquivos par
      - risco de breaking change;
      - impacto nas métricas do Squad Dashboard (labels, issues, CI/CD).
 
-5. Aplicar critérios de avaliação:
+5. Ler resultados de validação local:
+   - Ler `.gemini/pr-validation.json` e `.gemini/pr-validation.log` (gerados por `review-pr.sh`) para verificar se os linters (`Ruff`, `ESLint`, `TSC`) e testes (`Pytest`, `Vitest`) passaram locally.
+
+6. Aplicar critérios de avaliação:
    - Verifique se a alteração:
      - respeita **Layered Architecture** (`presentation` → `application` → `domain` → `infrastructure`);  
      - mantém o domínio livre de HTTP e chamadas diretas a APIs;  
@@ -49,7 +52,7 @@ Antes de gerar qualquer comentário, você deve carregar esses dois arquivos par
      - não quebra fluxos de CI/CD nem o Squad Dashboard;  
      - introduz ou altera testes na posição correta (`unit/` vs `integration/`).
 
-6. Gerar o review final no formato abaixo.
+7. Gerar o review final no formato abaixo.
 
 ## Formato de saída do review
 
@@ -60,6 +63,15 @@ Retorne sempre um review estruturado, similar a:
 
 ## Resumo
 <Ponto‑a‑ponto do que a PR faz e por que é importante para o projeto, conforme project-context.>
+
+## Tabela de Conformidade Arquitetural
+| Critério | Status | Observação |
+|---|---|---|
+| Isolamento de Camadas (Domain puro) | [x] OK / [ ] Falha | <detalhes> |
+| Padrão Adapter (Sem HTTP direto no Domain/App) | [x] OK / [ ] Falha / [ ] N/A | <detalhes> |
+| Unificação SQLModel | [x] OK / [ ] Falha / [ ] N/A | <detalhes> |
+| Posicionamento de Testes (Unit vs Integration) | [x] OK / [ ] Falha | <detalhes> |
+| Validação Local (Linter / Testes) | [x] OK / [ ] Falha | <Baseado em pr-validation.json> |
 
 ## Pontos fortes
 - <fatia de código que está alinhada com a arquitetura, convenções ou decisões consolidadas.>
@@ -75,6 +87,16 @@ Retorne sempre um review estruturado, similar a:
 - <melhorias nas integrações com APIs externas, se for o caso.>
 - <mudanças de testes ou novas áreas que precisariam ser testadas.>
 
+## Rascunho para project-memory.md (Se Aplicável)
+> Se esta PR consolida uma nova decisão arquitetural durável, sugira o rascunho formatado para ser inserido na seção "Decisões Consolidadas" de `project-memory.md`:
+> ```markdown
+> ### [AAAA-MM] Título da decisão
+> **Evidência:** <arquivos, pastas, configs modificados>
+> **Decisão:** <descrição objetiva da decisão>
+> **Justificativa:** <o "porquê" pedagógico>
+> **Impacto:** <diretrizes futuras>
+> ```
+
 ## Impacto no Squad Dashboard
 - <se a PR toca em fluxo, labels, issues ou CI/CD, explique o impacto nas métricas, se houver.>
 
@@ -88,3 +110,4 @@ approve / comment / request-changes
 - Se houver ambiguidade sobre camada, responsabilidade ou decisão, **sempre referenciar explicitamente** o que `project-memory.md` já consolida (ex.: “a memória evolutiva já consolidou que controllers não devem processar regra de negócio”).  
 - Evitar comentários de estilo triviais quando houver riscos arquiteturais ou de I/O mais relevantes.  
 - Se a PR mexe em `squad-dashboard` ou CI/CD, lembre que labels e workflows alimentam o Squad Dashboard; trate isso com prioridade.
+- Leia sempre os arquivos `.gemini/pr-validation.json` e `.gemini/pr-validation.log` se disponíveis, para enriquecer a seção de Validação Local no parecer.
