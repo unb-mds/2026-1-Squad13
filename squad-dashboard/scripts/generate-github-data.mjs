@@ -128,12 +128,13 @@ async function main() {
     { id: 'R2-2', title: 'Breakdown de Tempo por Fase', release: 'R2', feat: 'f2', keywords: ['tempo por fase', 'comissão'] },
     { id: 'R2-3', title: 'Dashboard Real (Endpoints Agregação)', release: 'R2', feat: 'f3', keywords: ['dashboard/por-', 'breakdown'] },
     { id: 'R2-4', title: 'Filtros Globais no Dashboard', release: 'R2', feat: 'f3', keywords: ['filtros ativos', 'dashboard'] },
-    { id: 'R2-5', title: 'Logout com Invalidação (Server-side)', release: 'R2', feat: 'f5', keywords: ['logout', 'blacklist', 'redis'] },
-    { id: 'R2-6', title: 'Recuperação de Senha (E-mail)', release: 'R2', feat: 'f5', keywords: ['recuperar', 'senha', 'email'] },
-    { id: 'R2-7', title: 'Bloqueio de Conta (Segurança)', release: 'R2', feat: 'f5', keywords: ['bloqueio', 'tentativas'] },
+    { id: 'R2-5', title: 'Remoção de Autenticação (Backend)', release: 'R2', feat: 'f5', keywords: ['remover', 'auth', 'remover auth', 'limpeza auth'] },
+    { id: 'R2-6', title: 'Remoção de Autenticação (Frontend)', release: 'R2', feat: 'f5', keywords: ['remover login', 'liberar rotas', 'remover cadastro'] },
+    { id: 'R2-7', title: 'Refatoração Visual: Dashboard Sóbrio', release: 'R2', feat: 'f3', keywords: ['sóbrio', 'dashboard sóbrio', 'investigador', 'refatorar visual'] },
     { id: 'R2-8', title: 'Worker de Coleta Batch (Celery)', release: 'R2', feat: 'f6', keywords: ['worker', 'celery', 'batch', 'coleta'] },
     { id: 'R2-9', title: 'Cache Redis para Métricas', release: 'R2', feat: 'f6', keywords: ['cache', 'redis'] },
-    { id: 'R2-10', title: 'Inteligência Preditiva (IA)', release: 'R2', feat: 'f4', keywords: ['preditiva', 'ia', 'previsao'] }
+    { id: 'R2-10', title: 'Inteligência Preditiva (IA)', release: 'R2', feat: 'f4', keywords: ['preditiva', 'ia', 'previsao'] },
+    { id: 'R2-11', title: 'Governança: Pareamento e Commits', release: 'R2', feat: 'f7', keywords: ['pareamento', 'rotina pareamento', 'equilibrio commits'] }
   ]
 
   const catalogWithProgress = STORY_MAP_CATALOG.map(item => {

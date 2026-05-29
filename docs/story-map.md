@@ -325,51 +325,82 @@ Atualmente o dashboard sempre mostra dados globais. Deve responder aos filtros a
 
 ---
 
-### ÉPICO AUTH-R2 — Autenticação Completa
+### ÉPICO AUTH-REMOVAL — Desativação do Sistema de Autenticação
 
 ---
 
-#### feat: logout com invalidação de token no servidor
+#### chore: remover endpoints de autenticação, serviços e migrações no backend
 
-**Prioridade:** Alta
+**Prioridade:** Alta · **Esforço estimado:** Pequeno
 
 ##### 📝 Descrição
 
-Atualmente o logout apenas limpa o localStorage — o token continua válido no servidor. Precisa de uma blacklist de tokens (Redis ou tabela no banco).
+Após o feedback da professora para remover as barreiras de login e cadastro, o backend deve deixar de expor endpoints de `/auth` e remover o middleware de proteção de rotas JWT, tornando todas as rotas de proposições e dashboards públicas por padrão.
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] `POST /auth/logout` invalida o token imediatamente no servidor.
-- [ ] Token invalidado retorna 401 em qualquer rota protegida subsequente.
-- [ ] Botão voltar do navegador não restaura sessão após logout.
+- [ ] Endpoints de login, registro e tokens em `auth_controller` desativados ou removidos.
+- [ ] Middlewares de proteção por JWT em endpoints de proposições desativados.
+- [ ] Testes de autenticação obsoletos desabilitados ou adaptados para garantir funcionamento público.
+- [ ] Entidades de usuário e tabela associada no banco marcadas para posterior arquivamento ou limpas do modelo SQLModel ativo.
 
 ---
 
-#### feat: recuperação de senha por e-mail
+#### refactor: desativar AuthProvider, login/cadastro e rotas privadas no frontend
 
-**Prioridade:** Média
+**Prioridade:** Alta · **Esforço estimado:** Pequeno
 
 ##### 📝 Descrição
 
-Backend completo para recuperação de senha. O frontend (`RecuperarSenhaForm`) já está pronto.
+Desativar o controle de fluxo de rotas privadas protegidas no React Router. Remover ou ocultar os formulários e páginas de Login, Cadastro e Recuperação de Senha, permitindo que a aplicação inicie diretamente na página de Dashboard sem restrições.
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] Token de uso único com TTL de 1 hora gerado e enviado por e-mail.
-- [ ] Nova solicitação invalida token anterior.
-- [ ] Link enviado em até 2 minutos.
-- [ ] Token de uso único — segunda utilização retorna erro.
+- [ ] Rotas em `router/index.tsx` alteradas para expor Dashboard e Dossiê sem proteção de token.
+- [ ] Remover redirecionamentos para `/login` ao acessar o Dashboard sem token no localStorage.
+- [ ] Ocultar ou remover telas de login, registro e recuperação de senha.
+- [ ] Componentes de layout e cabeçalho ajustados para não exibir dados de sessão de usuário ou botões de logout.
 
 ---
 
-#### feat: bloqueio de conta após 5 tentativas falhas
+### ÉPICO FRONT-REFAC — Interface Sóbria de Investigação
 
-**Prioridade:** Baixa
+---
+
+#### refactor: redesenhar frontend para dashboard analítico de investigação sóbrio
+
+**Prioridade:** Alta · **Esforço estimado:** Médio
+
+##### 📝 Descrição
+
+Refatorar visual do frontend React para dotá-lo de uma interface densa de dados, sóbria e focada em utilidade analítica para investigadores. A paleta de cores deve ser adaptada para tons mais escuros discretos ou neutros profissionais, priorizando a legibilidade de gráficos, mapas de calor e tabelas temporais.
 
 ##### ✅ Critérios de Aceitação
 
-- [ ] Conta bloqueada por 15 minutos após 5 tentativas consecutivas falhas.
-- [ ] Contador de tentativas armazenado no Redis (TTL 15min).
+- [ ] Novo layout de dashboard implementado (estética sóbria e confiável).
+- [ ] Paleta de cores corporativa colorida substituída por tons neutros e profissionais.
+- [ ] Foco visual aprimorado em gráficos temporais de tramitação, baselines e estatísticas de atraso.
+- [ ] Componentes adaptados para visualização clara de anomalias e gargalos no fluxo de proposições.
+
+---
+
+### ÉPICO GOV — Governança e Equilíbrio de Commits
+
+---
+
+#### chore: estabelecer rotinas de pareamento e governança para equilíbrio de commits
+
+**Prioridade:** Média · **Esforço estimado:** Pequeno
+
+##### 📝 Descrição
+
+Mitigar a disparidade de commits identificada pela professora definindo um acordo de trabalho com rotação de autoria nos commits, sessões regulares de programação em par e fracionamento de issues em tarefas menores e mais fáceis de integrar.
+
+##### ✅ Critérios de Aceitação
+
+- [ ] Documentação de diretrizes de contribuição atualizada com práticas de Pareamento (Pair Programming).
+- [ ] Utilização de co-autores no Git (`Co-authored-by`) para commits realizados em dupla.
+- [ ] Registro de sessões de pareamento ou tarefas menores distribuídas para membros com menor volume de commits.
 
 ---
 
@@ -491,11 +522,13 @@ Os itens abaixo foram presentes no story map v1 mas **removidos do escopo de ent
 | ---------------------------------------------- | ----------------------------- |
 | Entidade `Tramitacao` + endpoint movimentações | Alta                          |
 | Endpoints de breakdown do dashboard            | Alta                          |
-| Logout com invalidação no servidor             | Alta                          |
+| Remoção de Autenticação (Backend)              | Alta                          |
+| Remoção de Autenticação (Frontend)             | Alta                          |
+| Refatoração Visual: Dashboard Sóbrio           | Alta                          |
 | Worker batch Celery                            | Alta                          |
 | Filtros afetando dashboard                     | Média                         |
 | Cache Redis                                    | Média                         |
-| Recuperação de senha                           | Média                         |
 | Tempo por fase                                 | Média                         |
+| Governança: Pareamento e Equilíbrio de Commits | Média                         |
 | Estimativa preditiva                           | Baixa (condicional ao volume) |
-| Bloqueio de conta                              | Baixa                         |
+

@@ -42,4 +42,9 @@ Este documento contém o backlog oficial derivado do `story-map.md`, organizado 
 | #139 | test: implementa testes de contrato (VCR) para APIs governamentais | Média | 📝 Todo |
 | #144 | test: valida filtros JSONB de tags em ambiente Postgres real | Média | 📝 Todo |
 | #145 | test: implementa cobertura de testes para GerarEstimativaUseCase | Média | 📝 Todo |
+| #170 | chore: remover endpoints de autenticação, serviços e migrações no backend | Alta | 📝 Todo |
+| #171 | refactor: desativar AuthProvider, login/cadastro e rotas privadas no frontend | Alta | 📝 Todo |
+| #172 | refactor: redesenhar frontend para dashboard analítico de investigação sóbrio | Alta | 📝 Todo |
+| #173 | chore: estabelecer rotinas de pareamento e governança para equilíbrio de commits | Média | 📝 Todo |
+
 

@@ -1,5 +1,33 @@
 [
   {
+    "number": 173,
+    "title": "chore: estabelecer rotinas de pareamento e governança para equilíbrio de commits",
+    "currentStatus": "status:todo",
+    "realStatus": "todo",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 172,
+    "title": "refactor: redesenhar frontend para dashboard analítico de investigação sóbrio",
+    "currentStatus": "status:todo",
+    "realStatus": "todo",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 171,
+    "title": "refactor: desativar AuthProvider, login/cadastro e rotas privadas no frontend",
+    "currentStatus": "status:todo",
+    "realStatus": "todo",
+    "githubState": "OPEN"
+  },
+  {
+    "number": 170,
+    "title": "chore: remover endpoints de autenticação, serviços e migrações no backend",
+    "currentStatus": "status:todo",
+    "realStatus": "todo",
+    "githubState": "OPEN"
+  },
+  {
     "number": 102,
     "title": "chore: Corrigir init_db para registrar entidades antes de criar tabelas",
     "currentStatus": "status:todo",
@@ -36,17 +64,17 @@
   },
   {
     "number": 93,
-    "title": "feat: bloqueio de conta após 5 tentativas falhas",
+    "title": "[CANCELADA] feat: bloqueio de conta após 5 tentativas falhas",
     "currentStatus": "status:backlog",
-    "realStatus": "review",
-    "githubState": "OPEN"
+    "realStatus": "cancelled",
+    "githubState": "CLOSED"
   },
   {
     "number": 92,
-    "title": "feat: logout com invalidação de token no servidor",
+    "title": "[CANCELADA] feat: logout com invalidação de token no servidor",
     "currentStatus": "status:backlog",
-    "realStatus": "review",
-    "githubState": "OPEN"
+    "realStatus": "cancelled",
+    "githubState": "CLOSED"
   },
   {
     "number": 91,
@@ -85,10 +113,10 @@
   },
   {
     "number": 86,
-    "title": "feat: recuperação de senha por e-mail",
+    "title": "[CANCELADA] feat: recuperação de senha por e-mail",
     "currentStatus": "status:backlog",
-    "realStatus": "review",
-    "githubState": "OPEN"
+    "realStatus": "cancelled",
+    "githubState": "CLOSED"
   },
   {
     "number": 83,
