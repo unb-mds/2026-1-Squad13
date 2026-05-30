@@ -4,16 +4,14 @@ import os
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from infrastructure.adapters.security_adapter import get_password_hash
 from infrastructure.database import engine
 
 # Importando modelos para registro no metadata
 from infrastructure.database.models.proposicao_model import (
     ProposicaoModel,  # noqa: F401
 )
-from infrastructure.database.models.user_model import UserModel
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
@@ -44,27 +42,6 @@ def run_migrations():
     except Exception as e:
         logger.error(f"Falha ao executar migrações do Alembic: {e}")
         raise e
-
-
-def seed_demo_user():
-    logger.info("Verificando usuário de demonstração...")
-    with Session(engine) as session:
-        statement = select(UserModel).where(UserModel.email == "demo@lextrack.gov.br")
-        demo_user = session.exec(statement).first()
-
-        if not demo_user:
-            logger.info("Criando usuário de demonstração (demo@lextrack.gov.br)...")
-            user = UserModel(
-                nome="Demo User",
-                email="demo@lextrack.gov.br",
-                hashed_password=get_password_hash("demo123"),
-                perfil="analista",
-            )
-            session.add(user)
-            session.commit()
-            logger.info("Usuário de demonstração criado!")
-        else:
-            logger.info("Usuário de demonstração já existe.")
 
 
 def seed_lookup_tables():
@@ -116,7 +93,6 @@ def seed_bootstrap_baselines():
 def run():
     logger.info("Inicializando banco de dados...")
     run_migrations()
-    seed_demo_user()
     seed_lookup_tables()
     seed_bootstrap_baselines()
     logger.info("Tabelas e dados iniciais configurados com sucesso!")

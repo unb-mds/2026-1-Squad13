@@ -20,7 +20,6 @@ from infrastructure.database.models.orgao_legislativo_model import (
 from infrastructure.database.models.proposicao_model import (
     ProposicaoModel,  # noqa: F401
 )
-from infrastructure.database.models.user_model import UserModel  # noqa: F401
 
 from ..config import settings
 
