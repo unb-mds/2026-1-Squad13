@@ -7,7 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from infrastructure.config import settings
 from infrastructure.database import close_redis, init_redis
 from presentation.controllers import (
-    auth_controller,
     dashboard_controller,
     health_controller,
     proposicao_controller,
@@ -59,7 +58,6 @@ def root():
 
 
 # Incluindo as rotas da camada de apresentação
-app.include_router(auth_controller.router)
 app.include_router(proposicao_controller.router)
 app.include_router(dashboard_controller.router)
 app.include_router(health_controller.router)

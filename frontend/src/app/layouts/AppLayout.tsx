@@ -1,6 +1,5 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, FileText, BarChart3, LogOut, Scale, ChevronRight, Bell } from 'lucide-react'
-import { useAuth } from '../providers/AuthContext'
+import { Outlet, NavLink } from 'react-router-dom'
+import { LayoutDashboard, FileText, BarChart3, Scale, ChevronRight, Bell } from 'lucide-react'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -9,14 +8,6 @@ const navItems = [
 ]
 
 export function AppLayout() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
-
   return (
     <div className="flex h-screen bg-ink-900 overflow-hidden">
       {/* Sidebar */}
@@ -54,28 +45,6 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
-
-        {/* User */}
-        <div className="px-3 py-4 border-t border-ink-700/50">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-volt-400/20 border border-volt-400/30 flex items-center justify-center shrink-0">
-              <span className="text-volt-300 text-xs font-display font-700">
-                {user?.nome?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">{user?.nome}</p>
-              <p className="text-ink-400 text-xs truncate capitalize">{user?.perfil}</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-1.5 rounded-md text-ink-400 hover:text-rose-400 hover:bg-rose-400/10 transition-colors"
-              title="Sair"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
       </aside>
 
       {/* Main content */}
