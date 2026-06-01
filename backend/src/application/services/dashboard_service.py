@@ -385,3 +385,29 @@ class DashboardService:
             )
 
         return sorted(resultado, key=lambda x: x["ordemLogica"])
+
+    def obter_evolucao_temporal(self, filtros: dict | None = None) -> list[dict]:
+        cache_key = self._gerar_cache_key("dashboard:evolucao_temporal", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_evolucao_temporal(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_transicoes_casas(self, filtros: dict | None = None) -> dict:
+        cache_key = self._gerar_cache_key("dashboard:transicoes_casas", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_transicoes_casas(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado

@@ -61,6 +61,25 @@ class TempoPorFaseResponse(BaseModel):
     quantidadeProposicoes: int
 
 
+class EvolucaoTemporalResponse(BaseModel):
+    mes: str
+    entradas: int
+    saidas: int
+
+
+class TransicaoItemResponse(BaseModel):
+    origem: str
+    destino: str
+    quantidade: int
+    tempoMedioTransicao: int = Field(alias="tempoMedioTransicao")
+
+
+class TransicoesCasasResponse(BaseModel):
+    transitions: list[TransicaoItemResponse]
+    totalCamara: int = Field(alias="totalCamara")
+    totalSenado: int = Field(alias="totalSenado")
+
+
 class DashboardFilterParams(BaseModel):
     busca: str | None = Field(default=None)
     tipo: str | None = Field(default=None)
@@ -138,3 +157,24 @@ def obter_comparacao_temas(
 @router.get("/dashboard/tempo-por-fase", response_model=list[TempoPorFaseResponse])
 def obter_tempo_por_fase(service: DashboardService = Depends(get_dashboard_service)):
     return service.obter_tempo_por_fase()
+
+
+@router.get(
+    "/dashboard/evolucao-temporal",
+    response_model=list[EvolucaoTemporalResponse],
+)
+def obter_evolucao_temporal(
+    filtros: DashboardFilterParams = Depends(),
+    service: DashboardService = Depends(get_dashboard_service),
+):
+    filtros_dict = _montar_filtros(filtros)
+    return service.obter_evolucao_temporal(filtros_dict or None)
+
+
+@router.get("/dashboard/transicoes-casas", response_model=TransicoesCasasResponse)
+def obter_transicoes_casas(
+    filtros: DashboardFilterParams = Depends(),
+    service: DashboardService = Depends(get_dashboard_service),
+):
+    filtros_dict = _montar_filtros(filtros)
+    return service.obter_transicoes_casas(filtros_dict or None)

@@ -135,3 +135,40 @@ class Proposicao(SQLModel):
     def atraso_critico(self) -> bool:
         """Retorna True se o tempo total de tramitação for superior a LIMITE_DIAS_ATRASO dias."""
         return (self.tempo_total_dias or 0) > LIMITE_DIAS_ATRASO
+
+    @property
+    def cobertura_dados(self) -> int:
+        """Calcula a cobertura de dados da proposição."""
+        campos_validar = [
+            self.tipo,
+            self.numero,
+            self.ano,
+            self.ementa,
+            self.autor,
+            self.orgao_origem,
+            self.status,
+            self.orgao_atual,
+            self.data_apresentacao,
+            self.data_ultima_movimentacao,
+            self.link_oficial,
+            self.regime_tramitacao,
+        ]
+        preenchidos = sum(
+            1 for c in campos_validar if c is not None and str(c).strip() != ""
+        )
+        proporcao = preenchidos / len(campos_validar)
+        cobertura = 70 + int(proporcao * 25)
+        if self.tags:
+            cobertura += 5
+        return min(cobertura, 100)
+
+    @property
+    def confiabilidade(self) -> str:
+        """Calcula o nível de confiabilidade baseado na cobertura de dados."""
+        cob = self.cobertura_dados
+        if cob >= 90:
+            return "alta"
+        elif cob >= 70:
+            return "media"
+        else:
+            return "baixa"
