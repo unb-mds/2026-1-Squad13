@@ -7,12 +7,14 @@ from application.services.buscar_proposicoes_service import BuscarProposicoesSer
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
 from application.services.gerar_estimativa_service import GerarEstimativaUseCase
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+from application.services.obter_confiabilidade_service import ObterConfiabilidadeService
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from presentation.proposicao_dependencies import (
     get_buscar_proposicoes_service,
     get_detalhe_proposicao_service,
     get_gerar_estimativa_use_case,
     get_listar_movimentacoes_service,
+    get_obter_confiabilidade_service,
 )
 
 router = APIRouter(tags=["Proposições"])
@@ -84,6 +86,8 @@ class ProposicaoResponse(BaseModel):
     baselineGrupoId: str | None = Field(default=None, alias="baselineGrupoId")
     dataCalculoMetricas: str | None = Field(default=None, alias="dataCalculoMetricas")
     regimeTramitacao: str | None = Field(default=None, alias="regimeTramitacao")
+    coberturaDados: int = Field(alias="coberturaDados")
+    confiabilidade: str = Field(alias="confiabilidade")
 
 
 class ProposicoesListResponse(BaseModel):
@@ -96,6 +100,15 @@ class ProposicoesListResponse(BaseModel):
 class StatusEstimativa(StrEnum):
     CALCULADA = "CALCULADA"
     DADOS_INSUFICIENTES = "DADOS_INSUFICIENTES"
+
+
+class ConfiabilidadeResponse(BaseModel):
+    cobertura: int
+    statusHistorico: str = Field(alias="statusHistorico")
+    ultimaAtualizacao: str = Field(alias="ultimaAtualizacao")
+    fontes: list[str]
+    limitacoes: list[str]
+    confiabilidade: str
 
 
 class EventoResumoResponse(BaseModel):
@@ -169,6 +182,8 @@ def _to_response(p) -> dict:
         if p.data_calculo_metricas
         else None,
         "regimeTramitacao": p.regime_tramitacao,
+        "coberturaDados": p.cobertura_dados,
+        "confiabilidade": p.confiabilidade,
     }
 
 
@@ -323,3 +338,20 @@ def obter_estimativa_aprovacao(
         raise HTTPException(
             status_code=500, detail=f"Erro ao calcular estimativa: {str(e)}"
         ) from e
+
+
+@router.get("/proposicoes/{id}/confiabilidade", response_model=ConfiabilidadeResponse)
+async def obter_confiabilidade_proposicao(
+    id: str,
+    service: ObterConfiabilidadeService = Depends(get_obter_confiabilidade_service),
+):
+    """
+    Retorna metadados detalhados de confiabilidade, cobertura, fontes e limitações
+    para uma proposição legislativa.
+    """
+    try:
+        return await service.executar(id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}") from e

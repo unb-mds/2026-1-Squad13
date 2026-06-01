@@ -88,6 +88,14 @@ export interface ComparacaoTema {
   velocidade: 'rapido' | 'medio' | 'lento'
 }
 
+export interface TempoPorFase {
+  fase: string
+  codigoFase: string
+  ordemLogica: number
+  tempoMedioDias: number
+  quantidadeProposicoes: number
+}
+
 export interface User {
   id: string
   nome: string
