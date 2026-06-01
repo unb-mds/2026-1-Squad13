@@ -8,34 +8,37 @@ Sistema para busca e acompanhamento de proposições legislativas, com foco inic
 
 ## ⚡ Modo Rápido (Recomendado)
 
-Se você possui **Docker** e **uv** instalados, utilize os scripts de automação na raiz do projeto:
+Se você possui **Docker** instalado, utilize os scripts de automação na pasta `scripts/`:
 
 ### 1. Subir o Ambiente Completo (Docker)
-Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend e Frontend automaticamente.
-
-Antes de rodar, você pode opcionalmente criar um arquivo `.env` na raiz para definir o endereço da API (útil em ambientes remotos):
-```bash
-VITE_API_URL=http://localhost:8000
-```
+Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend, Frontend e Workers automaticamente usando healthchecks para garantir a ordem correta.
 
 ```bash
-./start_dev.sh
+./scripts/dev/up.sh
 ```
 - **Frontend:** http://localhost:5173
 - **Backend:** http://localhost:8000
 - **Docs (Swagger):** http://localhost:8000/docs
 
-### 2. Rodar Workers Celery (Tarefas Assíncronas)
-Caso precise testar a coleta em lote ou outras tarefas de background:
+### 2. Encerrar o Ambiente
+Para desligar tudo e limpar recursos (redes e containers órfãos):
 ```bash
-./start_workers.sh
+./scripts/dev/down.sh
 ```
 
 ### 3. Rodar Todos os Testes e Validações
-Executa linting, checagem de tipos e todos os testes (Unitários e Integração) de ambos os apps.
+Executa linting, checagem de tipos e todos os testes de ambos os apps de forma isolada e segura.
 ```bash
-./test_all.sh
+./scripts/ci/test.sh
 ```
+
+### 4. Popular o Banco (Seed)
+Para inserir dados de teste ou sincronizar dados reais:
+```bash
+./scripts/dev/seed.sh --type sample --limit 20
+```
+
+> **Dica:** Todos os scripts possuem suporte a `--help` para detalhamento de opções.
 
 ---
 
