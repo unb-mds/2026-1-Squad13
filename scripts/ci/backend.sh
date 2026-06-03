@@ -17,7 +17,7 @@ fi
 log_info "[BACKEND] Checando Syntax Compilation..."
 uv run python -m py_compile src/main.py
 
-log_info "[BACKEND] Rodando Pytest..."
-uv run pytest
+log_info "[BACKEND] Rodando Pytest (exceto integração externa)..."
+uv run pytest -m "not integration"
 
 log_success "[BACKEND] Passou em todos os checks!"

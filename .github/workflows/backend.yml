@@ -42,4 +42,4 @@ jobs:
       - run: uv run python -m py_compile src/main.py
 
       - name: Run Tests
-        run: export PYTHONPATH=src && uv run pytest
+        run: export PYTHONPATH=src && uv run pytest -m "not integration"
