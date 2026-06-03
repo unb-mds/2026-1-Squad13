@@ -12,4 +12,4 @@
 ## Critérios de Aceite
 - [ ] O comportamento defeituoso foi corrigido e o sistema funciona conforme o esperado.
 - [ ] Implementados testes automatizados que cobrem o cenário de erro e evitam regressões.
-- [ ] Código verificado e aprovado localmente (`Ruff` / `ESLint` / `test_all.sh` verde).
+- [ ] Código verificado e aprovado localmente (`Ruff` / `ESLint` / `./scripts/ci/test.sh` verde).

@@ -4,7 +4,7 @@ Este documento detalha como o dashboard consome dados dinâmicos do GitHub e com
 
 ## 🔄 Fluxo de Dados (Pipeline)
 
-1.  **Extração**: O script `scripts/generate-github-data.mjs` é executado via GitHub Actions a cada 6 horas ou em cada push na `main`.
+1.  **Extração**: O script `squad-dashboard/scripts/generate-github-data.mjs` é executado via GitHub Actions a cada 6 horas ou em cada push na `main`.
 2.  **API do GitHub**: O script consome os endpoints de Commits, Issues, Pull Requests, Milestones e Actions.
 3.  **Payload**: É gerado um arquivo estático em `public/data/github-stats.json`.
 4.  **Consumo**: O frontend React consome este JSON através do hook `useGithubData`.
