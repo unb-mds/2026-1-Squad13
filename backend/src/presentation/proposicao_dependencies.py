@@ -7,6 +7,9 @@ from application.services.gerar_estimativa_service import GerarEstimativaUseCase
 from application.services.listar_movimentacoes_service import (
     ListarMovimentacoesService,
 )
+from application.services.obter_confiabilidade_service import (
+    ObterConfiabilidadeService,
+)
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import get_session
@@ -70,3 +73,11 @@ def get_gerar_estimativa_use_case(
     repository: SQLProposicaoRepository = Depends(get_proposicao_repository),
 ) -> GerarEstimativaUseCase:
     return GerarEstimativaUseCase(repository)
+
+
+def get_obter_confiabilidade_service(
+    session: Session = Depends(get_session),
+) -> ObterConfiabilidadeService:
+    proposicao_repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    return ObterConfiabilidadeService(proposicao_repo, evento_repo)

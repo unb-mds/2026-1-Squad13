@@ -319,3 +319,239 @@ class SQLDashboardRepository:
             }
             for row in rows
         ]
+
+    def obter_evolucao_temporal(self, filtros: dict | None) -> list[dict]:
+        stmt = select(
+            ProposicaoModel.data_apresentacao, ProposicaoModel.data_encerramento
+        )
+        stmt = self._aplicar_filtros(stmt, filtros)
+        rows = self.session.exec(stmt).all()
+
+        MONTH_MAP = {
+            1: "Jan",
+            2: "Fev",
+            3: "Mar",
+            4: "Abr",
+            5: "Mai",
+            6: "Jun",
+            7: "Jul",
+            8: "Ago",
+            9: "Set",
+            10: "Out",
+            11: "Nov",
+            12: "Dez",
+        }
+
+        from datetime import date
+
+        hoje = date.today()
+        meses_lista = []
+        for i in range(6, -1, -1):
+            ano_diff = (hoje.month - 1 - i) // 12
+            mes_idx = (hoje.month - 1 - i) % 12 + 1
+            ano_val = hoje.year + ano_diff
+            meses_lista.append((ano_val, mes_idx))
+
+        def format_month_key(year: int, month: int) -> str:
+            short_year = str(year)[-2:]
+            return f"{MONTH_MAP[month]}/{short_year}"
+
+        counts = {
+            format_month_key(y, m): {"entradas": 0, "saidas": 0} for y, m in meses_lista
+        }
+
+        for data_apr, data_enc in rows:
+            if data_apr:
+                try:
+                    y_apr = int(data_apr[:4])
+                    m_apr = int(data_apr[5:7])
+                    key = format_month_key(y_apr, m_apr)
+                    if key in counts:
+                        counts[key]["entradas"] += 1
+                except Exception:
+                    pass
+            if data_enc:
+                try:
+                    y_enc = int(data_enc[:4])
+                    m_enc = int(data_enc[5:7])
+                    key = format_month_key(y_enc, m_enc)
+                    if key in counts:
+                        counts[key]["saidas"] += 1
+                except Exception:
+                    pass
+
+        result = []
+        for y, m in meses_lista:
+            key = format_month_key(y, m)
+            result.append(
+                {
+                    "mes": key,
+                    "entradas": counts[key]["entradas"],
+                    "saidas": counts[key]["saidas"],
+                }
+            )
+        return result
+
+    def obter_transicoes_casas(self, filtros: dict | None) -> dict:
+        stmt = select(
+            ProposicaoModel.id,
+            ProposicaoModel.orgao_origem,
+            ProposicaoModel.orgao_atual,
+            ProposicaoModel.status,
+        )
+        stmt = self._aplicar_filtros(stmt, filtros)
+        props = self.session.exec(stmt).all()
+
+        if not props:
+            return {
+                "transitions": [
+                    {
+                        "origem": "Câmara",
+                        "destino": "Senado",
+                        "quantidade": 0,
+                        "tempoMedioTransicao": 0,
+                    },
+                    {
+                        "origem": "Senado",
+                        "destino": "Câmara",
+                        "quantidade": 0,
+                        "tempoMedioTransicao": 0,
+                    },
+                ],
+                "totalCamara": 0,
+                "totalSenado": 0,
+            }
+
+        total_camara = 0
+        total_senado = 0
+        ids = []
+
+        for p in props:
+            id_p, orgao_origem, orgao_atual, status = p
+            ids.append(str(id_p))
+
+            casa = "Câmara"
+            if status in ("Sancionada", "Vetada"):
+                casa = "Sanção"
+            elif (orgao_origem and "senado" in orgao_origem.lower()) or (
+                orgao_atual
+                and ("sf" in orgao_atual.lower() or "senado" in orgao_atual.lower())
+            ):
+                casa = "Senado"
+
+            if casa == "Câmara":
+                total_camara += 1
+            elif casa == "Senado":
+                total_senado += 1
+
+        from infrastructure.database.models.evento_tramitacao_model import (
+            EventoTramitacaoModel,
+        )
+
+        events = []
+        chunk_size = 500
+        for i in range(0, len(ids), chunk_size):
+            chunk_ids = ids[i : i + chunk_size]
+            stmt_ev = (
+                select(
+                    EventoTramitacaoModel.proposicao_id,
+                    EventoTramitacaoModel.data_evento,
+                    EventoTramitacaoModel.sigla_orgao,
+                    EventoTramitacaoModel.sequencia,
+                )
+                .where(EventoTramitacaoModel.proposicao_id.in_(chunk_ids))
+                .order_by(
+                    EventoTramitacaoModel.proposicao_id,
+                    EventoTramitacaoModel.data_evento,
+                    EventoTramitacaoModel.sequencia,
+                )
+            )
+            events.extend(self.session.exec(stmt_ev).all())
+
+        events_by_prop = {}
+        for ev in events:
+            pid, data_ev, sigla, seq = ev
+            if pid not in events_by_prop:
+                events_by_prop[pid] = []
+            events_by_prop[pid].append((data_ev, sigla))
+
+        trans_c_s = []
+        trans_s_c = []
+
+        for _pid, prop_events in events_by_prop.items():
+            if len(prop_events) < 2:
+                continue
+
+            events_with_house = []
+            for data_ev, sigla in prop_events:
+                if not sigla:
+                    house = None
+                elif "sf" in sigla.lower() or "senado" in sigla.lower():
+                    house = "Senado"
+                else:
+                    house = "Câmara"
+                events_with_house.append((data_ev, house))
+
+            last_known_house = None
+            for _, house in events_with_house:
+                if house:
+                    last_known_house = house
+                    break
+            if not last_known_house:
+                last_known_house = "Câmara"
+
+            filled_events = []
+            for data_ev, house in events_with_house:
+                if house:
+                    last_known_house = house
+                filled_events.append((data_ev, last_known_house))
+
+            current_house = filled_events[0][1]
+            last_date_str = filled_events[0][0]
+
+            for i in range(1, len(filled_events)):
+                date_str, house = filled_events[i]
+                if house != current_house:
+                    try:
+                        from datetime import datetime
+
+                        d1 = datetime.fromisoformat(
+                            last_date_str[:10].replace(" ", "T")
+                        )
+                        d2 = datetime.fromisoformat(date_str[:10].replace(" ", "T"))
+                        diff_days = max(1, (d2 - d1).days)
+                    except Exception:
+                        diff_days = 1
+
+                    if current_house == "Câmara" and house == "Senado":
+                        trans_c_s.append(diff_days)
+                    elif current_house == "Senado" and house == "Câmara":
+                        trans_s_c.append(diff_days)
+
+                    current_house = house
+                last_date_str = date_str
+
+        qty_c_s = len(trans_c_s)
+        avg_c_s = int(sum(trans_c_s) / qty_c_s) if qty_c_s > 0 else 0
+
+        qty_s_c = len(trans_s_c)
+        avg_s_c = int(sum(trans_s_c) / qty_s_c) if qty_s_c > 0 else 0
+
+        return {
+            "transitions": [
+                {
+                    "origem": "Câmara",
+                    "destino": "Senado",
+                    "quantidade": qty_c_s,
+                    "tempoMedioTransicao": avg_c_s,
+                },
+                {
+                    "origem": "Senado",
+                    "destino": "Câmara",
+                    "quantidade": qty_s_c,
+                    "tempoMedioTransicao": avg_s_c,
+                },
+            ],
+            "totalCamara": total_camara,
+            "totalSenado": total_senado,
+        }

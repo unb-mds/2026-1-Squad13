@@ -8,6 +8,7 @@ import type {
   GargaloInstitucional,
   ComparacaoTema,
   FiltrosProposicao,
+  TempoPorFase,
 } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -86,6 +87,27 @@ export async function obterMovimentacoes(proposicaoId: string, modo: 'completo' 
   }
 }
 
+export async function obterMovimentacoesFases(proposicaoId: string): Promise<unknown[]> {
+  try {
+    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes?modo=resumido`)
+    if (!response.ok) return []
+    return await response.json()
+  } catch {
+    return []
+  }
+}
+
+export async function obterMovimentacoesEventos(proposicaoId: string, modo: 'completo' | 'relevante' = 'relevante'): Promise<unknown[]> {
+  try {
+    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes?modo=${modo}`)
+    if (!response.ok) return []
+    return await response.json()
+  } catch {
+    return []
+  }
+}
+
+
 // --- Dashboard ---
 function _filtrosParaParams(filtros?: Partial<FiltrosProposicao>): string {
   if (!filtros) return ''
@@ -136,3 +158,30 @@ export async function obterComparacaoTemas(filtros?: Partial<FiltrosProposicao>)
   if (!response.ok) throw new Error('Falha ao buscar comparação de temas')
   return await response.json()
 }
+
+export async function obterTempoPorFase(): Promise<TempoPorFase[]> {
+  const response = await fetch(`${API_BASE}/dashboard/tempo-por-fase`)
+  if (!response.ok) throw new Error('Falha ao buscar tempo por fase')
+  return await response.json()
+}
+
+export async function obterEvolucaoTemporal(filtros?: Partial<FiltrosProposicao>): Promise<unknown[]> {
+  const response = await fetch(`${API_BASE}/dashboard/evolucao-temporal${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar evolução temporal')
+  return await response.json()
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function obterTransicoesCasas(filtros?: Partial<FiltrosProposicao>): Promise<any> {
+  const response = await fetch(`${API_BASE}/dashboard/transicoes-casas${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar transições de casas')
+  return await response.json()
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function obterConfiabilidade(proposicaoId: string): Promise<any> {
+  const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/confiabilidade`)
+  if (!response.ok) throw new Error('Falha ao buscar confiabilidade da proposição')
+  return await response.json()
+}
+
