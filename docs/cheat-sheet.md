@@ -16,21 +16,25 @@ Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 
 ---
 
-## 2. Docker / Docker Compose
+## 2. Automação e Docker (Recomendado)
 
-- `docker compose up -d` → subir Core (PostgreSQL, Redis, Backend, Frontend).
-- `docker compose --profile worker up -d` → subir tudo incluindo Workers.
-- `docker compose down` → desligar tudo.
+- `./scripts/dev/up.sh` → sobe infra (PostgreSQL, Redis, Backend, Frontend).
+- `./scripts/dev/up.sh --no-workers` → sobe sem Workers/Celery.
+- `./scripts/dev/down.sh` → desliga tudo e limpa recursos.
+- `./scripts/ci/test.sh` → roda lint e testes de todo o projeto.
+- `./scripts/dev/seed.sh` → popula banco com dados das APIs.
+
+## 3. Comandos Manuais (Docker Compose)
+
 - `docker compose logs -f backend` → acompanhar logs da API.
 - `docker compose exec backend bash` → terminal no container backend.
 
 ---
 
-## 3. Workers & Tarefas Assíncronas (Celery)
+## 4. Workers & Tarefas Assíncronas (Celery)
 
-- `./start_workers.sh` → atalha para subir Worker e Beat.
+- `./scripts/dev/workers.sh` → atalha para subir Worker e Beat separadamente.
 - `docker compose logs -f celery_worker` → ver processamento de tarefas.
-- `docker compose run --rm backend uv run celery -A infrastructure.workers.celery_app status` → checar saúde do Celery.
 
 ---
 

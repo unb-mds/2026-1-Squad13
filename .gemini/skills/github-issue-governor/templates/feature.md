@@ -7,5 +7,5 @@
 ## Critérios de Aceite
 - [ ] Implementação de acordo com as diretrizes de arquitetura do projeto (ex: Feature-based no frontend, Layered no backend).
 - [ ] Todos os novos fluxos de dados ou regras de negócio cobertos por testes unitários e de integração.
-- [ ] Validação blindada local executada com sucesso (`test_all.sh` verde).
+- [ ] Validação blindada local executada com sucesso (`./scripts/ci/test.sh` verde).
 - [ ] Labels do Squad Dashboard atribuídas de forma consistente.

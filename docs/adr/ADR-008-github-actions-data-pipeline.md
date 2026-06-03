@@ -29,7 +29,7 @@ Fluxo completo:
 
 ```
 GitHub Actions (cron a cada 6h ou acionamento manual)
-  └→ scripts/generate-github-data.mjs
+  └→ squad-dashboard/scripts/generate-github-data.mjs
        └→ GitHub REST API v3 (~5 requisições autenticadas)
             └→ squad-dashboard/public/data/github-stats.json
                  └→ commit automático em main
@@ -50,11 +50,11 @@ GitHub Actions (cron a cada 6h ou acionamento manual)
    - O commit em `main` dispara o workflow de deploy
 
 2. `deploy-squad-dashboard.yml` — responsável pelo build e publicação:
-   - Executa `scripts/generate-github-data.mjs` como step antes do build (`continue-on-error: true`)
+   - Executa `squad-dashboard/scripts/generate-github-data.mjs` como step antes do build (`continue-on-error: true`)
    - Garante dados frescos em cada deploy independente do cron ter rodado
    - Se a geração falhar, o deploy continua com o JSON anterior (ou placeholder)
 
-**Script de geração** (`scripts/generate-github-data.mjs`):
+**Script de geração** (`squad-dashboard/scripts/generate-github-data.mjs`):
 - Node 18+ com `fetch` nativo — sem dependências extras
 - 5 chamadas à GitHub REST API v3:
   - `GET /repos/{owner}/{repo}/commits` — commits por dia e por autor
