@@ -60,13 +60,19 @@ async def test_camara_adapter_normalizacao_sucesso(adapter):
 
 @pytest.mark.asyncio
 async def test_camara_adapter_erro_rede(adapter):
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+    with (
+        patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get,
+        patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+    ):
         mock_get.side_effect = httpx.RequestError("Erro de conexão")
 
         # Act
         proposicao = await adapter.buscar_por_id(12345)
 
         assert proposicao is None
+        # Verifica se houve retentativas (3 tentativas no total conforme CamaraAdapter)
+        assert mock_get.call_count == 3
+        assert mock_sleep.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -111,7 +117,10 @@ async def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
 
 @pytest.mark.asyncio
 async def test_camara_adapter_buscar_tramitacoes_brutas_erro(adapter):
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+    with (
+        patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get,
+        patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+    ):
         mock_get.side_effect = httpx.RequestError("Erro")
 
         # Act
@@ -119,6 +128,8 @@ async def test_camara_adapter_buscar_tramitacoes_brutas_erro(adapter):
 
         # Assert
         assert tramitacoes == []
+        assert mock_get.call_count == 3
+        assert mock_sleep.call_count == 2
 
 
 @pytest.mark.asyncio
