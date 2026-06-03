@@ -131,7 +131,9 @@ async def run(force=False, sources=None, years=None, types=None, limit=5) -> Non
     years = years or list(range(2000, current_year + 1))
     types = types or ["PL", "PEC"]
 
-    logger.info(f"🚀 Iniciando Seed (Fontes: {sources}, Anos: {len(years)} anos entre {min(years)}-{max(years)}, Limite: {limit})...")
+    logger.info(
+        f"🚀 Iniciando Seed (Fontes: {sources}, Anos: {len(years)} anos entre {min(years)}-{max(years)}, Limite: {limit})..."
+    )
 
     async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
         # 1. Preparação robusta com migrações
@@ -307,9 +309,11 @@ def interactive_menu():
     limit = int(input("> Limite [5]: ") or "5")
 
     current_year = datetime.now().year
-    print("\n3. Escolha os ANOS (deixe em BRANCO para coleta variada de 2000 até hoje):")
+    print(
+        "\n3. Escolha os ANOS (deixe em BRANCO para coleta variada de 2000 até hoje):"
+    )
     years_str = input(f"> Anos [2000-{current_year}]: ").strip()
-    
+
     if not years_str:
         years = list(range(2000, current_year + 1))
     else:
@@ -320,7 +324,9 @@ def interactive_menu():
     types = [t.upper() for t in types_str.split()]
 
     print("\n" + "-" * 40)
-    print(f"Configuração: {sources} | Anos: {len(years)} selecionados | Tipos: {types} | Limite: {limit}")
+    print(
+        f"Configuração: {sources} | Anos: {len(years)} selecionados | Tipos: {types} | Limite: {limit}"
+    )
     confirm = input("Confirmar execução? (S/n): ").lower()
 
     if confirm == "n":
@@ -345,7 +351,9 @@ if __name__ == "__main__":
         sources, years, types, limit = interactive_menu()
     else:
         sources = ["camara", "senado"] if args.source == "ambos" else [args.source]
-        years = args.years  # Passa None se não informado, ativando o default de 2000-hoje em run()
+        years = (
+            args.years
+        )  # Passa None se não informado, ativando o default de 2000-hoje em run()
         types = args.types or ["PL", "PEC"]
         limit = args.limit or 5
 
