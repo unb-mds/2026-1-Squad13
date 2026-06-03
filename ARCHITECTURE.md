@@ -126,61 +126,10 @@ O projeto adota uma pirâmide de testes focada em garantir a confiabilidade das 
 ├── ARCHITECTURE.md              ← este arquivo
 ├── README.md                    ← setup e como rodar
 │
-├── docs/
-│   ├── adr/                     ← Architecture Decision Records
-│   ├── MIGRATION_SCOPE.md       ← Escopo da migração para modelo analítico
-│   └── BACKLOG.md               ← Backlog normalizado por release
-│
-├── backend/
-│   └── src/
-│       ├── main.py
-│       ├── presentation/        ← Camada de Apresentação
-│       │   └── controllers/
-│       │       ├── proposicao_controller.py
-│       │       ├── dashboard_controller.py
-│       │       └── auth_controller.py
-│       ├── application/         ← Camada de Aplicação (Services)
-│       │   └── services/
-│       │       ├── buscar_proposicoes_service.py
-│       │       ├── dashboard_service.py
-│       │       ├── listar_movimentacoes_service.py
-│       │       ├── normalizar_tramitacao_service.py
-│       │       ├── detalhe_proposicao_service.py
-│       │       └── auth_service.py
-│       ├── domain/              ← Camada de Domínio
-│       │   ├── entities/
-│       │   │   ├── proposicao.py
-│       │   │   ├── evento_tramitacao.py  ← modelo analítico principal
-│       │   │   ├── fase_analitica.py
-│       │   │   ├── orgao_legislativo.py
-│       │   │   ├── tipo_evento.py        ← enum com 20 tipos
-│       │   │   ├── fase_codigo.py        ← enum das 8 fases
-│       │   │   └── user.py
-│       │   ├── classificar_evento.py     ← funções de domínio
-│       │   └── exceptions.py
-│       └── infrastructure/      ← Camada de Infraestrutura
-│           ├── adapters/        ← Adapters para APIs externas
-│           │   ├── camara_adapter.py
-│           │   ├── senado_adapter.py
-│           │   └── security_adapter.py
-│           ├── repositories/    ← Repositórios SQL
-│           │   ├── sql_proposicao_repository.py
-│           │   ├── sql_evento_tramitacao_repository.py
-│           │   ├── sql_fase_analitica_repository.py
-│           │   ├── sql_orgao_legislativo_repository.py
-│           │   └── sql_user_repository.py
-│           ├── cache/           ← Cache (Redis — planejado para R2)
-│           └── workers/         ← Tarefas agendadas (Celery — planejado para R2)
-│
-├── frontend/
-│   └── src/
-│       ├── app/                 ← Configurações globais, rotas e providers
-│       ├── features/            ← Funcionalidades isoladas (ex: filtros, lista)
-│       ├── pages/               ← Páginas da aplicação
-│       ├── shared/              ← Componentes e libs compartilhados
-│       └── main.tsx
-│
-└── squad-dashboard/             ← Painel de métricas do time (standalone)
+├── docs/                        ← Documentação técnica e ADRs
+├── scripts/                     ← Automações (dev, db, ci, gcp)
+├── squad-dashboard/             ← Painel de métricas do time (standalone)
+└── README.md                    ← Setup e como rodar
 ```
 
 ---
@@ -227,4 +176,4 @@ SenadoAdapter  ──→ dicts brutos ──┘
 
 ---
 
-_Última atualização: 2026-05-16_
+_Última atualização: 2026-06-03_

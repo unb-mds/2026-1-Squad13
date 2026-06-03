@@ -7,4 +7,4 @@
 ## Critérios de Aceite
 - [ ] O trecho temporário foi removido e a solução definitiva foi implementada de acordo com as boas práticas (ex: injeção de dependências, tratamento de erros resiliente).
 - [ ] Testes de integração/unitários adequados implementados e validados.
-- [ ] Aprovação na validação local (`test_all.sh` verde).
+- [ ] Aprovação na validação local (`./scripts/ci/test.sh` verde).

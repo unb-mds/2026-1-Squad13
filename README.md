@@ -89,7 +89,13 @@ Para mais detalhes sobre como a automação funciona, consulte o [AUTOMATION.md]
 
 ## 🧪 Testes Automatizados
 
-Além do `./test_all.sh`, você pode rodar testes específicos:
+Para uma validação completa e rápida de todo o monorepo (Backend + Frontend + Dashboard), utilize o script central:
+
+```bash
+./scripts/ci/test.sh
+```
+
+Caso precise rodar testes específicos de cada módulo:
 
 ### Backend (Pytest)
 ```bash
@@ -123,6 +129,7 @@ O sistema está configurado para que o frontend consuma dados reais do backend v
 ├── frontend/           ← Aplicação React + Vite (Principal)
 ├── squad-dashboard/    ← Painel de métricas e gestão do time
 ├── docs/               ← Documentação técnica e ADRs
+├── scripts/            ← Automações (dev, db, ci, gcp)
 └── README.md
 ```
 

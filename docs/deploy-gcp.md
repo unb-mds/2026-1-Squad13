@@ -141,7 +141,7 @@ O CD executa na VM:
 
 ```bash
 git pull origin develop
-./start_gcp.sh
+./scripts/gcp/up.sh
 ```
 
 > **O `.env` nunca é sobrescrito pelo CD.** Ele é criado manualmente no primeiro setup e permanece na VM. Se precisar alterar variáveis, edite o `.env` diretamente na VM e reinicie os containers afetados.
@@ -149,7 +149,7 @@ git pull origin develop
 Se precisar redeployar manualmente, utilize o script de automação que já lida com healthchecks e workers:
 
 ```bash
-./start_gcp.sh
+./scripts/gcp/up.sh
 ```
 
 ```bash
