@@ -201,3 +201,83 @@ def test_obter_proposicoes_para_temas(session: Session):
     temas = repo.obter_proposicoes_para_temas(None)
     assert len(temas) == 1
     assert "Saúde" in temas[0]["tags"]
+
+
+def test_obter_evolucao_temporal(session: Session):
+    repo = SQLDashboardRepository(session)
+    p1 = ProposicaoModel(
+        id="1",
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        autor="A",
+        status="Aprovada",
+        orgao_atual="O1",
+        ementa="E1",
+        data_apresentacao="2026-05-15",
+        data_ultima_movimentacao="2026-05-15",
+        data_encerramento="2026-05-20",
+        tempo_total_dias=5,
+    )
+    session.add(p1)
+    session.commit()
+
+    evolucao = repo.obter_evolucao_temporal(None)
+    assert len(evolucao) == 7
+    mai_data = next((item for item in evolucao if item["mes"] == "Mai/26"), None)
+    assert mai_data is not None
+    assert mai_data["entradas"] == 1
+    assert mai_data["saidas"] == 1
+
+
+def test_obter_transicoes_casas(session: Session):
+    repo = SQLDashboardRepository(session)
+    p1 = ProposicaoModel(
+        id="1",
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        autor="A",
+        status="Em tramitação",
+        orgao_atual="PLEN",
+        orgao_origem="Câmara dos Deputados",
+        ementa="E1",
+        data_apresentacao="2026-05-01",
+        data_ultima_movimentacao="2026-05-10",
+    )
+    session.add(p1)
+
+    from infrastructure.database.models.evento_tramitacao_model import (
+        EventoTramitacaoModel,
+    )
+
+    ev1 = EventoTramitacaoModel(
+        evento_id=1,
+        proposicao_id="1",
+        data_evento="2026-05-01",
+        sequencia=1,
+        sigla_orgao="CD",
+        descricao_original="Apresentação",
+        tipo_evento="APRESENTACAO",
+    )
+    ev2 = EventoTramitacaoModel(
+        evento_id=2,
+        proposicao_id="1",
+        data_evento="2026-05-05",
+        sequencia=2,
+        sigla_orgao="SF",
+        descricao_original="Remessa ao Senado",
+        tipo_evento="REMESSA_OUTRA_CASA",
+    )
+    session.add(ev1)
+    session.add(ev2)
+    session.commit()
+
+    transicoes = repo.obter_transicoes_casas(None)
+    assert transicoes["totalCamara"] == 1 or transicoes["totalSenado"] == 1
+    transitions = transicoes["transitions"]
+    c_s = next(
+        t for t in transitions if t["origem"] == "Câmara" and t["destino"] == "Senado"
+    )
+    assert c_s["quantidade"] == 1
+    assert c_s["tempoMedioTransicao"] == 4
