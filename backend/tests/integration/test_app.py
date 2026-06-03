@@ -67,7 +67,12 @@ def test_health_failure(http_client: TestClient):
 
 
 def test_app_lifespan():
+    from unittest.mock import patch
     # O uso do context manager 'with' dispara o lifespan
-    with TestClient(app) as client:
-        response = client.get("/")
-        assert response.status_code == 200
+    # Mockamos o init_db.run para evitar o custo de migrações e seeds pesados
+    # apenas neste teste que valida se o app sobe e desce corretamente.
+    with patch("main.init_db.run") as mock_run:
+        with TestClient(app) as client:
+            response = client.get("/")
+            assert response.status_code == 200
+            mock_run.assert_called_once()

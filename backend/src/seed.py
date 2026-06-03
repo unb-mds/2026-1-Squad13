@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import logging
 import sys
+from datetime import datetime
 
 import httpx
 from sqlmodel import Session, func, select
@@ -124,11 +125,15 @@ def generate_tags(ementa):
 
 
 async def run(force=False, sources=None, years=None, types=None, limit=5) -> None:
+    current_year = datetime.now().year
     sources = sources or ["camara"]
-    years = years or [2025, 2026]
+    # Se não informar anos, pega uma faixa ampla de anos (2000 até hoje) para garantir variedade total
+    years = years or list(range(2000, current_year + 1))
     types = types or ["PL", "PEC"]
 
-    logger.info(f"🚀 Iniciando Seed (Fontes: {sources}, Limite: {limit})...")
+    logger.info(
+        f"🚀 Iniciando Seed (Fontes: {sources}, Anos: {len(years)} anos entre {min(years)}-{max(years)}, Limite: {limit})..."
+    )
 
     async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
         # 1. Preparação robusta com migrações
@@ -300,19 +305,28 @@ def interactive_menu():
     elif choice == "3":
         sources = ["camara", "senado"]
 
-    print("\n2. Escolha o LIMITE de proposições por lote:")
+    print("\n2. Escolha o LIMITE de proposições por lote (ano/tipo):")
     limit = int(input("> Limite [5]: ") or "5")
 
-    print("\n3. Escolha os ANOS (separados por espaço):")
-    years_str = input("> Anos [2025 2026]: ") or "2025 2026"
-    years = [int(y) for y in years_str.split()]
+    current_year = datetime.now().year
+    print(
+        "\n3. Escolha os ANOS (deixe em BRANCO para coleta variada de 2000 até hoje):"
+    )
+    years_str = input(f"> Anos [2000-{current_year}]: ").strip()
+
+    if not years_str:
+        years = list(range(2000, current_year + 1))
+    else:
+        years = [int(y) for y in years_str.split()]
 
     print("\n4. Escolha os TIPOS (separados por espaço):")
     types_str = input("> Tipos [PL PEC]: ") or "PL PEC"
     types = [t.upper() for t in types_str.split()]
 
     print("\n" + "-" * 40)
-    print(f"Configuração: {sources} | Anos: {years} | Tipos: {types} | Limite: {limit}")
+    print(
+        f"Configuração: {sources} | Anos: {len(years)} selecionados | Tipos: {types} | Limite: {limit}"
+    )
     confirm = input("Confirmar execução? (S/n): ").lower()
 
     if confirm == "n":
@@ -337,7 +351,9 @@ if __name__ == "__main__":
         sources, years, types, limit = interactive_menu()
     else:
         sources = ["camara", "senado"] if args.source == "ambos" else [args.source]
-        years = args.years or [2025, 2026]
+        years = (
+            args.years
+        )  # Passa None se não informado, ativando o default de 2000-hoje em run()
         types = args.types or ["PL", "PEC"]
         limit = args.limit or 5
 

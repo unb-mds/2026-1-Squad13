@@ -96,7 +96,10 @@ async def test_senado_adapter_fallback_data_ultima_movimentacao(adapter):
 
 @pytest.mark.asyncio
 async def test_senado_adapter_erro_rede(adapter):
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+    with (
+        patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get,
+        patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+    ):
         mock_get.side_effect = httpx.RequestError("Erro de conexão")
 
         # Act
@@ -104,6 +107,8 @@ async def test_senado_adapter_erro_rede(adapter):
 
         # Assert
         assert proposicao is None
+        assert mock_get.call_count == 3
+        assert mock_sleep.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -164,7 +169,10 @@ async def test_senado_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
 
 @pytest.mark.asyncio
 async def test_senado_adapter_buscar_tramitacoes_brutas_erro(adapter):
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+    with (
+        patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get,
+        patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+    ):
         mock_get.side_effect = httpx.RequestError("Erro")
 
         # Act
@@ -172,6 +180,10 @@ async def test_senado_adapter_buscar_tramitacoes_brutas_erro(adapter):
 
         # Assert
         assert tramitacoes == []
+        # No Senado, buscar_tramitacoes_brutas tenta buscar a materia primeiro.
+        # Se falha, o erro é propagado.
+        assert mock_get.call_count == 4
+        assert mock_sleep.call_count == 2
 
 
 @pytest.mark.asyncio

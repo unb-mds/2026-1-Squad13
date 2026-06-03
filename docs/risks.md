@@ -53,7 +53,7 @@
 
 **Impacto:** Médio — onboarding mais lento para membros sem Docker instalado.  
 **Probabilidade:** Baixa — a maioria dos membros já tem Docker configurado.  
-**Mitigação:** Scripts de automação (`start_dev.sh`, `test_all.sh`) e documentação de setup manual no README.
+**Mitigação:** Scripts de automação (`scripts/dev/up.sh`, `scripts/ci/test.sh`) e documentação de setup manual no README.
 
 ---
 
