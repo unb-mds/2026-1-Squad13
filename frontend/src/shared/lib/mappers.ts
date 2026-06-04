@@ -52,7 +52,7 @@ export function mapProposicaoToProposition(p: Proposicao): Proposition {
   }
 
   return {
-    id: p.id,
+    id: p.codigoNormalizado || p.id,
     numero: `${p.numero}/${p.ano}`,
     tipo: p.tipo,
     ementa: p.ementaResumida || p.ementa,
