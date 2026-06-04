@@ -86,7 +86,7 @@ async def get_varied_ids(
             if "camara" in sources:
                 tasks_c.append(sem_listar_c(tipo, limit_per_batch, ano))
             if "senado" in sources:
-                tasks_s.append(sem_listar_s(tipo, 1 if limit_per_batch > 1 else 1, ano))
+                tasks_s.append(sem_listar_s(tipo, limit_per_batch, ano))
 
     try:
         logger.info("⏳ Aguardando respostas das APIs...")
