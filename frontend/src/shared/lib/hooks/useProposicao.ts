@@ -28,6 +28,7 @@ const fallbackProposition: Proposition = {
   coberturaDados: 94,
   confiabilidade: "alta",
   statusTramitacao: "em-atraso",
+  statusLabel: "Em atraso",
   transitouEntreCasas: false,
 };
 

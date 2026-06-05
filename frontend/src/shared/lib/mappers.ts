@@ -39,16 +39,32 @@ export function mapProposicaoToProposition(p: Proposicao): Proposition {
     casaAtual = "Senado";
   }
 
-  // Determina o status de tramitação para a UI
+  // Determina o status de tramitação para a UI (categorização por cores)
   let statusTramitacao: Proposition["statusTramitacao"] = "em-tramitacao";
+  
   if (p.temAtraso) {
     statusTramitacao = "em-atraso";
-  } else if (p.status === "Aprovada" || p.status === "Sancionada") {
-    statusTramitacao = "aprovada";
-  } else if (p.status === "Rejeitada" || p.status === "Arquivada" || p.status === "Vetada") {
-    statusTramitacao = "arquivada";
-  } else if (p.status === "Aguardando votação") {
-    statusTramitacao = "aguardando";
+  } else {
+    const statusLower = p.status.toLowerCase();
+    
+    if (
+      statusLower.includes("aprovada") || 
+      statusLower.includes("sancionada") || 
+      statusLower.includes("concluída")
+    ) {
+      statusTramitacao = "aprovada";
+    } else if (
+      statusLower.includes("rejeitada") || 
+      statusLower.includes("arquivada") || 
+      statusLower.includes("vetada")
+    ) {
+      statusTramitacao = "arquivada";
+    } else if (
+      statusLower.includes("aguardando") || 
+      statusLower.includes("pauta")
+    ) {
+      statusTramitacao = "aguardando";
+    }
   }
 
   return {
@@ -66,6 +82,7 @@ export function mapProposicaoToProposition(p: Proposicao): Proposition {
     coberturaDados: p.tags?.includes("fallback") ? 75 : 94,
     confiabilidade: p.tags?.includes("fallback") ? "media" : "alta",
     statusTramitacao,
+    statusLabel: p.temAtraso ? "Em atraso" : p.status,
     transitouEntreCasas: p.orgaoOrigem?.toLowerCase().includes("senado") && p.orgaoAtual?.toLowerCase().includes("camara") || p.orgaoOrigem?.toLowerCase().includes("camara") && p.orgaoAtual?.toLowerCase().includes("senado"),
   };
 }
