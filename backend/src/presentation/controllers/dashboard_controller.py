@@ -155,8 +155,12 @@ def obter_comparacao_temas(
 
 
 @router.get("/dashboard/tempo-por-fase", response_model=list[TempoPorFaseResponse])
-def obter_tempo_por_fase(service: DashboardService = Depends(get_dashboard_service)):
-    return service.obter_tempo_por_fase()
+def obter_tempo_por_fase(
+    filtros: DashboardFilterParams = Depends(),
+    service: DashboardService = Depends(get_dashboard_service),
+):
+    filtros_dict = _montar_filtros(filtros)
+    return service.obter_tempo_por_fase(filtros_dict or None)
 
 
 @router.get(

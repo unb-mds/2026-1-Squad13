@@ -287,13 +287,18 @@ class DashboardService:
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_tempo_por_fase(self) -> list[dict]:
+    def obter_tempo_por_fase(self, filtros: dict | None = None) -> list[dict]:
         """
         Calcula o tempo médio que proposições passam em cada fase analítica.
 
         Retorna apenas fases com ao menos uma proposição registrada,
         ordenadas por ordem_logica. Eventos sem fase_analitica_id são ignorados.
         """
+        cache_key = self._gerar_cache_key("dashboard:tempo_por_fase", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         if self.fase_repo is None:
             return []
 
@@ -306,8 +311,17 @@ class DashboardService:
             for f in fases
         }
 
-        todas = self.repository.filtrar()
+        # Filtrar apenas chaves aceitas na assinatura de filtrar() do repositório
+        chaves_aceitas = {
+            "tipo", "numero", "ano", "autor", "uf_autor", "status",
+            "busca", "orgao_origem", "data_inicio", "data_fim", "limit", "offset"
+        }
+        filtros_seguros = {k: v for k, v in (filtros or {}).items() if k in chaves_aceitas}
+
+        todas = self.repository.filtrar(**filtros_seguros)
         if not todas:
+            # Registra no cache que não há dados antes de retornar
+            self._set_cache(cache_key, [])
             return []
 
         ids = [str(p.id) for p in todas]
@@ -382,7 +396,9 @@ class DashboardService:
                 }
             )
 
-        return sorted(resultado, key=lambda x: x["ordemLogica"])
+        resultado_ordenado = sorted(resultado, key=lambda x: x["ordemLogica"])
+        self._set_cache(cache_key, resultado_ordenado)
+        return resultado_ordenado
 
     def obter_evolucao_temporal(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:evolucao_temporal", filtros)
