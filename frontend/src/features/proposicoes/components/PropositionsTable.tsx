@@ -15,6 +15,7 @@ export interface Proposition {
   coberturaDados: number;
   confiabilidade: "alta" | "media" | "baixa";
   statusTramitacao: "em-tramitacao" | "em-atraso" | "aprovada" | "arquivada" | "aguardando";
+  statusLabel: string;
   transitouEntreCasas?: boolean;
 }
 
@@ -54,21 +55,6 @@ export function PropositionsTable({ propositions, onSort, onPropositionClick }: 
         return "bg-slate-50 text-slate-600 border-slate-200";
       case "aguardando":
         return "bg-amber-50 text-amber-700 border-amber-200";
-    }
-  };
-
-  const getStatusLabel = (status: Proposition["statusTramitacao"]) => {
-    switch (status) {
-      case "em-tramitacao":
-        return "Em tramitação";
-      case "em-atraso":
-        return "Em atraso";
-      case "aprovada":
-        return "Aprovada";
-      case "arquivada":
-        return "Arquivada";
-      case "aguardando":
-        return "Aguardando";
     }
   };
 
@@ -221,7 +207,7 @@ export function PropositionsTable({ propositions, onSort, onPropositionClick }: 
                       prop.statusTramitacao
                     )}`}
                   >
-                    {getStatusLabel(prop.statusTramitacao)}
+                    {prop.statusLabel}
                   </span>
                 </td>
                 <td className="px-4 py-4">
