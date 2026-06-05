@@ -1,9 +1,7 @@
+from application.ports.camara_adapter import CamaraAdapterPort
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
+from application.ports.senado_adapter import SenadoAdapterPort
 from domain.entities.proposicao import Proposicao
-from infrastructure.adapters.camara_adapter import CamaraAdapter
-from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
 
 
 class DetalheProposicaoService:
@@ -14,9 +12,9 @@ class DetalheProposicaoService:
 
     def __init__(
         self,
-        repository: SQLProposicaoRepository,
-        camara_adapter: CamaraAdapter,
-        senado_adapter: SenadoAdapter,
+        repository: ProposicaoRepositoryPort,
+        camara_adapter: CamaraAdapterPort,
+        senado_adapter: SenadoAdapterPort,
     ):
         self.repository = repository
         self.camara_adapter = camara_adapter
