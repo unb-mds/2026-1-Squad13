@@ -10,6 +10,19 @@ from typing import Any
 
 import httpx
 
+from application.ports.apensamento_repository import ApensamentoRepositoryPort
+from application.ports.camara_adapter import CamaraAdapterPort
+from application.ports.evento_tramitacao_repository import (
+    EventoTramitacaoRepositoryPort,
+)
+from application.ports.fase_analitica_repository import (
+    FaseAnaliticaRepositoryPort,
+)
+from application.ports.orgao_legislativo_repository import (
+    OrgaoLegislativoRepositoryPort,
+)
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
+from application.ports.senado_adapter import SenadoAdapterPort
 from application.services.agregar_por_fase_service import AgregarPorFaseService
 from application.services.normalizar_tramitacao_service import (
     NormalizarTramitacaoService,
@@ -18,23 +31,6 @@ from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from domain.value_objects.periodo_fase import PeriodoFase
-from infrastructure.adapters.camara_adapter import CamaraAdapter
-from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
-)
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
-)
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
-from infrastructure.repositories.sql_orgao_legislativo_repository import (
-    SQLOrgaoLegislativoRepository,
-)
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +40,13 @@ class ListarMovimentacoesService:
 
     def __init__(
         self,
-        evento_repo: SQLEventoTramitacaoRepository,
-        proposicao_repo: SQLProposicaoRepository,
-        fase_repo: SQLFaseAnaliticaRepository,
-        orgao_repo: SQLOrgaoLegislativoRepository,
-        camara_adapter: CamaraAdapter,
-        senado_adapter: SenadoAdapter,
-        apensamento_repo: SQLApensamentoRepository | None = None,
+        evento_repo: EventoTramitacaoRepositoryPort,
+        proposicao_repo: ProposicaoRepositoryPort,
+        fase_repo: FaseAnaliticaRepositoryPort,
+        orgao_repo: OrgaoLegislativoRepositoryPort,
+        camara_adapter: CamaraAdapterPort,
+        senado_adapter: SenadoAdapterPort,
+        apensamento_repo: ApensamentoRepositoryPort | None = None,
     ):
         self.evento_repo = evento_repo
         self.proposicao_repo = proposicao_repo

@@ -2,28 +2,23 @@ import asyncio
 import logging
 
 import httpx
-from sqlmodel import Session
 
+from application.ports.apensamento_repository import ApensamentoRepositoryPort
+from application.ports.camara_adapter import CamaraAdapterPort
+from application.ports.evento_tramitacao_repository import (
+    EventoTramitacaoRepositoryPort,
+)
+from application.ports.fase_analitica_repository import (
+    FaseAnaliticaRepositoryPort,
+)
+from application.ports.log_coleta_repository import LogColetaRepositoryPort
+from application.ports.orgao_legislativo_repository import (
+    OrgaoLegislativoRepositoryPort,
+)
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
+from application.ports.senado_adapter import SenadoAdapterPort
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from domain.entities.proposicao import Proposicao
-from infrastructure.adapters.camara_adapter import CamaraAdapter
-from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database.models.log_coleta_model import LogColetaModel
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
-)
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
-)
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
-from infrastructure.repositories.sql_orgao_legislativo_repository import (
-    SQLOrgaoLegislativoRepository,
-)
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -36,20 +31,23 @@ class ColetarEmLoteService:
 
     def __init__(
         self,
-        session: Session,
-        camara_adapter: CamaraAdapter | None = None,
-        senado_adapter: SenadoAdapter | None = None,
+        repository: ProposicaoRepositoryPort,
+        evento_repo: EventoTramitacaoRepositoryPort,
+        fase_repo: FaseAnaliticaRepositoryPort,
+        orgao_repo: OrgaoLegislativoRepositoryPort,
+        apensamento_repo: ApensamentoRepositoryPort,
+        log_repo: LogColetaRepositoryPort,
+        camara_adapter: CamaraAdapterPort,
+        senado_adapter: SenadoAdapterPort,
     ):
-        self.session = session
-        self.repository = SQLProposicaoRepository(session)
-        self.camara_adapter = camara_adapter or CamaraAdapter()
-        self.senado_adapter = senado_adapter or SenadoAdapter()
-
-        # Repositórios necessários para o ListarMovimentacoesService
-        self.evento_repo = SQLEventoTramitacaoRepository(session)
-        self.fase_repo = SQLFaseAnaliticaRepository(session)
-        self.orgao_repo = SQLOrgaoLegislativoRepository(session)
-        self.apensamento_repo = SQLApensamentoRepository(session)
+        self.repository = repository
+        self.evento_repo = evento_repo
+        self.fase_repo = fase_repo
+        self.orgao_repo = orgao_repo
+        self.apensamento_repo = apensamento_repo
+        self.log_repo = log_repo
+        self.camara_adapter = camara_adapter
+        self.senado_adapter = senado_adapter
 
         self.listar_movimentacoes_service = ListarMovimentacoesService(
             evento_repo=self.evento_repo,
@@ -140,8 +138,9 @@ class ColetarEmLoteService:
 
     def _registrar_log(self, fonte: str, status: str, itens: int, erro: str = None):
         """Registra o log de execução no banco de dados."""
-        log = LogColetaModel(
-            fonte=fonte, status=status, itens_coletados=itens, mensagem_erro=erro
+        self.log_repo.salvar_log(
+            fonte=fonte,
+            status=status,
+            itens_coletados=itens,
+            mensagem_erro=erro,
         )
-        self.session.add(log)
-        self.session.commit()

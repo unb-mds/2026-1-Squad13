@@ -14,10 +14,19 @@ def test_task_coletar_proposicoes_diario(mock_session_cls, mock_service_cls):
     )
 
     # Mock do context manager da Session
-    mock_session_instance = mock_session_cls.return_value.__enter__.return_value
+    _ = mock_session_cls.return_value.__enter__.return_value
 
     resumo = task_coletar_proposicoes_diario()
 
     assert resumo == {"status": "ok"}
-    mock_service_cls.assert_called_once_with(mock_session_instance)
+    mock_service_cls.assert_called_once()
+    kwargs = mock_service_cls.call_args.kwargs
+    assert "repository" in kwargs
+    assert "evento_repo" in kwargs
+    assert "fase_repo" in kwargs
+    assert "orgao_repo" in kwargs
+    assert "apensamento_repo" in kwargs
+    assert "log_repo" in kwargs
+    assert "camara_adapter" in kwargs
+    assert "senado_adapter" in kwargs
     mock_service_instance.executar_coleta_diaria.assert_called_once()

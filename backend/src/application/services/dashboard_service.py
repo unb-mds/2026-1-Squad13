@@ -4,18 +4,16 @@ from datetime import date, datetime
 from typing import Any
 
 from application.ports.cache_provider import CacheProvider
+from application.ports.dashboard_repository import DashboardRepositoryPort
+from application.ports.evento_tramitacao_repository import (
+    EventoTramitacaoRepositoryPort,
+)
+from application.ports.fase_analitica_repository import (
+    FaseAnaliticaRepositoryPort,
+)
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
-from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
-)
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
 
 
 class DashboardService:
@@ -26,11 +24,11 @@ class DashboardService:
 
     def __init__(
         self,
-        repository: SQLProposicaoRepository,
-        evento_repo: SQLEventoTramitacaoRepository,
-        fase_repo: SQLFaseAnaliticaRepository | None = None,
+        repository: ProposicaoRepositoryPort,
+        evento_repo: EventoTramitacaoRepositoryPort,
+        fase_repo: FaseAnaliticaRepositoryPort | None = None,
         cache_provider: CacheProvider | None = None,
-        dashboard_repo: SQLDashboardRepository | None = None,
+        dashboard_repo: DashboardRepositoryPort | None = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
