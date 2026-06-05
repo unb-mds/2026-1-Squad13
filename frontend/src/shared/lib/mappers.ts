@@ -59,6 +59,7 @@ export function mapProposicaoToProposition(p: Proposicao): Proposition {
     casaAtual,
     faseAtual: p.orgaoAtual || "Protocolo",
     diasNaEtapa: diasNaEtapa || 0,
+    diasTotais: p.tempoTotalDias || 0,
     ultimoEventoRelevante: p.status || "Movimentação registrada",
     dataUltimoEvento: formatarDataBr(p.dataUltimaMovimentacao),
     autor: p.autor,
