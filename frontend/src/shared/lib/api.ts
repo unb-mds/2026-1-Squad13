@@ -159,8 +159,8 @@ export async function obterComparacaoTemas(filtros?: Partial<FiltrosProposicao>)
   return await response.json()
 }
 
-export async function obterTempoPorFase(): Promise<TempoPorFase[]> {
-  const response = await fetch(`${API_BASE}/dashboard/tempo-por-fase`)
+export async function obterTempoPorFase(filtros?: Partial<FiltrosProposicao>): Promise<TempoPorFase[]> {
+  const response = await fetch(`${API_BASE}/dashboard/tempo-por-fase${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar tempo por fase')
   return await response.json()
 }
