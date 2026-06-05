@@ -72,7 +72,11 @@ def get_listar_movimentacoes_service(
 def get_gerar_estimativa_use_case(
     repository: SQLProposicaoRepository = Depends(get_proposicao_repository),
 ) -> GerarEstimativaUseCase:
-    return GerarEstimativaUseCase(repository)
+    from infrastructure.config import settings
+    return GerarEstimativaUseCase(
+        repository=repository,
+        threshold_minimo_amostra=settings.THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA,
+    )
 
 
 def get_obter_confiabilidade_service(
