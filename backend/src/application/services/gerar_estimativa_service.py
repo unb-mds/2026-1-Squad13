@@ -1,6 +1,5 @@
 from typing import Protocol
 
-from infrastructure.config import settings
 from src.domain.services.estimativa_aprovacao_service import (
     EstimativaAprovacaoService,
     ResultadoEstimativa,
@@ -24,10 +23,10 @@ class GerarEstimativaUseCase:
     Responsável por buscar dados via infraestrutura e processar via domínio.
     """
 
-    def __init__(self, repository: ProposicaoRepositoryInterface):
+    def __init__(self, repository: ProposicaoRepositoryInterface, threshold_minimo_amostra: int):
         self.repository = repository
         self.domain_service = EstimativaAprovacaoService(
-            threshold_minimo_amostra=settings.THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA
+            threshold_minimo_amostra=threshold_minimo_amostra
         )
 
     def executar(self, tipo: str, tema: str) -> ResultadoEstimativa:
@@ -36,3 +35,4 @@ class GerarEstimativaUseCase:
 
         # 2. Processa a regra de negócio (Ação de Domínio)
         return self.domain_service.calcular_estimativa(historico_dias)
+

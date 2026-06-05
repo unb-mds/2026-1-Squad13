@@ -1,11 +1,9 @@
 from datetime import datetime
 
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
+from application.ports.evento_tramitacao_repository import (
+    EventoTramitacaoRepositoryPort,
 )
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
 
 
 class ObterConfiabilidadeService:
@@ -16,8 +14,8 @@ class ObterConfiabilidadeService:
 
     def __init__(
         self,
-        repository: SQLProposicaoRepository,
-        evento_repo: SQLEventoTramitacaoRepository,
+        repository: ProposicaoRepositoryPort,
+        evento_repo: EventoTramitacaoRepositoryPort,
     ):
         self.repository = repository
         self.evento_repo = evento_repo

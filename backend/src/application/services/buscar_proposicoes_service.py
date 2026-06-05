@@ -1,6 +1,4 @@
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
 
 
 class BuscarProposicoesService:
@@ -9,7 +7,7 @@ class BuscarProposicoesService:
     Integra a lógica de filtros e paginação da 'main' com o repositório da 'develop'.
     """
 
-    def __init__(self, repository: SQLProposicaoRepository):
+    def __init__(self, repository: ProposicaoRepositoryPort):
         self.repository = repository
 
     def executar(
