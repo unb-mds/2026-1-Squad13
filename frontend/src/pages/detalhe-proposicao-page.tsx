@@ -58,10 +58,11 @@ export function DetalheProposicaoPage() {
   }
 
   // Compute metrics dynamically from phases and events
-  const totalDuration = phases.reduce((acc, p) => acc + (p.duracaoDias || 0), 0);
+  const totalDuration = proposicao.diasTotais;
   const totalRecurrences = phases.filter((p) => p.isRecorrente).length;
   const transitCount = transitSteps.length > 1 ? transitSteps.length - 1 : 0;
   const relevantEventsCount = events.length;
+  const uniquePhasesCount = new Set(phases.map(p => p.fase)).size;
 
   const getAtrasoColor = () => {
     if (proposicao.atraso > 15) return "bg-red-100/10 text-red-400 border-red-500/25";
@@ -180,7 +181,7 @@ export function DetalheProposicaoPage() {
                       Progresso no Pipeline Legislativo
                     </span>
                     <span className="text-xs font-semibold text-primary">
-                      {phases.filter((p) => !p.isCurrent).length + (phases.length > 0 ? 1 : 0)} de 8 fases
+                      {uniquePhasesCount} de 8 fases
                     </span>
                   </div>
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
@@ -188,7 +189,7 @@ export function DetalheProposicaoPage() {
                       className="h-full bg-primary rounded-full transition-all"
                       style={{
                         width: `${Math.min(
-                          ((phases.filter((p) => !p.isCurrent).length + (phases.length > 0 ? 1 : 0)) / 8) * 100,
+                          (uniquePhasesCount / 8) * 100,
                           100
                         )}%`,
                       }}
@@ -220,10 +221,10 @@ export function DetalheProposicaoPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <MetricCard
             label="Dias Totais Acumulados"
-            value={totalDuration || proposicao.diasNaEtapa}
+            value={totalDuration}
             icon={Calendar}
-            subtitle="Tempo total de bonificação"
-            tooltip="Tempo acumulado de tramitação nas fases analisadas pela plataforma."
+            subtitle="Tempo total de tramitação"
+            tooltip="Tempo total decorrido desde a apresentação da proposição."
           />
           <MetricCard
             label="Dias na Etapa Atual"
@@ -235,7 +236,7 @@ export function DetalheProposicaoPage() {
           />
           <MetricCard
             label="Fases Percorridas"
-            value={`${phases.filter((p) => !p.isCurrent).length + (phases.length > 0 ? 1 : 0)}/8`}
+            value={`${uniquePhasesCount}/8`}
             icon={TrendingUp}
             subtitle="Fases canônicas"
             tooltip="Número de fases legislativas por onde a proposição já tramitou."
@@ -268,7 +269,7 @@ export function DetalheProposicaoPage() {
           proposition={{
             numero: proposicao.numero,
             tipo: proposicao.tipo,
-            diasTotais: totalDuration || proposicao.diasNaEtapa,
+            diasTotais: totalDuration,
             diasNaEtapa: proposicao.diasNaEtapa,
             faseAtual: proposicao.faseAtual,
             casaAtual: proposicao.casaAtual,
@@ -276,7 +277,7 @@ export function DetalheProposicaoPage() {
             eventosRelevantes: relevantEventsCount,
             recorrenciasFase: totalRecurrences,
             medianaFase: 45,
-            fasesPercorridas: phases.length,
+            fasesPercorridas: uniquePhasesCount,
           }}
           phasesHistory={phases.map((p) => ({
             fase: p.fase,

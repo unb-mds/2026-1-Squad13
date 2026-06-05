@@ -22,6 +22,7 @@ const fallbackProposition: Proposition = {
   faseAtual: "Comissão de Constituição e Justiça",
   autor: "Dep. Maria Silva (PT-SP)",
   diasNaEtapa: 45,
+  diasTotais: 120,
   ultimoEventoRelevante: "Designação de Relator CCJ",
   dataUltimoEvento: "15/02/2024",
   atraso: 12,
