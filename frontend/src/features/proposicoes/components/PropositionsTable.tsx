@@ -8,6 +8,7 @@ export interface Proposition {
   casaAtual: "Câmara" | "Senado" | "Sanção";
   faseAtual: string;
   diasNaEtapa: number;
+  diasTotais: number;
   ultimoEventoRelevante: string;
   dataUltimoEvento: string;
   autor: string;
