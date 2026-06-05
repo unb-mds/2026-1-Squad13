@@ -4,17 +4,15 @@ from datetime import datetime
 from application.ports.baseline_tramitacao_repository import (
     BaselineTramitacaoRepositoryPort,
 )
+from application.ports.evento_tramitacao_repository import (
+    EventoTramitacaoRepositoryPort,
+)
+from application.ports.fase_analitica_repository import (
+    FaseAnaliticaRepositoryPort,
+)
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
 from domain.constants import LIMITE_DIAS_ATRASO
 from domain.services.calcular_metricas_service import CalcularMetricasService
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
-)
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +24,9 @@ class ProcessarMetricasService:
 
     def __init__(
         self,
-        proposicao_repo: SQLProposicaoRepository,
-        evento_repo: SQLEventoTramitacaoRepository,
-        fase_repo: SQLFaseAnaliticaRepository,
+        proposicao_repo: ProposicaoRepositoryPort,
+        evento_repo: EventoTramitacaoRepositoryPort,
+        fase_repo: FaseAnaliticaRepositoryPort,
         baseline_repo: BaselineTramitacaoRepositoryPort,
     ):
         self.proposicao_repo = proposicao_repo

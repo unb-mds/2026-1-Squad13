@@ -7,6 +7,13 @@ Transforma dados das APIs (Câmara/Senado) em eventos analíticos estruturados.
 import re
 from datetime import date, datetime
 
+from application.ports.apensamento_repository import ApensamentoRepositoryPort
+from application.ports.fase_analitica_repository import (
+    FaseAnaliticaRepositoryPort,
+)
+from application.ports.orgao_legislativo_repository import (
+    OrgaoLegislativoRepositoryPort,
+)
 from domain.classificar_evento import (
     classificar_tipo_evento,
     determinar_fase_analitica,
@@ -15,15 +22,6 @@ from domain.constants import LIMITE_DIAS_ATRASO
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
 from domain.entities.tipo_evento import TipoEvento
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
-)
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
-from infrastructure.repositories.sql_orgao_legislativo_repository import (
-    SQLOrgaoLegislativoRepository,
-)
 
 
 class NormalizarTramitacaoService:
@@ -33,9 +31,9 @@ class NormalizarTramitacaoService:
 
     def __init__(
         self,
-        fase_repo: SQLFaseAnaliticaRepository,
-        orgao_repo: SQLOrgaoLegislativoRepository,
-        apensamento_repo: SQLApensamentoRepository | None = None,
+        fase_repo: FaseAnaliticaRepositoryPort,
+        orgao_repo: OrgaoLegislativoRepositoryPort,
+        apensamento_repo: ApensamentoRepositoryPort | None = None,
         casa_padrao: CasaLegislativa = CasaLegislativa.CAMARA,
     ):
         self.fase_repo = fase_repo

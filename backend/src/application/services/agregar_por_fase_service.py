@@ -1,10 +1,8 @@
 from datetime import date, datetime
 
+from application.ports.fase_analitica_repository import FaseAnaliticaRepositoryPort
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.value_objects.periodo_fase import PeriodoFase
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
 
 
 class AgregarPorFaseService:
@@ -12,7 +10,7 @@ class AgregarPorFaseService:
     Serviço de aplicação para agrupar eventos de tramitação em períodos por fase.
     """
 
-    def __init__(self, fase_repository: SQLFaseAnaliticaRepository):
+    def __init__(self, fase_repository: FaseAnaliticaRepositoryPort):
         self._fase_repo = fase_repository
         # Cache de fases para evitar múltiplas consultas
         todas = self._fase_repo.buscar_todas()
