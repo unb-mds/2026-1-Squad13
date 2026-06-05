@@ -96,20 +96,6 @@ export interface TempoPorFase {
   quantidadeProposicoes: number
 }
 
-export interface User {
-  id: string
-  nome: string
-  email: string
-  perfil: 'analista' | 'gestor' | 'publico'
-}
-
-export interface AuthState {
-  user: User | null
-  token: string | null
-  isAuthenticated: boolean
-  expiresAt: number | null
-}
-
 export interface FiltrosProposicao {
   busca: string
   orgaoOrigem: string
