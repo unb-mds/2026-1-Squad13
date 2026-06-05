@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -28,14 +28,27 @@ def mock_proposicao():
 @pytest.mark.asyncio
 async def test_service_falha_total(mock_proposicao):
     """Cenário 1: Falha total de API. Ambas as fontes caem."""
-    mock_session = MagicMock()
+    mock_repo = MagicMock()
+    mock_evento_repo = MagicMock()
+    mock_fase_repo = MagicMock()
+    mock_orgao_repo = MagicMock()
+    mock_apensamento_repo = MagicMock()
+    mock_log_repo = MagicMock()
+
     mock_camara = AsyncMock()
     mock_camara.coletar_em_lote.side_effect = Exception("Erro Câmara")
     mock_senado = AsyncMock()
     mock_senado.coletar_em_lote.side_effect = Exception("Erro Senado")
 
     service = ColetarEmLoteService(
-        session=mock_session, camara_adapter=mock_camara, senado_adapter=mock_senado
+        repository=mock_repo,
+        evento_repo=mock_evento_repo,
+        fase_repo=mock_fase_repo,
+        orgao_repo=mock_orgao_repo,
+        apensamento_repo=mock_apensamento_repo,
+        log_repo=mock_log_repo,
+        camara_adapter=mock_camara,
+        senado_adapter=mock_senado,
     )
 
     resumo = await service.executar_coleta_diaria()
@@ -43,58 +56,73 @@ async def test_service_falha_total(mock_proposicao):
     assert resumo["camara"]["status"] == "falha"
     assert resumo["senado"]["status"] == "falha"
     # Verifica se registrou 2 logs de falha
-    assert mock_session.add.call_count == 2
+    assert mock_log_repo.salvar_log.call_count == 2
 
 
 @pytest.mark.asyncio
 async def test_service_sucesso_parcial(mock_proposicao):
     """Cenário 2: Sucesso no Senado, falha na Câmara."""
-    mock_session = MagicMock()
+    mock_repo = MagicMock()
+    mock_evento_repo = MagicMock()
+    mock_fase_repo = MagicMock()
+    mock_orgao_repo = MagicMock()
+    mock_apensamento_repo = MagicMock()
+    mock_log_repo = MagicMock()
+
     mock_camara = AsyncMock()
     mock_camara.coletar_em_lote.side_effect = Exception("Erro Câmara")
     mock_senado = AsyncMock()
     mock_senado.coletar_em_lote.return_value = [mock_proposicao]
 
-    # Mock do repositório injetado internamente
-    with patch(
-        "application.services.coletar_em_lote_service.SQLProposicaoRepository"
-    ) as MockRepo:
-        repo_instance = MockRepo.return_value
+    service = ColetarEmLoteService(
+        repository=mock_repo,
+        evento_repo=mock_evento_repo,
+        fase_repo=mock_fase_repo,
+        orgao_repo=mock_orgao_repo,
+        apensamento_repo=mock_apensamento_repo,
+        log_repo=mock_log_repo,
+        camara_adapter=mock_camara,
+        senado_adapter=mock_senado,
+    )
 
-        service = ColetarEmLoteService(
-            session=mock_session, camara_adapter=mock_camara, senado_adapter=mock_senado
-        )
+    resumo = await service.executar_coleta_diaria()
 
-        resumo = await service.executar_coleta_diaria()
-
-        assert resumo["camara"]["status"] == "falha"
-        assert resumo["senado"]["status"] == "sucesso"
-        assert resumo["senado"]["itens_coletados"] == 1
-        repo_instance.upsert_em_lote_por_numero_canonico.assert_called_once_with(
-            [mock_proposicao]
-        )
+    assert resumo["camara"]["status"] == "falha"
+    assert resumo["senado"]["status"] == "sucesso"
+    assert resumo["senado"]["itens_coletados"] == 1
+    mock_repo.upsert_em_lote_por_numero_canonico.assert_called_once_with(
+        [mock_proposicao]
+    )
 
 
 @pytest.mark.asyncio
 async def test_service_sucesso_total(mock_proposicao):
     """Cenário 3: Sucesso em ambas as fontes."""
-    mock_session = MagicMock()
+    mock_repo = MagicMock()
+    mock_evento_repo = MagicMock()
+    mock_fase_repo = MagicMock()
+    mock_orgao_repo = MagicMock()
+    mock_apensamento_repo = MagicMock()
+    mock_log_repo = MagicMock()
+
     mock_camara = AsyncMock()
     mock_camara.coletar_em_lote.return_value = [mock_proposicao]
     mock_senado = AsyncMock()
     mock_senado.coletar_em_lote.return_value = [mock_proposicao]
 
-    with patch(
-        "application.services.coletar_em_lote_service.SQLProposicaoRepository"
-    ) as MockRepo:
-        repo_instance = MockRepo.return_value
+    service = ColetarEmLoteService(
+        repository=mock_repo,
+        evento_repo=mock_evento_repo,
+        fase_repo=mock_fase_repo,
+        orgao_repo=mock_orgao_repo,
+        apensamento_repo=mock_apensamento_repo,
+        log_repo=mock_log_repo,
+        camara_adapter=mock_camara,
+        senado_adapter=mock_senado,
+    )
 
-        service = ColetarEmLoteService(
-            session=mock_session, camara_adapter=mock_camara, senado_adapter=mock_senado
-        )
+    resumo = await service.executar_coleta_diaria()
 
-        resumo = await service.executar_coleta_diaria()
-
-        assert resumo["camara"]["status"] == "sucesso"
-        assert resumo["senado"]["status"] == "sucesso"
-        assert repo_instance.upsert_em_lote_por_numero_canonico.call_count == 2
+    assert resumo["camara"]["status"] == "sucesso"
+    assert resumo["senado"]["status"] == "sucesso"
+    assert mock_repo.upsert_em_lote_por_numero_canonico.call_count == 2
