@@ -17,7 +17,7 @@ export function KPICard({ title, value, subtitle, icon: Icon, trend, isAlarm }: 
     <div
       className={`bg-card border rounded-lg p-6 transition-all ${
         isAlarm
-          ? "border-l-4 border-l-red-600 hover:bg-red-50/30 hover:shadow-lg"
+          ? "border-l-4 border-l-destructive hover:bg-destructive/5 hover:shadow-lg"
           : "border-border hover:shadow-md"
       }`}
     >
@@ -27,7 +27,7 @@ export function KPICard({ title, value, subtitle, icon: Icon, trend, isAlarm }: 
           <div className="flex items-baseline gap-2">
             <h3
               className={`font-semibold ${
-                isAlarm ? "text-4xl text-red-600" : "text-3xl text-foreground"
+                isAlarm ? "text-4xl text-destructive" : "text-3xl text-foreground"
               }`}
             >
               {value}
@@ -55,10 +55,10 @@ export function KPICard({ title, value, subtitle, icon: Icon, trend, isAlarm }: 
         </div>
         <div
           className={`flex items-center justify-center w-12 h-12 rounded-lg ${
-            isAlarm ? "bg-red-100" : "bg-primary/10"
+            isAlarm ? "bg-destructive/10" : "bg-primary/10"
           }`}
         >
-          <Icon className={`w-6 h-6 ${isAlarm ? "text-red-600" : "text-primary"}`} />
+          <Icon className={`w-6 h-6 ${isAlarm ? "text-destructive" : "text-primary"}`} />
         </div>
       </div>
     </div>
