@@ -22,6 +22,7 @@ class Proposicao(SQLModel):
     uf_autor: str | None = None
     orgao_origem: str | None = None
     status: str | None = None
+    status_original: str | None = None
     orgao_atual: str | None = None
     data_apresentacao: str | None = None
     data_ultima_movimentacao: str | None = None
@@ -44,11 +45,17 @@ class Proposicao(SQLModel):
 
     def normalizar_campo_status(self):
         """Normaliza o campo status para algo mais conciso e legível."""
-        if not self.status or self.status.lower() == "sem status":
+        # Mantém retrocompatibilidade se status_original não estiver preenchido, mas status estiver
+        if not self.status_original and self.status:
+            self.status_original = self.status
+
+        if not self.status_original or self.status_original.lower() == "sem status":
             self.status = "Em Tramitação"
+            if not self.status_original:
+                self.status_original = "Sem status"
             return
 
-        raw = self.status.upper()
+        raw = self.status_original.upper()
 
         # Mapeamento de termos prioritários (conclusão)
         if "NORMA JURÍDICA" in raw:
@@ -95,8 +102,10 @@ class Proposicao(SQLModel):
             return
 
         # Se for muito longo e não casou com nada, corta de forma inteligente
-        if len(self.status) > 50:
-            self.status = self.status[:47].strip() + "..."
+        if len(self.status_original) > 50:
+            self.status = self.status_original[:47].strip() + "..."
+        else:
+            self.status = self.status_original
 
     def atualizar_metricas(self):
         """Calcula métricas temporais baseadas nas datas da proposição."""

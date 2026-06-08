@@ -135,3 +135,31 @@ def test_normalizar_campo_status():
     p.normalizar_campo_status()
     assert p.status.endswith("...")
     assert len(p.status) <= 50
+
+
+def test_normalizar_campo_status_com_status_original():
+    # Caso 1: status_original fornecido e status nulo/vazio
+    p = Proposicao(
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        autor="A",
+        status_original="NORMA JURÍDICA PUBLICADA",
+        status=None,
+    )
+    p.normalizar_campo_status()
+    assert p.status == "Concluída (Lei)"
+    assert p.status_original == "NORMA JURÍDICA PUBLICADA"
+
+    # Caso 2: status e status_original fornecidos
+    p = Proposicao(
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        autor="A",
+        status_original="AGUARDANDO DISTRIBUIÇÃO",
+        status="Qualquer Coisa",
+    )
+    p.normalizar_campo_status()
+    assert p.status == "Aguardando"
+    assert p.status_original == "AGUARDANDO DISTRIBUIÇÃO"
