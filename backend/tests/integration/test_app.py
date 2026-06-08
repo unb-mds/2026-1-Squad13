@@ -68,6 +68,7 @@ def test_health_failure(http_client: TestClient):
 
 def test_app_lifespan():
     from unittest.mock import patch
+
     # O uso do context manager 'with' dispara o lifespan
     # Mockamos o init_db.run para evitar o custo de migrações e seeds pesados
     # apenas neste teste que valida se o app sobe e desce corretamente.

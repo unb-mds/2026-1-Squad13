@@ -23,7 +23,9 @@ class GerarEstimativaUseCase:
     Responsável por buscar dados via infraestrutura e processar via domínio.
     """
 
-    def __init__(self, repository: ProposicaoRepositoryInterface, threshold_minimo_amostra: int):
+    def __init__(
+        self, repository: ProposicaoRepositoryInterface, threshold_minimo_amostra: int
+    ):
         self.repository = repository
         self.domain_service = EstimativaAprovacaoService(
             threshold_minimo_amostra=threshold_minimo_amostra
@@ -35,4 +37,3 @@ class GerarEstimativaUseCase:
 
         # 2. Processa a regra de negócio (Ação de Domínio)
         return self.domain_service.calcular_estimativa(historico_dias)
-

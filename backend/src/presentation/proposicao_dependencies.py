@@ -73,6 +73,7 @@ def get_gerar_estimativa_use_case(
     repository: SQLProposicaoRepository = Depends(get_proposicao_repository),
 ) -> GerarEstimativaUseCase:
     from infrastructure.config import settings
+
     return GerarEstimativaUseCase(
         repository=repository,
         threshold_minimo_amostra=settings.THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA,
