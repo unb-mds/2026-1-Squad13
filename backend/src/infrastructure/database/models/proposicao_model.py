@@ -23,6 +23,7 @@ class ProposicaoModel(SQLModel, table=True):
     uf_autor: str | None = None
     orgao_origem: str | None = None
     status: str
+    status_original: str | None = Field(default=None, nullable=True)
     orgao_atual: str
     data_apresentacao: str
     data_ultima_movimentacao: str

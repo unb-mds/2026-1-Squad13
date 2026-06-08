@@ -137,7 +137,10 @@ class ProcessarMetricasService:
                     data_encerramento is None
                 )
 
-                # 7. Salva no banco de dados
+                # 7. Normaliza o status antes de salvar (garante normalização retroativa)
+                prop.normalizar_campo_status()
+
+                # 8. Salva no banco de dados
                 self.proposicao_repo.salvar(prop)
                 sucessos += 1
 

@@ -2,15 +2,11 @@ export const TIPOS_PROPOSICAO = ['PL', 'PEC'] as const
 
 export const STATUS_PROPOSICAO = [
   'Em Tramitação',
+  'Em Pauta',
   'Aprovada',
-  'Concluída (Lei)',
   'Sancionada',
   'Vetada',
   'Arquivada',
-  'Arquivada (Apensada)',
-  'Em Pauta',
-  'Em Relatoria',
-  'Aguardando',
 ] as const
 
 export const ORGAOS = [

@@ -65,4 +65,3 @@ def task_coletar_proposicoes_diario():
 
     logger.info(f"Worker finalizado. Resumo: {resumo}")
     return resumo
-

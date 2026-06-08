@@ -57,6 +57,7 @@ class ProposicaoResponse(BaseModel):
     autor: str
     orgaoOrigem: str | None = Field(default=None, alias="orgaoOrigem")
     status: str
+    statusOriginal: str | None = Field(default=None, alias="statusOriginal")
     orgaoAtual: str
     dataApresentacao: str
     dataUltimaMovimentacao: str
@@ -159,6 +160,7 @@ def _to_response(p) -> dict:
         "autor": p.autor,
         "orgaoOrigem": p.orgao_origem,
         "status": p.status,
+        "statusOriginal": p.status_original,
         "orgaoAtual": p.orgao_atual,
         "dataApresentacao": p.data_apresentacao,
         "dataUltimaMovimentacao": p.data_ultima_movimentacao,

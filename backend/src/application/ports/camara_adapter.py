@@ -42,8 +42,6 @@ class CamaraAdapterPort(Protocol):
         """Obtém o histórico de tramitações brutas da API."""
         ...
 
-    async def coletar_em_lote(
-        self, params: dict | None = None
-    ) -> list[Proposicao]:
+    async def coletar_em_lote(self, params: dict | None = None) -> list[Proposicao]:
         """Coleta proposições em lote."""
         ...

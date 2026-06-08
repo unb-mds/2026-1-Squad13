@@ -48,17 +48,11 @@ export function formatarTempo(dias: number): string {
 export function corStatus(status: StatusProposicao): string {
   const mapa: Record<StatusProposicao, string> = {
     'Em Tramitação': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    'Aprovada': 'bg-volt-400/20 text-volt-300 border-volt-400/30',
-    'Concluída (Lei)': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    'Rejeitada': 'bg-rose-500/20 text-rose-300 border-rose-500/30',
-    'Arquivada': 'bg-ink-400/20 text-ink-300 border-ink-400/30',
-    'Arquivada (Apensada)': 'bg-ink-400/20 text-ink-300 border-ink-400/30',
-    'Vetada': 'bg-rose-500/20 text-rose-300 border-rose-500/30',
-    'Sancionada': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    'Aguardando': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-    'Em análise': 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
     'Em Pauta': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    'Em Relatoria': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+    'Aprovada': 'bg-volt-400/20 text-volt-300 border-volt-400/30',
+    'Sancionada': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    'Vetada': 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+    'Arquivada': 'bg-ink-400/20 text-ink-300 border-ink-400/30',
   }
   return mapa[status] ?? 'bg-ink-400/20 text-ink-300 border-ink-400/30'
 }
