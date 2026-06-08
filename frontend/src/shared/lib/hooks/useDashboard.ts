@@ -93,7 +93,7 @@ export function useDashboard(filtros: FiltrosProposicao) {
           transicoesRes
         ] = await Promise.allSettled([
           obterMetricas(filtros),
-          obterTempoPorFase(),
+          obterTempoPorFase(filtros),
           obterGargalos(filtros),
           obterComparacaoTemas(filtros),
           obterDadosStatus(filtros),
@@ -121,7 +121,15 @@ export function useDashboard(filtros: FiltrosProposicao) {
             }));
           setPipelineData(mappedPipeline);
         } else {
-          setPipelineData(defaultPipelineData);
+          const temFiltroAtivo = !!(
+            filtros.busca ||
+            filtros.tipo ||
+            filtros.status ||
+            filtros.orgaoOrigem ||
+            filtros.dataInicio ||
+            filtros.dataFim
+          );
+          setPipelineData(temFiltroAtivo ? [] : defaultPipelineData);
         }
 
         // 3. Gargalos (por orgao, fase, tema)

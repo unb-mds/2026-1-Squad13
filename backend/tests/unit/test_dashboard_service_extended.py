@@ -1,3 +1,4 @@
+import json
 from unittest.mock import Mock
 
 import pytest
@@ -366,3 +367,83 @@ def test_obter_tempo_por_fase_ordena_por_ordem_logica(mock_repo, mock_evento_rep
 
     ordens = [r["ordemLogica"] for r in resultado]
     assert ordens == sorted(ordens)
+
+
+def test_obter_tempo_por_fase_com_filtros(mock_repo, mock_evento_repo):
+    """Verifica se obter_tempo_por_fase passa corretamente os filtros para o repositório."""
+    fase_repo = Mock()
+    fase_repo.buscar_todas.return_value = [_fase(1, "F1", "Fase 1", 1)]
+    prop = _prop("1")
+    mock_repo.filtrar.return_value = [prop]
+    mock_evento_repo.buscar_por_multiplas_proposicoes.return_value = {
+        "1": [_evento("1", 1, "2024-01-01", 1)]
+    }
+    service = DashboardService(mock_repo, mock_evento_repo, fase_repo)
+    filtros = {"tipo": "PL", "status": "Aprovada", "busca": "termo"}
+
+    resultado = service.obter_tempo_por_fase(filtros=filtros)
+
+    assert len(resultado) == 1
+    mock_repo.filtrar.assert_called_once_with(tipo="PL", status="Aprovada", busca="termo")
+
+
+def test_obter_tempo_por_fase_com_cache_hit(mock_repo, mock_evento_repo):
+    """Verifica se obter_tempo_por_fase retorna do cache diretamente em caso de hit."""
+    fase_repo = Mock()
+    cache_provider = Mock()
+    cached_data = [{"fase": "Protocolo", "codigoFase": "P1", "ordemLogica": 1, "tempoMedioDias": 10, "quantidadeProposicoes": 1}]
+    cache_provider.get.return_value = json.dumps(cached_data)
+
+    service = DashboardService(mock_repo, mock_evento_repo, fase_repo, cache_provider=cache_provider)
+    filtros = {"tipo": "PL"}
+
+    resultado = service.obter_tempo_por_fase(filtros=filtros)
+
+    assert resultado == cached_data
+    cache_provider.get.assert_called_once()
+    mock_repo.filtrar.assert_not_called()
+
+
+def test_obter_tempo_por_fase_com_cache_miss_e_set(mock_repo, mock_evento_repo):
+    """Verifica se obter_tempo_por_fase calcula e salva no cache em caso de miss."""
+    fase_repo = Mock()
+    fase_repo.buscar_todas.return_value = [_fase(1, "F1", "Fase 1", 1)]
+    cache_provider = Mock()
+    cache_provider.get.return_value = None
+    prop = _prop("1")
+    mock_repo.filtrar.return_value = [prop]
+    mock_evento_repo.buscar_por_multiplas_proposicoes.return_value = {
+        "1": [_evento("1", 1, "2024-01-01", 1)]
+    }
+
+    service = DashboardService(mock_repo, mock_evento_repo, fase_repo, cache_provider=cache_provider)
+    filtros = {"tipo": "PEC"}
+
+    resultado = service.obter_tempo_por_fase(filtros=filtros)
+
+    assert len(resultado) == 1
+    assert resultado[0]["codigoFase"] == "F1"
+    cache_provider.get.assert_called_once()
+    cache_provider.set.assert_called_once()
+    # Verifica que a chave salva no cache contém o hash do filtro
+    args, _ = cache_provider.set.call_args
+    assert args[0].startswith("dashboard:tempo_por_fase:")
+    assert json.loads(args[1]) == resultado
+
+
+def test_obter_tempo_por_fase_sanitiza_filtros(mock_repo, mock_evento_repo):
+    """Verifica se obter_tempo_por_fase filtra chaves não aceitas pelo repositório."""
+    fase_repo = Mock()
+    fase_repo.buscar_todas.return_value = [_fase(1, "F1", "Fase 1", 1)]
+    prop = _prop("1")
+    mock_repo.filtrar.return_value = [prop]
+    mock_evento_repo.buscar_por_multiplas_proposicoes.return_value = {
+        "1": [_evento("1", 1, "2024-01-01", 1)]
+    }
+    service = DashboardService(mock_repo, mock_evento_repo, fase_repo)
+    filtros = {"tipo": "PL", "parametro_invalido": "valor"}
+
+    service.obter_tempo_por_fase(filtros=filtros)
+
+    # parametro_invalido deve ser descartado
+    mock_repo.filtrar.assert_called_once_with(tipo="PL")
