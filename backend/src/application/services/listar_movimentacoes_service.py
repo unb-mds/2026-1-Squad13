@@ -327,12 +327,14 @@ class ListarMovimentacoesService:
             proposicao.data_encerramento = ultimo_evento_terminal.data_evento[:10]
             # Se terminou, o status deve refletir isso
             proposicao.status = ultimo_evento_terminal.descricao_original
+            proposicao.status_original = ultimo_evento_terminal.descricao_original
         else:
             proposicao.data_encerramento = None
             # Se não terminou, pega o último status relevante ou o último de todos
             for e in reversed(eventos):
                 if e.relevante or e.deliberativo:
                     proposicao.status = e.descricao_original
+                    proposicao.status_original = e.descricao_original
                     break
 
         # 2. Atualizar órgão atual

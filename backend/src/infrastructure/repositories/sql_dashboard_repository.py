@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import and_, case, func, or_
+from sqlalchemy import and_, case, func
 from sqlmodel import Session, select
 
 from domain.constants import LIMITE_DIAS_ATRASO
@@ -53,48 +53,26 @@ class SQLDashboardRepository:
     def _status_agrupado_case(self):
         return case(
             (
-                or_(
-                    ProposicaoModel.status.ilike("%aprovad%"),
-                    ProposicaoModel.status.ilike("%sancionad%"),
-                    ProposicaoModel.status.ilike("%norma jurídica%"),
-                    ProposicaoModel.status.ilike("%promulgad%"),
-                    ProposicaoModel.status.ilike("%transformad%"),
-                    ProposicaoModel.status.ilike("%enviado à sanção%"),
-                    ProposicaoModel.status.ilike("%ofício ao senado - sancionado%"),
+                ProposicaoModel.status.in_(
+                    ["Aprovada", "Sancionada", "Concluída (Lei)"]
                 ),
                 "Aprovada/Sancionada",
             ),
             (
-                or_(
-                    ProposicaoModel.status.ilike("%rejeitad%"),
-                    ProposicaoModel.status.ilike("%arquivad%"),
-                    ProposicaoModel.status.ilike("%retirad%"),
-                    ProposicaoModel.status.ilike("%prejudicad%"),
-                    ProposicaoModel.status.ilike("%indiferid%"),
-                    ProposicaoModel.status.ilike("%devolvida%"),
-                    ProposicaoModel.status.ilike("%negado%"),
-                    ProposicaoModel.status.ilike("%materia despachada%"),
+                ProposicaoModel.status.in_(
+                    ["Arquivada", "Arquivada (Apensada)", "Vetada", "Rejeitada"]
                 ),
                 "Rejeitada/Arquivada",
             ),
             (
-                or_(
-                    ProposicaoModel.status.ilike("%tramitação%"),
-                    ProposicaoModel.status.ilike("%análise%"),
-                    ProposicaoModel.status.ilike("%votação%"),
-                    ProposicaoModel.status.ilike("%pauta%"),
-                    ProposicaoModel.status.ilike("%apresentação%"),
-                    ProposicaoModel.status.ilike("%mesa%"),
-                    ProposicaoModel.status.ilike("%relator%"),
-                    ProposicaoModel.status.ilike("%parecer%"),
-                    ProposicaoModel.status.ilike("%aguardando%"),
-                    ProposicaoModel.status.ilike("%comissão%"),
-                    ProposicaoModel.status.ilike("%ofício%"),
-                    ProposicaoModel.status.ilike("%recebimento%"),
-                    ProposicaoModel.status.ilike("%leitura%"),
-                    ProposicaoModel.status.ilike("%despacho%"),
-                    ProposicaoModel.status.ilike("%relatório%"),
-                    ProposicaoModel.status.ilike("sem status"),
+                ProposicaoModel.status.in_(
+                    [
+                        "Em Tramitação",
+                        "Em tramitação",
+                        "Em Relatoria",
+                        "Em Pauta",
+                        "Aguardando",
+                    ]
                 ),
                 "Em tramitação",
             ),
