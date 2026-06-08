@@ -94,6 +94,14 @@ export interface TempoPorFase {
   quantidadeProposicoes: number
 }
 
+export interface CoberturaDados {
+  eventosDocumentados: number
+  metadadosCompletos: number
+  historicoTramitacao: number
+  documentosAnexos: number
+  coberturaConsolidada: number
+}
+
 export interface FiltrosProposicao {
   busca: string
   orgaoOrigem: string

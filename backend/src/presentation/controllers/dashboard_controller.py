@@ -80,6 +80,14 @@ class TransicoesCasasResponse(BaseModel):
     totalSenado: int = Field(alias="totalSenado")
 
 
+class CoberturaDadosResponse(BaseModel):
+    eventosDocumentados: float
+    metadadosCompletos: float
+    historicoTramitacao: float
+    documentosAnexos: float
+    coberturaConsolidada: float
+
+
 class DashboardFilterParams(BaseModel):
     busca: str | None = Field(default=None)
     tipo: str | None = Field(default=None)
@@ -182,3 +190,12 @@ def obter_transicoes_casas(
 ):
     filtros_dict = _montar_filtros(filtros)
     return service.obter_transicoes_casas(filtros_dict or None)
+
+
+@router.get("/dashboard/cobertura-dados", response_model=CoberturaDadosResponse)
+def obter_cobertura_dados(
+    filtros: DashboardFilterParams = Depends(),
+    service: DashboardService = Depends(get_dashboard_service),
+):
+    filtros_dict = _montar_filtros(filtros)
+    return service.obter_cobertura_dados(filtros_dict or None)

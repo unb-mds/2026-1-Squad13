@@ -68,6 +68,7 @@ export function DashboardPage() {
     timeSeriesData,
     bottleneckData,
     houseTransitionData,
+    coberturaData,
   } = useDashboard(filtros);
 
   // Load propositions list with filters and pagination
@@ -498,12 +499,20 @@ export function DashboardPage() {
                 <span className="text-sm text-muted-foreground">
                   Eventos documentados
                 </span>
-                <span className="text-sm font-semibold text-foreground">94.2%</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {coberturaData?.eventosDocumentados ?? 0}%
+                </span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: "94.2%" }}
+                  className={`h-full rounded-full transition-all ${
+                    (coberturaData?.eventosDocumentados ?? 0) >= 80
+                      ? "bg-emerald-500"
+                      : (coberturaData?.eventosDocumentados ?? 0) >= 50
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${coberturaData?.eventosDocumentados ?? 0}%` }}
                 />
               </div>
             </div>
@@ -512,12 +521,20 @@ export function DashboardPage() {
                 <span className="text-sm text-muted-foreground">
                   Metadados completos
                 </span>
-                <span className="text-sm font-semibold text-foreground">87.8%</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {coberturaData?.metadadosCompletos ?? 0}%
+                </span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: "87.8%" }}
+                  className={`h-full rounded-full transition-all ${
+                    (coberturaData?.metadadosCompletos ?? 0) >= 80
+                      ? "bg-emerald-500"
+                      : (coberturaData?.metadadosCompletos ?? 0) >= 50
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${coberturaData?.metadadosCompletos ?? 0}%` }}
                 />
               </div>
             </div>
@@ -526,12 +543,20 @@ export function DashboardPage() {
                 <span className="text-sm text-muted-foreground">
                   Histórico de tramitação
                 </span>
-                <span className="text-sm font-semibold text-foreground">91.5%</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {coberturaData?.historicoTramitacao ?? 0}%
+                </span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: "91.5%" }}
+                  className={`h-full rounded-full transition-all ${
+                    (coberturaData?.historicoTramitacao ?? 0) >= 80
+                      ? "bg-emerald-500"
+                      : (coberturaData?.historicoTramitacao ?? 0) >= 50
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${coberturaData?.historicoTramitacao ?? 0}%` }}
                 />
               </div>
             </div>
@@ -540,19 +565,31 @@ export function DashboardPage() {
                 <span className="text-sm text-muted-foreground">
                   Documentos anexos
                 </span>
-                <span className="text-sm font-semibold text-foreground">73.4%</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {coberturaData?.documentosAnexos ?? 0}%
+                </span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-amber-500 rounded-full transition-all"
-                  style={{ width: "73.4%" }}
+                  className={`h-full rounded-full transition-all ${
+                    (coberturaData?.documentosAnexos ?? 0) >= 80
+                      ? "bg-emerald-500"
+                      : (coberturaData?.documentosAnexos ?? 0) >= 50
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${coberturaData?.documentosAnexos ?? 0}%` }}
                 />
               </div>
             </div>
           </div>
           <div className="mt-6 p-4 bg-secondary border border-border rounded-lg">
             <p className="text-xs text-muted-foreground">
-              Cobertura consolidada de <span className="font-semibold text-primary">86.7%</span> das proposições com dados completos para análise preditiva.
+              Cobertura consolidada de{" "}
+              <span className="font-semibold text-primary">
+                {coberturaData?.coberturaConsolidada ?? 0}%
+              </span>{" "}
+              das proposições com dados completos para análise preditiva.
             </p>
           </div>
         </div>

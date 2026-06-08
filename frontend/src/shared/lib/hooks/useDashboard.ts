@@ -7,8 +7,9 @@ import {
   obterTempoPorFase,
   obterEvolucaoTemporal,
   obterTransicoesCasas,
+  obterCoberturaDados,
 } from "../api";
-import type { FiltrosProposicao, MetricasDashboard } from "../../types";
+import type { FiltrosProposicao, MetricasDashboard, CoberturaDados } from "../../types";
 
 // Mock data fallbacks from prototype
 const defaultPipelineData = [
@@ -65,6 +66,14 @@ const defaultHouseTransitionData = {
   totalSenado: 576,
 };
 
+const defaultCoberturaData: CoberturaDados = {
+  eventosDocumentados: 94.2,
+  metadadosCompletos: 87.8,
+  historicoTramitacao: 91.5,
+  documentosAnexos: 73.4,
+  coberturaConsolidada: 86.7,
+};
+
 export function useDashboard(filtros: FiltrosProposicao) {
   const [metricas, setMetricas] = useState<MetricasDashboard | null>(null);
   const [pipelineData, setPipelineData] = useState<unknown[]>(defaultPipelineData);
@@ -73,6 +82,7 @@ export function useDashboard(filtros: FiltrosProposicao) {
   const [bottleneckData, setBottleneckData] = useState<any>(defaultBottleneckData); // Mantendo any por ser objeto complexo mockado
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [houseTransitionData, setHouseTransitionData] = useState<any>(defaultHouseTransitionData);
+  const [coberturaData, setCoberturaData] = useState<CoberturaDados>(defaultCoberturaData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,7 +100,8 @@ export function useDashboard(filtros: FiltrosProposicao) {
           temasRes,
           statusRes,
           evolucaoRes,
-          transicoesRes
+          transicoesRes,
+          coberturaRes
         ] = await Promise.allSettled([
           obterMetricas(filtros),
           obterTempoPorFase(filtros),
@@ -98,7 +109,8 @@ export function useDashboard(filtros: FiltrosProposicao) {
           obterComparacaoTemas(filtros),
           obterDadosStatus(filtros),
           obterEvolucaoTemporal(filtros),
-          obterTransicoesCasas(filtros)
+          obterTransicoesCasas(filtros),
+          obterCoberturaDados(filtros)
         ]);
 
         if (!active) return;
@@ -188,6 +200,13 @@ export function useDashboard(filtros: FiltrosProposicao) {
           setTimeSeriesData(defaultTimeSeriesData);
         }
 
+        // 6. Cobertura de Dados
+        if (coberturaRes.status === "fulfilled" && coberturaRes.value) {
+          setCoberturaData(coberturaRes.value);
+        } else {
+          setCoberturaData(defaultCoberturaData);
+        }
+
       } catch (err) {
         if (active) {
           console.error("Erro no useDashboard hook:", err);
@@ -213,6 +232,7 @@ export function useDashboard(filtros: FiltrosProposicao) {
     timeSeriesData,
     bottleneckData,
     houseTransitionData,
+    coberturaData,
     loading,
     error
   };

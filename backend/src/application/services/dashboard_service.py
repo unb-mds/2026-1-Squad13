@@ -425,3 +425,18 @@ class DashboardService:
         resultado = self.dashboard_repo.obter_transicoes_casas(filtros)
         self._set_cache(cache_key, resultado)
         return resultado
+
+    def obter_cobertura_dados(self, filtros: dict | None = None) -> dict:
+        cache_key = self._gerar_cache_key("dashboard:cobertura_dados", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError(
+                "dashboard_repo é obrigatório para obter cobertura de dados"
+            )
+
+        resultado = self.dashboard_repo.obter_cobertura_dados(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado

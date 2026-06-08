@@ -137,3 +137,65 @@ def test_obter_metricas_cache_hit(session: Session):
     assert metricas["totalProposicoes"] == 10
     assert metricas["tempoMedioTramitacao"] == 500
     assert metricas["comissaoMaiorTempo"] == "MOCK"
+
+
+def test_obter_cobertura_dados_sem_cache(session: Session):
+    repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
+    service = DashboardService(repo, evento_repo, dashboard_repo=dashboard_repo)
+
+    cobertura = service.obter_cobertura_dados()
+    # Ambos os registros P1 e P2 têm ementa, autor, etc. mas sem link_oficial.
+    # Vamos verificar que o repositório foi chamado e retornou as métricas de cobertura.
+    assert "eventosDocumentados" in cobertura
+    assert "metadadosCompletos" in cobertura
+    assert "historicoTramitacao" in cobertura
+    assert "documentosAnexos" in cobertura
+    assert "coberturaConsolidada" in cobertura
+
+
+def test_obter_cobertura_dados_cache_miss_e_set(session: Session):
+    repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
+    cache_provider = MockCacheProvider()
+    service = DashboardService(
+        repo,
+        evento_repo,
+        cache_provider=cache_provider,
+        dashboard_repo=dashboard_repo,
+    )
+
+    assert cache_provider.get("dashboard:cobertura_dados") is None
+
+    cobertura = service.obter_cobertura_dados()
+    assert "eventosDocumentados" in cobertura
+
+    cached_value = cache_provider.get("dashboard:cobertura_dados")
+    assert cached_value is not None
+    cached_dict = json.loads(cached_value)
+    assert "eventosDocumentados" in cached_dict
+
+
+def test_obter_cobertura_dados_cache_hit(session: Session):
+    repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    cache_provider = MockCacheProvider()
+    service = DashboardService(repo, evento_repo, cache_provider=cache_provider)
+
+    mock_data = {
+        "eventosDocumentados": 99.9,
+        "metadadosCompletos": 88.8,
+        "historicoTramitacao": 77.7,
+        "documentosAnexos": 66.6,
+        "coberturaConsolidada": 83.2,
+    }
+    cache_provider.set("dashboard:cobertura_dados", json.dumps(mock_data))
+
+    cobertura = service.obter_cobertura_dados()
+
+    assert cobertura["eventosDocumentados"] == 99.9
+    assert cobertura["metadadosCompletos"] == 88.8
+    assert cobertura["coberturaConsolidada"] == 83.2
+

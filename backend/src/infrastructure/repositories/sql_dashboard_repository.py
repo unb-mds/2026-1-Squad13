@@ -167,6 +167,115 @@ class SQLDashboardRepository:
             else 0,
         }
 
+    def obter_cobertura_dados(self, filtros: dict | None) -> dict:
+        def completo_case_str(field):
+            return case((and_(field.isnot(None), field != ""), 1.0), else_=0.0)
+
+        def completo_case_int(field):
+            return case((field.isnot(None), 1.0), else_=0.0)
+
+        soma_campos = (
+            completo_case_str(ProposicaoModel.tipo)
+            + completo_case_str(ProposicaoModel.numero)
+            + completo_case_int(ProposicaoModel.ano)
+            + completo_case_str(ProposicaoModel.ementa)
+            + completo_case_str(ProposicaoModel.autor)
+            + completo_case_str(ProposicaoModel.orgao_origem)
+            + completo_case_str(ProposicaoModel.status)
+            + completo_case_str(ProposicaoModel.orgao_atual)
+            + completo_case_str(ProposicaoModel.data_apresentacao)
+            + completo_case_str(ProposicaoModel.data_ultima_movimentacao)
+            + completo_case_str(ProposicaoModel.link_oficial)
+            + completo_case_str(ProposicaoModel.regime_tramitacao)
+        )
+
+        stmt = select(
+            func.count().label("total"),
+            func.coalesce(
+                100.0
+                * func.sum(
+                    case(
+                        (
+                            and_(
+                                ProposicaoModel.data_ultima_movimentacao.isnot(None),
+                                ProposicaoModel.data_ultima_movimentacao != "",
+                            ),
+                            1.0,
+                        ),
+                        else_=0.0,
+                    )
+                )
+                / func.count(),
+                0.0,
+            ).label("eventos_documentados"),
+            func.coalesce(
+                func.avg(soma_campos * (100.0 / 12.0)),
+                0.0,
+            ).label("metadados_completos"),
+            func.coalesce(
+                100.0
+                * func.sum(
+                    case(
+                        (
+                            and_(
+                                ProposicaoModel.data_apresentacao.isnot(None),
+                                ProposicaoModel.data_apresentacao != "",
+                                ProposicaoModel.data_ultima_movimentacao.isnot(None),
+                                ProposicaoModel.data_ultima_movimentacao != "",
+                            ),
+                            1.0,
+                        ),
+                        else_=0.0,
+                    )
+                )
+                / func.count(),
+                0.0,
+            ).label("historico_tramitacao"),
+            func.coalesce(
+                100.0
+                * func.sum(
+                    case(
+                        (
+                            and_(
+                                ProposicaoModel.link_oficial.isnot(None),
+                                ProposicaoModel.link_oficial != "",
+                            ),
+                            1.0,
+                        ),
+                        else_=0.0,
+                    )
+                )
+                / func.count(),
+                0.0,
+            ).label("documentos_anexos"),
+        )
+
+        stmt = self._aplicar_filtros(stmt, filtros)
+        row = self.session.exec(stmt).first()
+
+        if not row or row.total == 0:
+            return {
+                "eventosDocumentados": 0.0,
+                "metadadosCompletos": 0.0,
+                "historicoTramitacao": 0.0,
+                "documentosAnexos": 0.0,
+                "coberturaConsolidada": 0.0,
+            }
+
+        eventos = float(row.eventos_documentados)
+        metadados = float(row.metadados_completos)
+        historico = float(row.historico_tramitacao)
+        anexos = float(row.documentos_anexos)
+        consolidada = (eventos + metadados + historico + anexos) / 4.0
+
+        return {
+            "eventosDocumentados": round(eventos, 1),
+            "metadadosCompletos": round(metadados, 1),
+            "historicoTramitacao": round(historico, 1),
+            "documentosAnexos": round(anexos, 1),
+            "coberturaConsolidada": round(consolidada, 1),
+        }
+
     def obter_dados_tipo(self, filtros: dict | None) -> list[dict]:
         stmt = select(
             ProposicaoModel.tipo,

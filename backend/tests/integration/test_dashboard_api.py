@@ -58,3 +58,22 @@ def test_dashboard_tempo_por_fase_com_filtro_inexistente(http_client):
     data = response.json()
     assert isinstance(data, list)
     assert len(data) == 0
+
+
+def test_dashboard_cobertura_dados_sem_filtros(http_client):
+    response = http_client.get("/dashboard/cobertura-dados")
+    assert response.status_code == 200
+    data = response.json()
+    assert "eventosDocumentados" in data
+    assert "metadadosCompletos" in data
+    assert "historicoTramitacao" in data
+    assert "documentosAnexos" in data
+    assert "coberturaConsolidada" in data
+
+
+def test_dashboard_cobertura_dados_com_filtros(http_client):
+    response = http_client.get("/dashboard/cobertura-dados?tipo=PL")
+    assert response.status_code == 200
+    data = response.json()
+    assert "eventosDocumentados" in data
+

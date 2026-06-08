@@ -281,3 +281,56 @@ def test_obter_transicoes_casas(session: Session):
     )
     assert c_s["quantidade"] == 1
     assert c_s["tempoMedioTransicao"] == 4
+
+
+def test_obter_cobertura_dados(session: Session):
+    repo = SQLDashboardRepository(session)
+
+    # P1: Completamente preenchida (12/12 campos)
+    p1 = ProposicaoModel(
+        id="10",
+        tipo="PL",
+        numero="10",
+        ano=2024,
+        ementa="E10",
+        autor="A10",
+        orgao_origem="Origem10",
+        status="Status10",
+        orgao_atual="Atual10",
+        data_apresentacao="2024-01-01",
+        data_ultima_movimentacao="2024-01-02",
+        link_oficial="http://link10",
+        regime_tramitacao="Regime10",
+    )
+
+    # P2: Parcialmente preenchida (8/12 campos)
+    p2 = ProposicaoModel(
+        id="11",
+        tipo="PEC",
+        numero="11",
+        ano=2024,
+        ementa="E11",
+        autor="A11",
+        orgao_origem=None,
+        status="Status11",
+        orgao_atual="Atual11",
+        data_apresentacao="2024-01-01",
+        data_ultima_movimentacao="",
+        link_oficial=None,
+        regime_tramitacao=None,
+    )
+
+    session.add(p1)
+    session.add(p2)
+    session.commit()
+
+    cobertura = repo.obter_cobertura_dados(None)
+
+    assert cobertura["eventosDocumentados"] == 50.0
+    # P1: 100%, P2: (8/12)*100 = 66.67%. Média = 83.3%
+    assert abs(cobertura["metadadosCompletos"] - 83.3) < 0.2
+    assert cobertura["historicoTramitacao"] == 50.0
+    assert cobertura["documentosAnexos"] == 50.0
+    # Média das 4 métricas: (50 + 83.3 + 50 + 50) / 4 = 58.3%
+    assert abs(cobertura["coberturaConsolidada"] - 58.3) < 0.2
+

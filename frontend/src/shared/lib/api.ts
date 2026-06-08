@@ -9,6 +9,7 @@ import type {
   ComparacaoTema,
   FiltrosProposicao,
   TempoPorFase,
+  CoberturaDados,
 } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -175,6 +176,12 @@ export async function obterEvolucaoTemporal(filtros?: Partial<FiltrosProposicao>
 export async function obterTransicoesCasas(filtros?: Partial<FiltrosProposicao>): Promise<any> {
   const response = await fetch(`${API_BASE}/dashboard/transicoes-casas${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar transições de casas')
+  return await response.json()
+}
+
+export async function obterCoberturaDados(filtros?: Partial<FiltrosProposicao>): Promise<CoberturaDados> {
+  const response = await fetch(`${API_BASE}/dashboard/cobertura-dados${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar cobertura de dados')
   return await response.json()
 }
 

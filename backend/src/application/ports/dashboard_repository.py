@@ -10,6 +10,10 @@ class DashboardRepositoryPort(Protocol):
         """Obtém métricas gerais agregadas para o dashboard."""
         ...
 
+    def obter_cobertura_dados(self, filtros: dict | None) -> dict:
+        """Calcula os indicadores de cobertura e integridade de dados."""
+        ...
+
     def obter_dados_tipo(self, filtros: dict | None) -> list[dict]:
         """Obtém dados de tramitação agrupados por tipo de proposição."""
         ...
