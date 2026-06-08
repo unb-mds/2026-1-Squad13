@@ -22,6 +22,7 @@ class Proposicao(SQLModel):
     uf_autor: str | None = None
     orgao_origem: str | None = None
     status: str | None = None
+    status_original: str | None = None
     orgao_atual: str | None = None
     data_apresentacao: str | None = None
     data_ultima_movimentacao: str | None = None
@@ -43,60 +44,52 @@ class Proposicao(SQLModel):
     tags: list[str] = []
 
     def normalizar_campo_status(self):
-        """Normaliza o campo status para algo mais conciso e legível."""
-        if not self.status or self.status.lower() == "sem status":
+        """Normaliza o campo status para um dos 6 valores canônicos do domínio."""
+        # Mantém retrocompatibilidade se status_original não estiver preenchido, mas status estiver
+        if not self.status_original and self.status:
+            self.status_original = self.status
+
+        if not self.status_original or self.status_original.lower() == "sem status":
             self.status = "Em Tramitação"
+            if not self.status_original:
+                self.status_original = "Sem status"
             return
 
-        raw = self.status.upper()
+        raw = self.status_original.upper()
 
-        # Mapeamento de termos prioritários (conclusão)
-        if "NORMA JURÍDICA" in raw:
-            self.status = "Concluída (Lei)"
-            return
-        if "SANCIONAD" in raw:
+        # 1. Sancionada / Concluída
+        if "NORMA JURÍDICA" in raw or "SANCIONAD" in raw:
             self.status = "Sancionada"
             return
+
+        # 2. Vetada
         if "VETAD" in raw:
             self.status = "Vetada"
             return
-        if "APENSAD" in raw:
-            self.status = "Arquivada (Apensada)"
-            return
+
+        # 3. Arquivada / Rejeitada / Apensada
         if (
             "REJEITAD" in raw
             or "ARQUIVAD" in raw
             or "PREJUDICAD" in raw
             or "RETIRAD" in raw
+            or "APENSAD" in raw
         ):
             self.status = "Arquivada"
             return
+
+        # 4. Aprovada
         if "APROVAD" in raw:
             self.status = "Aprovada"
             return
 
-        # Status de tramitação ativa
+        # 5. Em Pauta
         if "PAUTA" in raw:
             self.status = "Em Pauta"
             return
-        if "RELATOR" in raw:
-            self.status = "Em Relatoria"
-            return
-        if "AGUARDANDO" in raw:
-            self.status = "Aguardando"
-            return
-        if (
-            "RECEBIMENTO" in raw
-            or "ENCAMINHAD" in raw
-            or "DESPACHO" in raw
-            or "DISTRIBUIÇÃO" in raw
-        ):
-            self.status = "Em Tramitação"
-            return
 
-        # Se for muito longo e não casou com nada, corta de forma inteligente
-        if len(self.status) > 50:
-            self.status = self.status[:47].strip() + "..."
+        # 6. Em Tramitação (fallback para todos os outros andamentos ativos)
+        self.status = "Em Tramitação"
 
     def atualizar_metricas(self):
         """Calcula métricas temporais baseadas nas datas da proposição."""

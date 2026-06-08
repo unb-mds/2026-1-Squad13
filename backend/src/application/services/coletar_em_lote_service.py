@@ -116,7 +116,12 @@ class ColetarEmLoteService:
         self, proposicoes: list[Proposicao], client: httpx.AsyncClient
     ):
         """Salva proposições e coleta seus eventos de tramitação."""
-        # 1. Upsert das proposições (rápido)
+        # 1. Normaliza status e atualiza métricas básicas para cada proposição no lote
+        for prop in proposicoes:
+            prop.normalizar_campo_status()
+            prop.atualizar_metricas()
+
+        # 2. Upsert das proposições (rápido)
         self.repository.upsert_em_lote_por_numero_canonico(proposicoes)
 
         # 2. Coleta de eventos (demorado, fazemos em pequenos batches para não estourar)
