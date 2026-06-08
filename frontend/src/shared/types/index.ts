@@ -2,17 +2,11 @@ export type TipoProposicao = 'PL' | 'PEC' | 'PDL' | 'MP' | 'PLP'
 
 export type StatusProposicao =
   | 'Em Tramitação'
-  | 'Concluída (Lei)'
+  | 'Em Pauta'
+  | 'Aprovada'
   | 'Sancionada'
   | 'Vetada'
-  | 'Arquivada (Apensada)'
   | 'Arquivada'
-  | 'Aprovada'
-  | 'Em Pauta'
-  | 'Em Relatoria'
-  | 'Aguardando'
-  | 'Rejeitada'
-  | 'Em análise'
 
 export interface Proposicao {
   id: string
