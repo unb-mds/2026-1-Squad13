@@ -46,6 +46,7 @@ export interface MovimentacaoTramitacao {
 export interface MetricasDashboard {
   tempoMedioTramitacao: number
   totalProposicoes: number
+  totalTramitacoes: number
   proposicoesComAtraso: number
   comissaoMaiorTempo: string
   comissaoMaiorTempoMedia: number

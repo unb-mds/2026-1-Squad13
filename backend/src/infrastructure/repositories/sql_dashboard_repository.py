@@ -82,6 +82,7 @@ class SQLDashboardRepository:
     def obter_metricas_gerais(self, filtros: dict | None) -> dict:
         status_agrupado = self._status_agrupado_case()
 
+        # Query para métricas de proposições
         stmt = select(
             func.count().label("total"),
             func.coalesce(func.avg(ProposicaoModel.tempo_total_dias), 0).label(
@@ -118,10 +119,25 @@ class SQLDashboardRepository:
         stmt = self._aplicar_filtros(stmt, filtros)
 
         row = self.session.exec(stmt).first()
+
+        # Query para total de eventos (tramitações) - Tabela evento_tramitacao
+        from infrastructure.database.models.evento_tramitacao_model import EventoTramitacaoModel
+        stmt_eventos = select(func.count()).select_from(EventoTramitacaoModel)
+        # Note: Aplicar filtros em eventos é complexo se os filtros forem de Proposição.
+        # Por enquanto, pegamos o total global ou vinculado às proposições filtradas se necessário.
+        if filtros:
+             # Se houver filtros, filtramos eventos vinculados a essas proposições
+             stmt_filt_props = select(ProposicaoModel.id)
+             stmt_filt_props = self._aplicar_filtros(stmt_filt_props, filtros)
+             stmt_eventos = stmt_eventos.where(EventoTramitacaoModel.proposicao_id.in_(stmt_filt_props))
+        
+        total_eventos = self.session.exec(stmt_eventos).first() or 0
+
         if not row or row.total == 0:
             return {
                 "tempoMedioTramitacao": 0,
                 "totalProposicoes": 0,
+                "totalTramitacoes": total_eventos,
                 "proposicoesComAtraso": 0,
                 "totalAprovadas": 0,
                 "totalEmTramitacao": 0,
@@ -152,6 +168,7 @@ class SQLDashboardRepository:
         return {
             "tempoMedioTramitacao": int(row.tempo_medio or 0),
             "totalProposicoes": row.total,
+            "totalTramitacoes": total_eventos,
             "proposicoesComAtraso": int(row.com_atraso or 0),
             "totalAprovadas": int(row.aprovadas or 0),
             "totalEmTramitacao": int(row.em_tramitacao or 0),
