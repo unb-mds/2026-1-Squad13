@@ -33,7 +33,9 @@ def run_migrations():
             )
 
     if not os.path.exists(alembic_ini_path):
-        logger.error(f"❌ Arquivo alembic.ini não encontrado no caminho: {alembic_ini_path}")
+        logger.error(
+            f"❌ Arquivo alembic.ini não encontrado no caminho: {alembic_ini_path}"
+        )
         raise FileNotFoundError("Arquivo alembic.ini não encontrado!")
 
     logger.info(f"📂 Usando config: {alembic_ini_path}")

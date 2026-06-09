@@ -314,10 +314,22 @@ class DashboardService:
 
         # Filtrar apenas chaves aceitas na assinatura de filtrar() do repositório
         chaves_aceitas = {
-            "tipo", "numero", "ano", "autor", "uf_autor", "status",
-            "busca", "orgao_origem", "data_inicio", "data_fim", "limit", "offset"
+            "tipo",
+            "numero",
+            "ano",
+            "autor",
+            "uf_autor",
+            "status",
+            "busca",
+            "orgao_origem",
+            "data_inicio",
+            "data_fim",
+            "limit",
+            "offset",
         }
-        filtros_seguros = {k: v for k, v in (filtros or {}).items() if k in chaves_aceitas}
+        filtros_seguros = {
+            k: v for k, v in (filtros or {}).items() if k in chaves_aceitas
+        }
 
         todas = self.repository.filtrar(**filtros_seguros)
         if not todas:
@@ -352,7 +364,9 @@ class DashboardService:
                     if fase_atual is not None and data_entrada is not None:
                         try:
                             entrada = datetime.fromisoformat(data_entrada[:10]).date()
-                            saida = datetime.fromisoformat(evento.data_evento[:10]).date()
+                            saida = datetime.fromisoformat(
+                                evento.data_evento[:10]
+                            ).date()
                             dias = (saida - entrada).days
                             if dias >= 0:
                                 acumulador[fase_atual]["dias"].append(dias)
@@ -369,8 +383,14 @@ class DashboardService:
                 try:
                     info_fase = mapa_fases.get(fase_atual)
                     entrada = datetime.fromisoformat(data_entrada[:10]).date()
-                    if (info_fase and info_fase["ordem"] >= 8) or prop.data_encerramento:
-                        saida = datetime.fromisoformat(prop.data_encerramento[:10]).date() if prop.data_encerramento else entrada
+                    if (
+                        info_fase and info_fase["ordem"] >= 8
+                    ) or prop.data_encerramento:
+                        saida = (
+                            datetime.fromisoformat(prop.data_encerramento[:10]).date()
+                            if prop.data_encerramento
+                            else entrada
+                        )
                     else:
                         saida = date.today()
                     dias = (saida - entrada).days
@@ -395,13 +415,15 @@ class DashboardService:
 
             tempo_estatistico = statistics.median(dados["dias"]) if dados["dias"] else 0
 
-            resultado.append({
-                "fase": info["nome"],
-                "codigoFase": info["codigo"],
-                "ordemLogica": info["ordem"],
-                "tempoMedioDias": int(tempo_estatistico),
-                "quantidadeProposicoes": qtd,
-            })
+            resultado.append(
+                {
+                    "fase": info["nome"],
+                    "codigoFase": info["codigo"],
+                    "ordemLogica": info["ordem"],
+                    "tempoMedioDias": int(tempo_estatistico),
+                    "quantidadeProposicoes": qtd,
+                }
+            )
 
         resultado_ordenado = sorted(resultado, key=lambda x: x["ordemLogica"])
         self._set_cache(cache_key, resultado_ordenado)

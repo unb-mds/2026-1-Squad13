@@ -121,16 +121,21 @@ class SQLDashboardRepository:
         row = self.session.exec(stmt).first()
 
         # Query para total de eventos (tramitações) - Tabela evento_tramitacao
-        from infrastructure.database.models.evento_tramitacao_model import EventoTramitacaoModel
+        from infrastructure.database.models.evento_tramitacao_model import (
+            EventoTramitacaoModel,
+        )
+
         stmt_eventos = select(func.count()).select_from(EventoTramitacaoModel)
         # Note: Aplicar filtros em eventos é complexo se os filtros forem de Proposição.
         # Por enquanto, pegamos o total global ou vinculado às proposições filtradas se necessário.
         if filtros:
-             # Se houver filtros, filtramos eventos vinculados a essas proposições
-             stmt_filt_props = select(ProposicaoModel.id)
-             stmt_filt_props = self._aplicar_filtros(stmt_filt_props, filtros)
-             stmt_eventos = stmt_eventos.where(EventoTramitacaoModel.proposicao_id.in_(stmt_filt_props))
-        
+            # Se houver filtros, filtramos eventos vinculados a essas proposições
+            stmt_filt_props = select(ProposicaoModel.id)
+            stmt_filt_props = self._aplicar_filtros(stmt_filt_props, filtros)
+            stmt_eventos = stmt_eventos.where(
+                EventoTramitacaoModel.proposicao_id.in_(stmt_filt_props)
+            )
+
         total_eventos = self.session.exec(stmt_eventos).first() or 0
 
         if not row or row.total == 0:
