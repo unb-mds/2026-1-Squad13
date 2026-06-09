@@ -24,7 +24,7 @@ const badgeClasses: Record<BadgeVariant, string> = {
   warning: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
   danger: 'bg-rose-500/15 text-rose-400 border-rose-500/25',
   info: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
-  volt: 'bg-volt-400/15 text-volt-300 border-volt-400/25',
+  volt: 'bg-primary/15 text-primary border-primary/25',
 }
 
 export function Badge({ children, variant = 'default', className = '' }: { children: ReactNode; variant?: BadgeVariant; className?: string }) {
@@ -38,7 +38,7 @@ export function Badge({ children, variant = 'default', className = '' }: { child
 // --- Button ---
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 const btnClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-volt-400 text-ink-900 hover:bg-volt-300 font-semibold',
+  primary: 'bg-primary text-primary-foreground hover:bg-primary/90 font-semibold',
   secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border',
   ghost: 'text-muted-foreground hover:text-foreground hover:bg-secondary/60',
   danger: 'bg-destructive/15 text-destructive hover:bg-destructive/25 border border-destructive/25',
@@ -79,7 +79,7 @@ export function Input({ label, error, leftIcon, className = '', ...props }: Inpu
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{leftIcon}</div>
         )}
         <input
-          className={`w-full bg-input-background border border-border text-foreground placeholder-muted-foreground rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-volt-400/50 focus:border-volt-400/50 transition-all ${leftIcon ? 'pl-9' : ''} ${error ? 'border-destructive/50' : ''} ${className}`}
+          className={`w-full bg-input-background border border-border text-foreground placeholder-muted-foreground rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all ${leftIcon ? 'pl-9' : ''} ${error ? 'border-destructive/50' : ''} ${className}`}
           {...props}
         />
       </div>
@@ -98,7 +98,7 @@ export function Select({ label, children, className = '', ...props }: SelectProp
     <div className="w-full">
       {label && <label className="block text-sm text-muted-foreground mb-1.5 font-medium">{label}</label>}
       <select
-        className={`w-full bg-input-background border border-border text-foreground rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-volt-400/50 focus:border-volt-400/50 transition-all appearance-none ${className}`}
+        className={`w-full bg-input-background border border-border text-foreground rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all appearance-none ${className}`}
         {...props}
       >
         {children}
@@ -109,7 +109,7 @@ export function Select({ label, children, className = '', ...props }: SelectProp
 
 // --- Spinner ---
 export function Spinner({ className = '' }: { className?: string }) {
-  return <Loader2 role="status" aria-label="Carregando" className={`animate-spin text-volt-400 ${className}`} />
+  return <Loader2 role="status" aria-label="Carregando" className={`animate-spin text-primary ${className}`} />
 }
 
 // --- Empty State ---
@@ -158,7 +158,7 @@ export function Pagination({ pagina, total, itensPorPagina, onChange }: {
               onClick={() => onChange(p)}
               className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
                 p === pagina
-                  ? 'bg-volt-400/20 text-volt-300 border border-volt-400/30'
+                  ? 'bg-primary/20 text-primary border border-primary/30'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
               }`}
             >
