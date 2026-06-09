@@ -39,6 +39,7 @@
   --status-em-atraso: #dc2626;
   --status-concluida: #059669;
   --status-aguardando: #f59e0b;
+  --chart-saidas: #64748b;
   --radius: 0.5rem;
 }
 
@@ -73,6 +74,7 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+  --chart-saidas: #94a3b8;
 }
 
 @layer base {
