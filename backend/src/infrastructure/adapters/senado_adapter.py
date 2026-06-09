@@ -16,7 +16,7 @@ class SenadoAdapter:
 
     def __init__(self, base_url: str = "https://legis.senado.leg.br/dadosabertos"):
         self.base_url = base_url
-        self.timeout = 30
+        self.timeout = 12  # Reduzido para falhar mais rápido em caso de instabilidade
 
     async def _get_with_retry(
         self,
@@ -26,7 +26,7 @@ class SenadoAdapter:
         headers=None,
         timeout=None,
     ) -> httpx.Response:
-        """Helper para realizar requisições com retry em caso de erro 5xx ou timeout."""
+        """Helper para realizar requisições com retry rápido em caso de erro."""
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -34,38 +34,39 @@ class SenadoAdapter:
                     url, params=params, headers=headers, timeout=timeout or self.timeout
                 )
 
-                if (
-                    resp.status_code >= 500 or resp.status_code == 429
-                ) and attempt < max_retries - 1:
-                    wait_time = 2**attempt  # Backoff exponencial: 1s, 2s, 4s
-                    logger.warning(
-                        f"⚠️ Erro {resp.status_code} no Senado. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
-                    )
+                if resp.status_code == 429:
+                    wait_time = 3 * (attempt + 1)
+                    logger.warning(f"⏳ Senado aplicando Rate Limit. Aguardando {wait_time}s...")
                     await asyncio.sleep(wait_time)
+                    continue
+
+                if resp.status_code >= 500 and attempt < max_retries - 1:
+                    logger.warning(f"🔄 Senado instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}...")
+                    await asyncio.sleep(1)
                     continue
 
                 if resp.status_code != 404:
                     resp.raise_for_status()
                 return resp
-            except (httpx.RequestError, httpx.HTTPStatusError) as e:
-                # Se for erro de status 4xx (exceto 429 que já tratamos acima), não fazemos retry
-                if (
-                    isinstance(e, httpx.HTTPStatusError)
-                    and e.response.status_code < 500
-                    and e.response.status_code != 429
-                ):
-                    raise
-
+            except (httpx.ConnectTimeout, httpx.ConnectError):
                 if attempt < max_retries - 1:
-                    wait_time = 2**attempt
-                    error_type = type(e).__name__
-                    logger.warning(
-                        f"🔄 Falha [{error_type}] no Senado: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
-                    )
-                    await asyncio.sleep(wait_time)
+                    logger.warning(f"🔌 Erro de conexão com Senado. Tentando reconectar ({attempt + 1}/{max_retries})...")
+                    await asyncio.sleep(1)
                 else:
                     raise
-        raise httpx.RequestError("Máximo de tentativas excedido no Senado")
+            except httpx.TimeoutException:
+                if attempt < max_retries - 1:
+                    logger.warning(f"🕒 Timeout no Senado. Tentando novamente ({attempt + 1}/{max_retries})...")
+                    await asyncio.sleep(1)
+                else:
+                    raise
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"🔄 Falha inesperada no Senado: {type(e).__name__}. Retentando...")
+                    await asyncio.sleep(1)
+                else:
+                    raise
+        raise httpx.RequestError("Senado indisponível após múltiplas tentativas")
 
     async def buscar_por_id(
         self, id_materia: int, client: httpx.AsyncClient | None = None
@@ -237,6 +238,34 @@ class SenadoAdapter:
                     f"Erro inesperado ao processar dados do Senado para ID {id_materia}: {e}"
                 )
                 return None
+        finally:
+            if client is None:
+                await _client.aclose()
+
+    async def obter_total(
+        self, tipo: str, ano: int, client: httpx.AsyncClient | None = None
+    ) -> int:
+        """Obtém o total de matérias para um tipo e ano na API do Senado."""
+        url = f"{self.base_url}/processo"
+        params = {"sigla": tipo, "ano": ano}
+        headers = {"Accept": "application/json"}
+        _client = client or httpx.AsyncClient(follow_redirects=True)
+        try:
+            resp = await self._get_with_retry(
+                _client, url, params=params, headers=headers
+            )
+            if resp.status_code == 404:
+                return 0
+            dados = resp.json()
+            if not dados:
+                return 0
+            # A API de processo do Senado retorna uma lista direta ou objeto único
+            if isinstance(dados, list):
+                return len(dados)
+            return 1
+        except Exception as e:
+            logger.error(f"Erro ao obter total do Senado ({tipo}, {ano}): {e}")
+            return 0
         finally:
             if client is None:
                 await _client.aclose()
