@@ -36,12 +36,16 @@ class SenadoAdapter:
 
                 if resp.status_code == 429:
                     wait_time = 3 * (attempt + 1)
-                    logger.warning(f"⏳ Senado aplicando Rate Limit. Aguardando {wait_time}s...")
+                    logger.warning(
+                        f"⏳ Senado aplicando Rate Limit. Aguardando {wait_time}s..."
+                    )
                     await asyncio.sleep(wait_time)
                     continue
 
                 if resp.status_code >= 500 and attempt < max_retries - 1:
-                    logger.warning(f"🔄 Senado instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}...")
+                    logger.warning(
+                        f"🔄 Senado instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
+                    )
                     await asyncio.sleep(1)
                     continue
 
@@ -50,19 +54,25 @@ class SenadoAdapter:
                 return resp
             except (httpx.ConnectTimeout, httpx.ConnectError):
                 if attempt < max_retries - 1:
-                    logger.warning(f"🔌 Erro de conexão com Senado. Tentando reconectar ({attempt + 1}/{max_retries})...")
+                    logger.warning(
+                        f"🔌 Erro de conexão com Senado. Tentando reconectar ({attempt + 1}/{max_retries})..."
+                    )
                     await asyncio.sleep(1)
                 else:
                     raise
             except httpx.TimeoutException:
                 if attempt < max_retries - 1:
-                    logger.warning(f"🕒 Timeout no Senado. Tentando novamente ({attempt + 1}/{max_retries})...")
+                    logger.warning(
+                        f"🕒 Timeout no Senado. Tentando novamente ({attempt + 1}/{max_retries})..."
+                    )
                     await asyncio.sleep(1)
                 else:
                     raise
             except Exception as e:
                 if attempt < max_retries - 1:
-                    logger.warning(f"🔄 Falha inesperada no Senado: {type(e).__name__}. Retentando...")
+                    logger.warning(
+                        f"🔄 Falha inesperada no Senado: {type(e).__name__}. Retentando..."
+                    )
                     await asyncio.sleep(1)
                 else:
                     raise

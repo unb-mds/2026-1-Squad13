@@ -106,7 +106,14 @@ async def run(sources=None, years=None, types=None, limit=5, tasks=None) -> None
             for ano in years:
                 for tipo in types:
                     for source in sources:
-                        work_plan.append({"source": source, "year": ano, "type": tipo, "limit": limit})
+                        work_plan.append(
+                            {
+                                "source": source,
+                                "year": ano,
+                                "type": tipo,
+                                "limit": limit,
+                            }
+                        )
 
         # 3. Execução Paralela
         sem = asyncio.Semaphore(3)
@@ -121,21 +128,30 @@ async def run(sources=None, years=None, types=None, limit=5, tasks=None) -> None
                     local_offset = task.get("local_count", 0)
                     page = (local_offset // task.get("limit", limit)) + 1
 
-                    logger.info(f"   🔎 Buscando {task['type']} {task['year']} na {source.upper()} (Offset: {local_offset}, Página: {page})...")
+                    logger.info(
+                        f"   🔎 Buscando {task['type']} {task['year']} na {source.upper()} (Offset: {local_offset}, Página: {page})..."
+                    )
 
                     if source == "camara":
                         ids = await adapter.listar_recentes(
-                            tipo=task["type"], quantidade=task.get("limit", limit),
-                            ano=task["year"], client=client, pagina=page
+                            tipo=task["type"],
+                            quantidade=task.get("limit", limit),
+                            ano=task["year"],
+                            client=client,
+                            pagina=page,
                         )
                     else:
                         # Senado não tem página, buscamos um pouco mais e filtramos
                         ids_raw = await adapter.listar_recentes(
-                            tipo=task["type"], quantidade=task.get("limit", limit) + local_offset + 5,
-                            ano=task["year"], client=client
+                            tipo=task["type"],
+                            quantidade=task.get("limit", limit) + local_offset + 5,
+                            ano=task["year"],
+                            client=client,
                         )
                         # Remove os primeiros que provavelmente já temos
-                        ids = ids_raw[local_offset:local_offset + task.get("limit", limit)]
+                        ids = ids_raw[
+                            local_offset : local_offset + task.get("limit", limit)
+                        ]
 
                     batch = []
                     for id_p in ids:
@@ -173,14 +189,26 @@ async def run(sources=None, years=None, types=None, limit=5, tasks=None) -> None
             fase_repo = SQLFaseAnaliticaRepository(session)
             orgao_repo = SQLOrgaoLegislativoRepository(session)
             apensamento_repo = SQLApensamentoRepository(session)
-            listar_service = ListarMovimentacoesService(evento_repo, repo, fase_repo, orgao_repo, camara, senado, apensamento_repo=apensamento_repo)
+            listar_service = ListarMovimentacoesService(
+                evento_repo,
+                repo,
+                fase_repo,
+                orgao_repo,
+                camara,
+                senado,
+                apensamento_repo=apensamento_repo,
+            )
             dashboard_service = DashboardService(repo, evento_repo)
 
             for p in all_proposicoes:
                 try:
                     p.tags = generate_tags(p.ementa)
                     if not p.ementa_resumida:
-                        p.ementa_resumida = p.ementa[:150] + "..." if p.ementa and len(p.ementa) > 150 else p.ementa
+                        p.ementa_resumida = (
+                            p.ementa[:150] + "..."
+                            if p.ementa and len(p.ementa) > 150
+                            else p.ementa
+                        )
 
                     prop_db = repo.buscar_por_id(p.id)
                     if prop_db is None:
@@ -192,15 +220,25 @@ async def run(sources=None, years=None, types=None, limit=5, tasks=None) -> None
                         repo.salvar(prop_db)
                         atualizados += 1
 
-                    eventos = await listar_service.executar(str(prop_db.id), modo=ModoMovimentacao.COMPLETO, client=client)
-                    prop_db.tempo_total_dias = dashboard_service._calcular_tempo_total(eventos, prop_db.tempo_total_dias or 0, prop_db)
-                    prop_db.status = dashboard_service._extrair_status_atual(eventos, prop_db.status)
-                    prop_db.tem_atraso = (prop_db.tempo_total_dias > LIMITE_DIAS_ATRASO) and (prop_db.data_encerramento is None)
+                    eventos = await listar_service.executar(
+                        str(prop_db.id), modo=ModoMovimentacao.COMPLETO, client=client
+                    )
+                    prop_db.tempo_total_dias = dashboard_service._calcular_tempo_total(
+                        eventos, prop_db.tempo_total_dias or 0, prop_db
+                    )
+                    prop_db.status = dashboard_service._extrair_status_atual(
+                        eventos, prop_db.status
+                    )
+                    prop_db.tem_atraso = (
+                        prop_db.tempo_total_dias > LIMITE_DIAS_ATRASO
+                    ) and (prop_db.data_encerramento is None)
                     repo.salvar(prop_db)
                 except Exception as e:
                     logger.error(f"❌ Erro em {p.id}: {e}")
 
-        logger.info(f"✨ Ciclo Finalizado! Inseridos: {inseridos}, Atualizados: {atualizados}")
+        logger.info(
+            f"✨ Ciclo Finalizado! Inseridos: {inseridos}, Atualizados: {atualizados}"
+        )
         try:
             # Invalida o cache do dashboard para refletir os novos dados imediatamente
             redis_conn = get_redis_client()
@@ -239,13 +277,19 @@ async def analyze_database_gaps(sources, years, types):
                         ).one()
                         try:
                             adapter = camara if source == "camara" else senado
-                            api_total = await adapter.obter_total(tipo, ano, client=client)
+                            api_total = await adapter.obter_total(
+                                tipo, ano, client=client
+                            )
                             # Corrige lógica de 0% ou Erro
                             if api_total == 0 and local_count > 0:
-                                coverage = 100.0  # Provável inconsistência na API ou tipo raro
+                                coverage = (
+                                    100.0  # Provável inconsistência na API ou tipo raro
+                                )
                             else:
                                 coverage = (
-                                    (local_count / api_total * 100) if api_total > 0 else 0
+                                    (local_count / api_total * 100)
+                                    if api_total > 0
+                                    else 0
                                 )
 
                             results.append(
@@ -270,9 +314,7 @@ async def analyze_database_gaps(sources, years, types):
         print("-" * 80)
         for r in sorted(results, key=lambda x: (x["ano"], x["fonte"]), reverse=True):
             status = (
-                "✅"
-                if r["coverage"] >= 80
-                else "⚠️" if r["coverage"] >= 30 else "🚨"
+                "✅" if r["coverage"] >= 80 else "⚠️" if r["coverage"] >= 30 else "🚨"
             )
             if r["api"] == 0 and r["local"] == 0:
                 status = "⚪"  # Sem dados em ambos
@@ -282,7 +324,15 @@ async def analyze_database_gaps(sources, years, types):
         print("=" * 80)
 
     gaps = [r for r in results if r["coverage"] < 95 and r["api"] > 0]
-    return [{"source": g["fonte"].lower(), "year": g["ano"], "type": g["tipo"], "local_count": g["local"]} for g in gaps], failed_sources
+    return [
+        {
+            "source": g["fonte"].lower(),
+            "year": g["ano"],
+            "type": g["tipo"],
+            "local_count": g["local"],
+        }
+        for g in gaps
+    ], failed_sources
 
 
 async def interactive_menu():
@@ -292,12 +342,16 @@ async def interactive_menu():
 
     current_year = datetime.now().year
     default_years = list(range(current_year - 2, current_year + 1))
-    gaps, failed = await analyze_database_gaps(["camara", "senado"], default_years, ["PL", "PEC"])
+    gaps, failed = await analyze_database_gaps(
+        ["camara", "senado"], default_years, ["PL", "PEC"]
+    )
 
     if gaps:
         print(f"\n💡 Identificamos {len(gaps)} buracos de cobertura.")
         if (
-            input("> Deseja que eu preencha esses buracos automaticamente? (S/n): ").lower()
+            input(
+                "> Deseja que eu preencha esses buracos automaticamente? (S/n): "
+            ).lower()
             != "n"
         ):
             limit = int(input("> Quantos itens novos por buraco? [15]: ") or "15")

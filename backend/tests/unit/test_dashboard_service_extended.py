@@ -384,17 +384,29 @@ def test_obter_tempo_por_fase_com_filtros(mock_repo, mock_evento_repo):
     resultado = service.obter_tempo_por_fase(filtros=filtros)
 
     assert len(resultado) == 1
-    mock_repo.filtrar.assert_called_once_with(tipo="PL", status="Aprovada", busca="termo")
+    mock_repo.filtrar.assert_called_once_with(
+        tipo="PL", status="Aprovada", busca="termo"
+    )
 
 
 def test_obter_tempo_por_fase_com_cache_hit(mock_repo, mock_evento_repo):
     """Verifica se obter_tempo_por_fase retorna do cache diretamente em caso de hit."""
     fase_repo = Mock()
     cache_provider = Mock()
-    cached_data = [{"fase": "Protocolo", "codigoFase": "P1", "ordemLogica": 1, "tempoMedioDias": 10, "quantidadeProposicoes": 1}]
+    cached_data = [
+        {
+            "fase": "Protocolo",
+            "codigoFase": "P1",
+            "ordemLogica": 1,
+            "tempoMedioDias": 10,
+            "quantidadeProposicoes": 1,
+        }
+    ]
     cache_provider.get.return_value = json.dumps(cached_data)
 
-    service = DashboardService(mock_repo, mock_evento_repo, fase_repo, cache_provider=cache_provider)
+    service = DashboardService(
+        mock_repo, mock_evento_repo, fase_repo, cache_provider=cache_provider
+    )
     filtros = {"tipo": "PL"}
 
     resultado = service.obter_tempo_por_fase(filtros=filtros)
@@ -416,7 +428,9 @@ def test_obter_tempo_por_fase_com_cache_miss_e_set(mock_repo, mock_evento_repo):
         "1": [_evento("1", 1, "2024-01-01", 1)]
     }
 
-    service = DashboardService(mock_repo, mock_evento_repo, fase_repo, cache_provider=cache_provider)
+    service = DashboardService(
+        mock_repo, mock_evento_repo, fase_repo, cache_provider=cache_provider
+    )
     filtros = {"tipo": "PEC"}
 
     resultado = service.obter_tempo_por_fase(filtros=filtros)

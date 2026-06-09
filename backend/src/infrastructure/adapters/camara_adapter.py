@@ -34,12 +34,16 @@ class CamaraAdapter:
                 )
                 if resp.status_code == 429:
                     wait_time = 2 * (attempt + 1)
-                    logger.warning(f"⏳ Câmara aplicando Rate Limit. Aguardando {wait_time}s...")
+                    logger.warning(
+                        f"⏳ Câmara aplicando Rate Limit. Aguardando {wait_time}s..."
+                    )
                     await asyncio.sleep(wait_time)
                     continue
 
                 if resp.status_code >= 500 and attempt < max_retries - 1:
-                    logger.warning(f"🔄 Câmara instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}...")
+                    logger.warning(
+                        f"🔄 Câmara instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
+                    )
                     await asyncio.sleep(1)
                     continue
 
@@ -47,7 +51,9 @@ class CamaraAdapter:
                 return resp
             except httpx.RequestError as e:
                 if attempt < max_retries - 1:
-                    logger.warning(f"🔌 Falha de rede na Câmara ({type(e).__name__}). Retentando...")
+                    logger.warning(
+                        f"🔌 Falha de rede na Câmara ({type(e).__name__}). Retentando..."
+                    )
                     await asyncio.sleep(1)
                 else:
                     raise
