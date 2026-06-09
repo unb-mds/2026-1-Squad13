@@ -9,5 +9,8 @@ echo "---"
 echo "Estrutura de Features:"
 ls -R frontend/src/features | grep ":"
 echo "---"
+echo "Componentes Compartilhados (Shared):"
+ls -R frontend/src/shared | grep ":"
+echo "---"
 echo "Documentação Recente:"
 ls -t docs/frontend | head -n 10
