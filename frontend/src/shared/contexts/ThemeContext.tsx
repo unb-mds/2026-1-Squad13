@@ -10,9 +10,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('theme') as Theme) || 'system';
-  });
+  // Mantemos a infraestrutura mas forçamos 'light' por padrão
+  const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -29,6 +28,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     applyTheme(theme);
+    
+    // Observação: Lógica de persistência e detecção de sistema comentada para manter o tema light fixo.
+    // O código permanece aqui para fácil reativação futura.
+    /*
     localStorage.setItem('theme', theme);
 
     if (theme === 'system') {
@@ -37,6 +40,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
+    */
   }, [theme]);
 
   return (

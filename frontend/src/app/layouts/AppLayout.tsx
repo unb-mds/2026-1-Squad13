@@ -9,7 +9,6 @@ export function AppLayout() {
           <div className="flex items-center gap-2">
             <span className="font-display font-bold text-xl tracking-tight">Lex<span className="text-primary">Track</span></span>
           </div>
-          <ThemeToggle />
         </div>
       </header>
       <main className="max-w-7xl mx-auto">
