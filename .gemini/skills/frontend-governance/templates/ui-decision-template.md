@@ -1,0 +1,5 @@
+### Decisão de UI: [Título]
+- **Contexto:** [Por que mudamos?]
+- **Decisão:** [O que mudou?]
+- **Racional Técnico:** [Trade-offs considerados]
+- **Impacto Visual:** [Print ou descrição]
