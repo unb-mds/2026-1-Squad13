@@ -1,5 +1,4 @@
 import { Outlet } from 'react-router-dom'
-import { ThemeToggle } from '@/shared/components/ThemeToggle'
 
 export function AppLayout() {
   return (
