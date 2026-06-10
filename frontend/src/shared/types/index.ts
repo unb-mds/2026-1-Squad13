@@ -29,6 +29,8 @@ export interface Proposicao {
   atrasoCritico: boolean
   temPrevisaoIA: boolean
   previsaoAprovacaoDias?: number
+  coberturaDados: number
+  confiabilidade: 'alta' | 'media' | 'baixa'
   tags: string[]
 }
 

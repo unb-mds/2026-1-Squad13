@@ -23,9 +23,13 @@ from infrastructure.repositories.sql_log_coleta_repository import (
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
 )
+from infrastructure.repositories.sql_periodo_fase_repository import (
+    SQLPeriodoFaseRepository,
+)
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
+from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +50,16 @@ def task_coletar_proposicoes_diario():
             orgao_repo = SQLOrgaoLegislativoRepository(session)
             apensamento_repo = SQLApensamentoRepository(session)
             log_repo = SQLLogColetaRepository(session)
+            periodo_repo = SQLPeriodoFaseRepository(session)
             camara_adapter = CamaraAdapter()
             senado_adapter = SenadoAdapter()
+
+            reconstruir_service = ReconstruirPeriodosService(
+                periodo_repo=periodo_repo,
+                evento_repo=evento_repo,
+                fase_repo=fase_repo,
+                proposicao_repo=repository,
+            )
 
             service = ColetarEmLoteService(
                 repository=repository,
@@ -58,6 +70,7 @@ def task_coletar_proposicoes_diario():
                 log_repo=log_repo,
                 camara_adapter=camara_adapter,
                 senado_adapter=senado_adapter,
+                reconstruir_service=reconstruir_service,
             )
             return await service.executar_coleta_diaria()
 
