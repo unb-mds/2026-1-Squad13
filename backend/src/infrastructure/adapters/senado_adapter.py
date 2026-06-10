@@ -31,7 +31,7 @@ class SenadoAdapter:
         max_retries = 3
         # Usa o timeout customizado ou o padrão granular
         timeout_config = timeout or self.default_timeout
-        
+
         for attempt in range(max_retries):
             try:
                 resp = await client.get(
@@ -61,7 +61,9 @@ class SenadoAdapter:
                     logger.warning(
                         f"🔌 Erro de conexão com Senado ({type(e).__name__}). Possível Cold Start ou DNS lento. Tentando reconectar ({attempt + 1}/{max_retries})..."
                     )
-                    await asyncio.sleep(2)  # Aumentado para dar tempo ao sistema operacional
+                    await asyncio.sleep(
+                        2
+                    )  # Aumentado para dar tempo ao sistema operacional
                 else:
                     raise
             except httpx.TimeoutException:
@@ -126,7 +128,9 @@ class SenadoAdapter:
                         else:
                             numero_emendas = 0
                     elif resp_emendas.status_code == 404:
-                        numero_emendas = 0  # Not found is actually 0 emendas in Senate API
+                        numero_emendas = (
+                            0  # Not found is actually 0 emendas in Senate API
+                        )
                 except Exception as e:
                     logger.warning(
                         f"Não foi possível buscar emendas para proposição {id_materia} no Senado: {e}"
@@ -165,7 +169,7 @@ class SenadoAdapter:
                             resp_proc = await _client.get(
                                 f"{self.base_url}/processo/{id_processo}?v=1",
                                 headers=headers,
-                                timeout=10,
+                                timeout=self.default_timeout,
                             )
                             if resp_proc.status_code == 200:
                                 dados_proc = resp_proc.json()
@@ -389,7 +393,9 @@ class SenadoAdapter:
                 return len(dados)
             return 1
         except Exception as e:
-            logger.error(f"❌ Erro ao obter total do Senado ({tipo}, {ano}): {str(e) or type(e).__name__}")
+            logger.error(
+                f"❌ Erro ao obter total do Senado ({tipo}, {ano}): {str(e) or type(e).__name__}"
+            )
             raise e
         finally:
             if client is None:
@@ -476,7 +482,7 @@ class SenadoAdapter:
             try:
                 url_mat = f"{self.base_url}/materia/{id_materia}"
                 resp_mat = await _client.get(
-                    url_mat, headers=headers, timeout=timeout or 10
+                    url_mat, headers=headers, timeout=timeout or self.default_timeout
                 )
                 if resp_mat.status_code == 200:
                     dados_mat = resp_mat.json()
