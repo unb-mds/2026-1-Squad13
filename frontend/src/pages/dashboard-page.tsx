@@ -68,6 +68,10 @@ export function DashboardPage() {
     timeSeriesData,
     bottleneckData,
     houseTransitionData,
+    estoqueData,
+    handoffData,
+    coberturaData,
+    qualidadeData,
   } = useDashboard(filtros);
 
   // Load propositions list with filters and pagination
@@ -382,6 +386,74 @@ export function DashboardPage() {
         />
       </div>
 
+      {/* Estoque de Proposições por Fase */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-1">
+            Estoque Operacional Ativo
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Matérias em tramitação ativa e permanência de trabalho corrente
+          </p>
+          {estoqueData && estoqueData.ativo.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {estoqueData.ativo.map((item) => (
+                <div key={item.codigo} className="bg-secondary/40 border border-border rounded-lg p-4 flex flex-col justify-between hover:border-primary/50 transition-colors">
+                  <span className="text-xs text-muted-foreground font-medium block truncate" title={item.nome}>
+                    {item.nome}
+                  </span>
+                  <div className="flex items-baseline gap-2 mt-2">
+                    <span className="text-2xl font-bold text-foreground">{item.total}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase">matérias</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground p-6 text-center border border-dashed border-border rounded-lg">
+              Nenhum estoque ativo registrado.
+            </div>
+          )}
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-6 flex flex-col justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-1">
+              Estoque Passivo / Histórico
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Ciclo processual encerrado e memória legislativa
+            </p>
+            {estoqueData && estoqueData.passivo.length > 0 ? (
+              <div className="space-y-4">
+                {estoqueData.passivo.map((item) => (
+                  <div key={item.codigo} className="bg-secondary/40 border border-border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground font-semibold uppercase">{item.nome}</span>
+                      <span className="bg-primary/10 text-primary text-xs px-2.5 py-0.5 rounded-full font-bold">
+                        {item.total} matérias
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-2">
+                      Total de proposições que concluíram definitivamente seu trâmite regulamentar.
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground p-6 text-center border border-dashed border-border rounded-lg">
+                Nenhum estoque passivo registrado.
+              </div>
+            )}
+          </div>
+          <div className="p-3 bg-secondary/30 border border-border rounded-lg mt-4">
+            <p className="text-[11px] text-muted-foreground">
+              O estoque passivo reflete matérias arquivadas, sancionadas ou retiradas de forma definitiva.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Pipeline Stage Visualization */}
       <div className="bg-card border border-border rounded-lg p-6">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -419,6 +491,7 @@ export function DashboardPage() {
         transitions={houseTransitionData.transitions}
         totalCamara={houseTransitionData.totalCamara}
         totalSenado={houseTransitionData.totalSenado}
+        handoffData={handoffData || undefined}
       />
 
       {/* Charts & Reliability section */}
@@ -482,78 +555,84 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Data Quality gauges */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              Cobertura de Dados
-            </h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Qualidade e completude das informações processadas
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  Eventos documentados
-                </span>
-                <span className="text-sm font-semibold text-foreground">94.2%</span>
-              </div>
-              <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: "94.2%" }}
-                />
-              </div>
+        {/* Cobertura e Qualidade da Base */}
+        <div className="bg-card border border-border rounded-lg p-6 flex flex-col justify-between">
+          <div>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-foreground">
+                Qualidade da Base Local
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Completude e integridade dos registros locais
+              </p>
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  Metadados completos
-                </span>
-                <span className="text-sm font-semibold text-foreground">87.8%</span>
+            {qualidadeData ? (
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm text-muted-foreground">Completude Geral</span>
+                    <span className="text-sm font-bold text-foreground">
+                      {qualidadeData.completudePorcentagem}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        qualidadeData.completudePorcentagem >= 80 ? "bg-emerald-500" : "bg-amber-500"
+                      }`}
+                      style={{ width: `${qualidadeData.completudePorcentagem}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="bg-secondary/40 border border-border rounded-lg p-3">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                      Campos Analisados
+                    </span>
+                    <span className="text-lg font-bold text-foreground">{qualidadeData.camposAnalisados}</span>
+                  </div>
+                  <div className="bg-secondary/40 border border-border rounded-lg p-3">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                      Total Matérias
+                    </span>
+                    <span className="text-lg font-bold text-foreground">{qualidadeData.totalProposicoes}</span>
+                  </div>
+                </div>
               </div>
-              <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: "87.8%" }}
-                />
-              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Carregando qualidade da base...</p>
+            )}
+
+            <div className="mt-6 border-t border-border pt-4">
+              <h2 className="text-sm font-semibold text-foreground mb-1">
+                Cobertura de Ingestão
+              </h2>
+              <p className="text-xs text-muted-foreground mb-3">
+                Volume ingerido localmente contra o total nas APIs oficiais
+              </p>
+              {coberturaData && coberturaData.length > 0 ? (
+                <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
+                  {coberturaData.map((c, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs p-2 bg-secondary/50 rounded border border-border">
+                      <div>
+                        <span className="font-semibold text-foreground">{c.tipoProposicao}</span>
+                        <span className="text-muted-foreground ml-1.5">({c.ano})</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-foreground font-medium">{c.totalLocal} / {c.totalApiOficial}</span>
+                        <span className={`ml-2 px-1.5 py-0.5 rounded font-bold ${
+                          c.percentualCobertura >= 95 ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                        }`}>
+                          {c.percentualCobertura}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nenhum snapshot de cobertura registrado.</p>
+              )}
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  Histórico de tramitação
-                </span>
-                <span className="text-sm font-semibold text-foreground">91.5%</span>
-              </div>
-              <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: "91.5%" }}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  Documentos anexos
-                </span>
-                <span className="text-sm font-semibold text-foreground">73.4%</span>
-              </div>
-              <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber-500 rounded-full transition-all"
-                  style={{ width: "73.4%" }}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="mt-6 p-4 bg-secondary border border-border rounded-lg">
-            <p className="text-xs text-muted-foreground">
-              Cobertura consolidada de <span className="font-semibold text-primary">86.7%</span> das proposições com dados completos para análise preditiva.
-            </p>
           </div>
         </div>
       </div>

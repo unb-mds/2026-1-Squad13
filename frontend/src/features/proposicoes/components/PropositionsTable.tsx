@@ -99,14 +99,14 @@ export function PropositionsTable({ propositions, onSort, onPropositionClick }: 
                 </button>
               </th>
               <th className="text-left px-4 py-3 text-sm font-medium text-foreground">
-                Último Evento Relevante
+                Andamento Bruto (API)
               </th>
               <th className="text-left px-4 py-3 text-sm font-medium text-foreground">
                 <button
                   className="flex items-center gap-1 hover:text-primary transition-colors"
                   onClick={() => onSort?.("atraso")}
                 >
-                  Atraso
+                  Alerta de Atraso
                   <ArrowUpDown className="w-3 h-3" />
                 </button>
               </th>
@@ -114,7 +114,7 @@ export function PropositionsTable({ propositions, onSort, onPropositionClick }: 
                 Cobertura
               </th>
               <th className="text-left px-4 py-3 text-sm font-medium text-foreground">
-                Status
+                Status de Negócio
               </th>
               <th className="w-12"></th>
             </tr>
