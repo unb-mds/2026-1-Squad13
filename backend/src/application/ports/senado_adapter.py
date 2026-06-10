@@ -48,3 +48,9 @@ class SenadoAdapterPort(Protocol):
     async def coletar_em_lote(self, params: dict | None = None) -> list[Proposicao]:
         """Coleta proposições em lote."""
         ...
+
+    async def obter_total(
+        self, tipo: str, ano: int, client: httpx.AsyncClient | None = None
+    ) -> int:
+        """Obtém o total de matérias para um tipo e ano na API do Senado."""
+        ...
