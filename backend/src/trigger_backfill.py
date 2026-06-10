@@ -1,5 +1,6 @@
 import logging
 import sys
+
 from infrastructure.workers.coleta_worker import task_backfill_emendas
 
 # Configuração mínima de logging para saída limpa no terminal

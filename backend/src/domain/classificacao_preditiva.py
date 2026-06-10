@@ -62,9 +62,9 @@ def classificar_tema_economico(ementa: str | None) -> bool:
     ementa_limpa = ementa_lower
     for char in ".,;:-()[]{}":
         ementa_limpa = ementa_limpa.replace(char, " ")
-        
+
     palavras_ementa = set(ementa_limpa.split())
-    
+
     return any(k in palavras_ementa for k in palavras_chave)
 
 

@@ -1,12 +1,14 @@
-import asyncio
 import logging
-from sqlmodel import Session, select
-import httpx
 
-from infrastructure.database.models.proposicao_model import ProposicaoModel
-from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+import httpx
+from sqlmodel import Session, select
+
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
+from infrastructure.database.models.proposicao_model import ProposicaoModel
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,7 @@ class BackfillEmendasService:
 
         # Busca proposições que precisam de atualização
         statement = select(ProposicaoModel).where(
-            (ProposicaoModel.numero_emendas == None)
+            (ProposicaoModel.numero_emendas is None)
             | (
                 (ProposicaoModel.numero_emendas == 0)
                 & (ProposicaoModel.orgao_origem == "Câmara dos Deputados")
@@ -68,7 +70,7 @@ class BackfillEmendasService:
                         model.numero_emendas = p_atualizada.numero_emendas
                         self.session.add(model)
                         atualizadas += 1
-                    
+
                     if atualizadas % 10 == 0:
                         self.session.commit()
 
@@ -77,6 +79,6 @@ class BackfillEmendasService:
                     falhas += 1
 
             self.session.commit()
-        
+
         logger.info(f"✨ Backfill finalizado! Atualizadas: {atualizadas}, Falhas: {falhas}")
         return {"atualizadas": atualizadas, "falhas": falhas}
