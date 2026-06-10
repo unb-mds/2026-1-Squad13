@@ -100,6 +100,28 @@ class SenadoAdapter:
                 resp.raise_for_status()
                 dados_brutos = resp.json()
 
+                # Fetch emendas asynchronously only if main request succeeded
+                numero_emendas = 0
+                try:
+                    url_emendas = f"{self.base_url}/materia/emendas/{id_materia}"
+                    resp_emendas = await self._get_with_retry(_client, url_emendas, headers=headers)
+                    if resp_emendas.status_code == 200:
+                        data_emendas = resp_emendas.json()
+                        emendas_obj = (
+                            data_emendas.get("EmendaMateria", {})
+                            .get("Materia", {})
+                            .get("Emendas", {})
+                            .get("Emenda", [])
+                        )
+                        if isinstance(emendas_obj, list):
+                            numero_emendas = len(emendas_obj)
+                        elif isinstance(emendas_obj, dict):
+                            numero_emendas = 1
+                except Exception as e:
+                    logger.warning(
+                        f"Não foi possível buscar emendas para proposição {id_materia} no Senado: {e}"
+                    )
+
                 if (
                     "DetalheMateria" in dados_brutos
                     and "Materia" in dados_brutos["DetalheMateria"]
@@ -138,7 +160,7 @@ class SenadoAdapter:
                             if resp_proc.status_code == 200:
                                 dados_proc = resp_proc.json()
                                 prop = self._processar_dados_processo(
-                                    dados_proc, str(id_materia)
+                                    dados_proc, str(id_materia), numero_emendas=numero_emendas
                                 )
                                 if prop:
                                     prop.tags = tags
@@ -195,6 +217,34 @@ class SenadoAdapter:
                         "URGENCIA" if "URG" in regime_raw else "ORDINARIO"
                     )
 
+                    # ML variables for fallback
+                    # numero_assinaturas:
+                    autores_lista = dados.get("Autoria", {}).get("Autor", [])
+                    if isinstance(autores_lista, dict):
+                        autores_lista = [autores_lista]
+                    elif not isinstance(autores_lista, list):
+                        autores_lista = []
+                    numero_assinaturas = len(autores_lista) if autores_lista else (1 if autor_nome and autor_nome != "Não informado" else 0)
+
+                    # autor_e_poder_executivo:
+                    autor_e_poder_executivo = False
+                    if autor_nome:
+                        autor_lower = autor_nome.lower()
+                        autor_e_poder_executivo = "poder executivo" in autor_lower or "presidente" in autor_lower
+
+                    # tema_economico:
+                    ementa_texto = ementa or ""
+                    ementa_lower = ementa_texto.lower()
+                    palavras_chave_economia = [
+                        "tributo", "tributário", "tributária", "tributario", "tributaria",
+                        "imposto", "taxa", "contribuição", "contribuições", "contribuicao", "contribuicoes",
+                        "orçamento", "orçamentário", "orçamentária", "orcamento", "orcamentario", "orcamentaria",
+                        "fiscal", "financeiro", "financeira", "finanças", "financas",
+                        "crédito", "credito", "despesa", "receita", "economia", "econômico", "econômica", "economico", "economica",
+                        "ldo", "loa", "ppa", "pis", "cofins", "icms", "ipi", "iptu", "ipva", "irf", "iss"
+                    ]
+                    tema_economico = any(k in ementa_lower for k in palavras_chave_economia)
+
                     return Proposicao(
                         id=str(id_materia),
                         tipo=tipo,
@@ -211,6 +261,10 @@ class SenadoAdapter:
                         link_oficial=f"https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id={id_materia}",
                         regime_tramitacao=regime_tramitacao,
                         tags=tags,
+                        numero_assinaturas=numero_assinaturas,
+                        numero_emendas=numero_emendas,
+                        autor_e_poder_executivo=autor_e_poder_executivo,
+                        tema_economico=tema_economico,
                     )
                 elif (
                     "DetalheMateria" in dados_brutos
@@ -222,11 +276,11 @@ class SenadoAdapter:
                     )
                     if resp_proc.status_code == 200:
                         return self._processar_dados_processo(
-                            resp_proc.json(), str(id_materia)
+                            resp_proc.json(), str(id_materia), numero_emendas=numero_emendas
                         )
                     return None
                 else:
-                    return self._processar_dados_processo(dados_brutos, str(id_materia))
+                    return self._processar_dados_processo(dados_brutos, str(id_materia), numero_emendas=numero_emendas)
 
             except httpx.ConnectError:
                 logger.error(
@@ -511,7 +565,7 @@ class SenadoAdapter:
 
         return proposicoes_completas
 
-    def _processar_dados_processo(self, dados: dict, id_materia: str) -> Proposicao:
+    def _processar_dados_processo(self, dados: dict, id_materia: str, numero_emendas: int = 0) -> Proposicao:
         """Processa a estrutura flat retornada pelo endpoint /processo."""
         identificacao = dados.get("identificacao", "")
         ementa = dados.get("conteudo", {}).get("ementa") or dados.get(
@@ -553,6 +607,29 @@ class SenadoAdapter:
         if not data_ultima_movimentacao:
             data_ultima_movimentacao = data_apresentacao
 
+        # ML variables
+        # numero_assinaturas:
+        numero_assinaturas = len(autoria) if isinstance(autoria, list) else (1 if autoria else 0)
+
+        # autor_e_poder_executivo:
+        autor_e_poder_executivo = False
+        if autor_nome:
+            autor_lower = autor_nome.lower()
+            autor_e_poder_executivo = "poder executivo" in autor_lower or "presidente" in autor_lower
+
+        # tema_economico:
+        ementa_texto = ementa or ""
+        ementa_lower = ementa_texto.lower()
+        palavras_chave_economia = [
+            "tributo", "tributário", "tributária", "tributario", "tributaria",
+            "imposto", "taxa", "contribuição", "contribuições", "contribuicao", "contribuicoes",
+            "orçamento", "orçamentário", "orçamentária", "orcamento", "orcamentario", "orcamentaria",
+            "fiscal", "financeiro", "financeira", "finanças", "financas",
+            "crédito", "credito", "despesa", "receita", "economia", "econômico", "econômica", "economico", "economica",
+            "ldo", "loa", "ppa", "pis", "cofins", "icms", "ipi", "iptu", "ipva", "irf", "iss"
+        ]
+        tema_economico = any(k in ementa_lower for k in palavras_chave_economia)
+
         return Proposicao(
             id=str(id_materia),
             tipo=tipo,
@@ -569,4 +646,8 @@ class SenadoAdapter:
             link_oficial=f"https://wwws.senado.leg.br/ecidadania/visualizacaomateria?id={id_materia}",
             regime_tramitacao="ORDINARIO",
             tags=[],
+            numero_assinaturas=numero_assinaturas,
+            numero_emendas=numero_emendas,
+            autor_e_poder_executivo=autor_e_poder_executivo,
+            tema_economico=tema_economico,
         )

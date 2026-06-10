@@ -94,6 +94,36 @@ class CamaraAdapter:
                 regime_raw = (dados.get("regime") or "").upper()
                 regime_tramitacao = "URGENCIA" if "URG" in regime_raw else "ORDINARIO"
 
+                # Fetch amendments gracefully
+                numero_emendas = 0
+                try:
+                    resp_emendas = await self._get_with_retry(_client, f"{url_proposicao}/emendas")
+                    emendas_dados = resp_emendas.json().get("dados", [])
+                    numero_emendas = len(emendas_dados) if isinstance(emendas_dados, list) else 0
+                except Exception as e:
+                    logger.warning(
+                        f"Não foi possível buscar emendas para a proposição {id_proposicao} na Câmara: {e}"
+                    )
+
+                # Classify power exec
+                autor_e_poder_executivo = False
+                if autor_principal:
+                    autor_lower = autor_principal.lower()
+                    autor_e_poder_executivo = "poder executivo" in autor_lower or "presidente" in autor_lower
+
+                # Classify theme
+                ementa_texto = dados.get("ementa", "") or ""
+                ementa_lower = ementa_texto.lower()
+                palavras_chave_economia = [
+                    "tributo", "tributário", "tributária", "tributario", "tributaria",
+                    "imposto", "taxa", "contribuição", "contribuições", "contribuicao", "contribuicoes",
+                    "orçamento", "orçamentário", "orçamentária", "orcamento", "orcamentario", "orcamentaria",
+                    "fiscal", "financeiro", "financeira", "finanças", "financas",
+                    "crédito", "credito", "despesa", "receita", "economia", "econômico", "econômica", "economico", "economica",
+                    "ldo", "loa", "ppa", "pis", "cofins", "icms", "ipi", "iptu", "ipva", "irf", "iss"
+                ]
+                tema_economico = any(k in ementa_lower for k in palavras_chave_economia)
+
                 return Proposicao(
                     id=str(id_proposicao),
                     tipo=dados.get("siglaTipo", ""),
@@ -105,13 +135,17 @@ class CamaraAdapter:
                     status=status_info.get("despacho")
                     or status_info.get("descricaoSituacao")
                     or "Sem status",
-                    ementa=dados.get("ementa", "") or "Sem ementa",
+                    ementa=ementa_texto or "Sem ementa",
                     data_apresentacao=dados.get("dataApresentacao", ""),
                     data_ultima_movimentacao=data_ultima_movimentacao,
                     orgao_atual=orgao_atual,
                     link_oficial=f"https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao={id_proposicao}",
                     regime_tramitacao=regime_tramitacao,
                     tags=[],
+                    numero_assinaturas=len(autores_dados),
+                    numero_emendas=numero_emendas,
+                    autor_e_poder_executivo=autor_e_poder_executivo,
+                    tema_economico=tema_economico,
                 )
 
             except httpx.ConnectError:
