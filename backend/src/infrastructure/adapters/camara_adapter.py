@@ -16,7 +16,8 @@ class CamaraAdapter:
 
     def __init__(self):
         self.base_url = "https://dadosabertos.camara.leg.br/api/v2"
-        self.timeout = 12  # Reduzido para maior fluidez no terminal
+        # Timeout granular: 3s para conectar (Fail Fast), 8s para ler os dados
+        self.default_timeout = httpx.Timeout(8.0, connect=3.0)
         self.headers = {
             "Accept": "application/json",
             "User-Agent": "MonitorLegislativo/1.0",
@@ -27,10 +28,11 @@ class CamaraAdapter:
     ) -> httpx.Response:
         """Helper para realizar GET com retry otimizado."""
         max_retries = 3
+        
         for attempt in range(max_retries):
             try:
                 resp = await client.get(
-                    url, params=params, headers=self.headers, timeout=self.timeout
+                    url, params=params, headers=self.headers, timeout=self.default_timeout
                 )
                 if resp.status_code == 429:
                     wait_time = 2 * (attempt + 1)
@@ -94,6 +96,86 @@ class CamaraAdapter:
                 regime_raw = (dados.get("regime") or "").upper()
                 regime_tramitacao = "URGENCIA" if "URG" in regime_raw else "ORDINARIO"
 
+                # Fetch amendments gracefully via related propositions
+                numero_emendas = None
+                try:
+                    # Issue 253: /emendas returned 405, migrating to /relacionadas
+                    resp_relacionadas = await self._get_with_retry(
+                        _client, f"{url_proposicao}/relacionadas"
+                    )
+                    relacionadas_dados = resp_relacionadas.json().get("dados", [])
+                    if isinstance(relacionadas_dados, list):
+                        # Filter for amendments: siglas starting with EM (EMP, EMC, EMR, etc) or SBT (Substitutivos)
+                        emendas = [
+                            r for r in relacionadas_dados
+                            if (r.get("siglaTipo") or "").startswith("EM") 
+                            or (r.get("siglaTipo") or "") == "SBT"
+                        ]
+                        numero_emendas = len(emendas)
+                        logger.info(f"✅ API Câmara: {numero_emendas} emendas encontradas via /relacionadas para {id_proposicao}")
+                except Exception as e:
+                    # Set to None to indicate missing data/failure
+                    logger.warning(
+                        f"⚠️ Não foi possível buscar emendas para {id_proposicao} na Câmara via /relacionadas: {e}"
+                    )
+
+                # Classify power exec
+                autor_e_poder_executivo = False
+                if autor_principal:
+                    autor_lower = autor_principal.lower()
+                    autor_e_poder_executivo = (
+                        "poder executivo" in autor_lower or "presidente" in autor_lower
+                    )
+
+                # Classify theme
+                ementa_texto = dados.get("ementa", "") or ""
+                ementa_lower = ementa_texto.lower()
+                palavras_chave_economia = [
+                    "tributo",
+                    "tributário",
+                    "tributária",
+                    "tributario",
+                    "tributaria",
+                    "imposto",
+                    "taxa",
+                    "contribuição",
+                    "contribuições",
+                    "contribuicao",
+                    "contribuicoes",
+                    "orçamento",
+                    "orçamentário",
+                    "orçamentária",
+                    "orcamento",
+                    "orcamentario",
+                    "orcamentaria",
+                    "fiscal",
+                    "financeiro",
+                    "financeira",
+                    "finanças",
+                    "financas",
+                    "crédito",
+                    "credito",
+                    "despesa",
+                    "receita",
+                    "economia",
+                    "econômico",
+                    "econômica",
+                    "economico",
+                    "economica",
+                    "ldo",
+                    "loa",
+                    "ppa",
+                    "pis",
+                    "cofins",
+                    "icms",
+                    "ipi",
+                    "iptu",
+                    "ipva",
+                    "irf",
+                    "iss",
+                ]
+                tema_economico = any(k in ementa_lower for k in palavras_chave_economia)
+
                 return Proposicao(
                     id=str(id_proposicao),
                     tipo=dados.get("siglaTipo", ""),
@@ -105,13 +187,17 @@ class CamaraAdapter:
                     status=status_info.get("despacho")
                     or status_info.get("descricaoSituacao")
                     or "Sem status",
-                    ementa=dados.get("ementa", "") or "Sem ementa",
+                    ementa=ementa_texto or "Sem ementa",
                     data_apresentacao=dados.get("dataApresentacao", ""),
                     data_ultima_movimentacao=data_ultima_movimentacao,
                     orgao_atual=orgao_atual,
                     link_oficial=f"https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao={id_proposicao}",
                     regime_tramitacao=regime_tramitacao,
                     tags=[],
+                    numero_assinaturas=len(autores_dados),
+                    numero_emendas=numero_emendas,
+                    autor_e_poder_executivo=autor_e_poder_executivo,
+                    tema_economico=tema_economico,
                 )
 
             except httpx.ConnectError:
@@ -121,7 +207,7 @@ class CamaraAdapter:
                 return None
             except httpx.TimeoutException:
                 logger.error(
-                    f"⏳ TIMEOUT ao acessar Câmara para ID {id_proposicao} após {self.timeout}s."
+                    f"⏳ TIMEOUT ao acessar Câmara para ID {id_proposicao} após {self.default_timeout}s."
                 )
                 return None
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
