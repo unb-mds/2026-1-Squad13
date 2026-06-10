@@ -15,6 +15,7 @@ from sqlmodel import Session, func, select
 import init_db
 from application.services.dashboard_service import DashboardService
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from domain.constants import LIMITE_DIAS_ATRASO
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from infrastructure.adapters.camara_adapter import CamaraAdapter
@@ -266,7 +267,9 @@ async def analyze_database_gaps(sources, years, types):
     results = []
     failed_sources = set()
 
-    async with httpx.AsyncClient(follow_redirects=True, timeout=10) as client:
+    # Timeout granular: 3s para conectar, 10s total
+    timeout_config = httpx.Timeout(10.0, connect=3.0)
+    async with httpx.AsyncClient(follow_redirects=True, timeout=timeout_config) as client:
         with Session(engine) as session:
             for ano in sorted(years, reverse=True):
                 for tipo in types:
@@ -310,11 +313,22 @@ async def analyze_database_gaps(sources, years, types):
                                     "local": local_count,
                                     "api": api_total,
                                     "coverage": coverage,
+                                    "error": False
                                 }
                             )
-                        except Exception:
-                            logger.warning(f"🔌 Fonte {source.upper()} instável.")
-                            failed_sources.add(source)
+                        except Exception as e:
+                            logger.warning(f"🔌 Fonte {source.upper()} instável ({tipo} {ano}): {str(e) or type(e).__name__}")
+                            results.append(
+                                {
+                                    "ano": ano,
+                                    "tipo": tipo,
+                                    "fonte": source.upper(),
+                                    "local": local_count,
+                                    "api": "ERR",
+                                    "coverage": 0,
+                                    "error": True
+                                }
+                            )
 
     if results:
         print("\n" + "=" * 80)
@@ -323,17 +337,25 @@ async def analyze_database_gaps(sources, years, types):
         )
         print("-" * 80)
         for r in sorted(results, key=lambda x: (x["ano"], x["fonte"]), reverse=True):
-            status = (
-                "✅" if r["coverage"] >= 80 else "⚠️" if r["coverage"] >= 30 else "🚨"
-            )
-            if r["api"] == 0 and r["local"] == 0:
-                status = "⚪"  # Sem dados em ambos
+            if r["error"]:
+                status = "❌"
+                api_str = "ERROR"
+                cov_str = "N/A"
+            else:
+                status = (
+                    "✅" if r["coverage"] >= 80 else "⚠️" if r["coverage"] >= 30 else "🚨"
+                )
+                if r["api"] == 0 and r["local"] == 0:
+                    status = "⚪"  # Sem dados em ambos
+                api_str = str(r["api"])
+                cov_str = f"{r['coverage']:>8.1f}%"
+
             print(
-                f"{r['ano']:<6} | {r['tipo']:<6} | {r['fonte']:<10} | {r['local']:<8} | {r['api']:<10} | {r['coverage']:>8.1f}% {status}"
+                f"{r['ano']:<6} | {r['tipo']:<6} | {r['fonte']:<10} | {r['local']:<8} | {api_str:<10} | {cov_str} {status}"
             )
         print("=" * 80)
 
-    gaps = [r for r in results if r["coverage"] < 95 and r["api"] > 0]
+    gaps = [r for r in results if not r.get("error") and r["coverage"] < 95 and r["api"] != "ERR" and r["api"] > 0]
     return [
         {
             "source": g["fonte"].lower(),
