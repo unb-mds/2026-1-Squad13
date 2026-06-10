@@ -58,3 +58,37 @@ def test_dashboard_tempo_por_fase_com_filtro_inexistente(http_client):
     data = response.json()
     assert isinstance(data, list)
     assert len(data) == 0
+
+
+def test_dashboard_estoque_fases(http_client):
+    response = http_client.get("/dashboard/estoque")
+    assert response.status_code == 200
+    data = response.json()
+    assert "ativo" in data
+    assert "passivo" in data
+    assert isinstance(data["ativo"], list)
+    assert isinstance(data["passivo"], list)
+
+
+def test_dashboard_handoff(http_client):
+    response = http_client.get("/dashboard/handoff")
+    assert response.status_code == 200
+    data = response.json()
+    assert "totalEmTransito" in data
+    assert "medianaDiasTransito" in data
+
+
+def test_dashboard_cobertura(http_client):
+    response = http_client.get("/dashboard/cobertura")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+
+
+def test_dashboard_qualidade(http_client):
+    response = http_client.get("/dashboard/qualidade")
+    assert response.status_code == 200
+    data = response.json()
+    assert "completudePorcentagem" in data
+    assert "totalProposicoes" in data
+    assert "camposAnalisados" in data

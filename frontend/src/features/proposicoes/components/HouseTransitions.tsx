@@ -11,9 +11,13 @@ interface HouseTransitionsProps {
   transitions: TransitionData[];
   totalCamara: number;
   totalSenado: number;
+  handoffData?: {
+    totalEmTransito: number;
+    medianaDiasTransito: number;
+  };
 }
 
-export function HouseTransitions({ transitions, totalCamara, totalSenado }: HouseTransitionsProps) {
+export function HouseTransitions({ transitions, totalCamara, totalSenado, handoffData }: HouseTransitionsProps) {
   return (
     <div className="bg-card border border-border rounded-lg p-6">
       <div className="mb-6">
@@ -53,6 +57,30 @@ export function HouseTransitions({ transitions, totalCamara, totalSenado }: Hous
           </div>
         </div>
       </div>
+
+      {/* Handoff Highlight (TRAMITE_ENTRE_CASAS) */}
+      {handoffData && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">i</span>
+            <h3 className="text-xs font-bold text-amber-800 uppercase tracking-wider">
+              Handoff Bicameral (Fase: Trâmite entre Casas)
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="bg-white/60 rounded-lg p-3 border border-amber-100">
+              <span className="text-[11px] text-amber-700 block font-medium">Proposições em Handoff</span>
+              <span className="text-2xl font-bold text-amber-900 mt-1 block">{handoffData.totalEmTransito}</span>
+              <span className="text-[10px] text-amber-600 block mt-1">Matérias em transição física ou digital de uma Casa para a outra</span>
+            </div>
+            <div className="bg-white/60 rounded-lg p-3 border border-amber-100">
+              <span className="text-[11px] text-amber-700 block font-medium">Tempo Mediano de Trâmite</span>
+              <span className="text-2xl font-bold text-amber-900 mt-1 block">{handoffData.medianaDiasTransito} dias</span>
+              <span className="text-[10px] text-amber-600 block mt-1">Mediana de dias até o recebimento oficial na Casa revisora</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Transitions */}
       <div className="space-y-3">

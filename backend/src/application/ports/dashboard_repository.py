@@ -37,3 +37,19 @@ class DashboardRepositoryPort(Protocol):
     def obter_transicoes_casas(self, filtros: dict | None) -> dict:
         """Calcula a contagem de transições de proposições entre a Câmara e o Senado."""
         ...
+
+    def obter_estoque_fases(self, filtros: dict | None) -> list[dict]:
+        """Obtém contagem de proposições ativas por fase analítica atual."""
+        ...
+
+    def obter_mediana_handoff(self, filtros: dict | None) -> dict:
+        """Calcula métricas de handoff/trâmite entre casas."""
+        ...
+
+    def obter_tempo_por_fase(self, filtros: dict | None) -> list[dict]:
+        """Calcula mediana de tempo de permanência por fase analítica."""
+        ...
+
+    def obter_qualidade_base(self, filtros: dict | None) -> dict:
+        """Calcula a completude geral e qualidade da base local."""
+        ...

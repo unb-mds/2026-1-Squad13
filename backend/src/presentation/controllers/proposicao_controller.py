@@ -132,6 +132,9 @@ class PeriodoFaseResponse(BaseModel):
     dataSaida: str | None = Field(default=None, alias="dataSaida")
     diasCorridos: int = Field(alias="diasCorridos")
     eventosRelevantes: list[EventoResumoResponse] = Field(alias="eventosRelevantes")
+    motivoTravamento: str | None = Field(default=None, alias="motivoTravamento")
+    numeroTurno: int | None = Field(default=None, alias="numeroTurno")
+    subtipoFase: str | None = Field(default=None, alias="subtipoFase")
 
 
 class EstimativaAprovacaoResponse(BaseModel):
@@ -223,6 +226,9 @@ def _to_periodo_response(p) -> dict:
         "dataEntrada": p.data_entrada.isoformat(),
         "dataSaida": p.data_saida.isoformat() if p.data_saida else None,
         "diasCorridos": p.dias_corridos,
+        "motivoTravamento": p.motivo_travamento,
+        "numeroTurno": p.numero_turno,
+        "subtipoFase": p.subtipo_fase,
         "eventosRelevantes": [
             {
                 "eventoId": e.evento_id,

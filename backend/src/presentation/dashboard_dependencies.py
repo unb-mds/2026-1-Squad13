@@ -1,9 +1,15 @@
 from fastapi import Depends
 from sqlmodel import Session
 
+from application.services.atualizar_cobertura_service import AtualizarCoberturaService
 from application.services.dashboard_service import DashboardService
+from infrastructure.adapters.camara_adapter import CamaraAdapter
+from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.cache.redis_client import RedisClient
 from infrastructure.database import get_redis_client, get_session
+from infrastructure.repositories.sql_cobertura_snapshot_repository import (
+    SQLCoberturaSnapshotRepository,
+)
 from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
@@ -37,4 +43,23 @@ def get_dashboard_service(
         fase_repo=fase_repo,
         cache_provider=redis_client,
         dashboard_repo=dashboard_repo,
+    )
+
+
+def get_cobertura_repository(
+    session: Session = Depends(get_session),
+) -> SQLCoberturaSnapshotRepository:
+    return SQLCoberturaSnapshotRepository(session)
+
+
+def get_atualizar_cobertura_service(
+    session: Session = Depends(get_session),
+    cobertura_repo: SQLCoberturaSnapshotRepository = Depends(get_cobertura_repository),
+) -> AtualizarCoberturaService:
+    proposicao_repo = SQLProposicaoRepository(session)
+    return AtualizarCoberturaService(
+        cobertura_repo=cobertura_repo,
+        proposicao_repo=proposicao_repo,
+        camara_adapter=CamaraAdapter(),
+        senado_adapter=SenadoAdapter(),
     )
