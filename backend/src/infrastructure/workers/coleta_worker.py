@@ -78,3 +78,24 @@ def task_coletar_proposicoes_diario():
 
     logger.info(f"Worker finalizado. Resumo: {resumo}")
     return resumo
+
+
+@shared_task(name="backfill_emendas_issue_253")
+def task_backfill_emendas():
+    """
+    Task do Celery para rodar o backfill de emendas em background.
+    Disparada após migrations ou via dashboard.
+    """
+    logger.info("Iniciando worker: task_backfill_emendas")
+    from application.services.backfill_emendas_service import BackfillEmendasService
+
+    async def _run():
+        with Session(engine) as session:
+            camara = CamaraAdapter()
+            senado = SenadoAdapter()
+            service = BackfillEmendasService(session, camara, senado)
+            return await service.executar()
+
+    resumo = asyncio.run(_run())
+    logger.info(f"Worker finalizado. Resumo: {resumo}")
+    return resumo

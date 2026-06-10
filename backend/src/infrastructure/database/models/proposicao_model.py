@@ -45,6 +45,12 @@ class ProposicaoModel(SQLModel, table=True):
     data_calculo_metricas: datetime | None = Field(default=None, nullable=True)
     regime_tramitacao: str | None = Field(default=None, nullable=True)
 
+    # ML predictive variables
+    numero_assinaturas: int | None = Field(default=0, nullable=True)
+    numero_emendas: int | None = Field(default=None, nullable=True)
+    autor_e_poder_executivo: bool | None = Field(default=False, nullable=True)
+    tema_economico: bool | None = Field(default=False, nullable=True)
+
     # Armazenar lista como JSONB no Postgres para busca eficiente (@>),
     # mas mantendo JSON genérico para compatibilidade com SQLite nos testes.
     tags: list[str] = Field(
