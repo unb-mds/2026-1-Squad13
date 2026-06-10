@@ -137,3 +137,35 @@ def test_obter_metricas_cache_hit(session: Session):
     assert metricas["totalProposicoes"] == 10
     assert metricas["tempoMedioTramitacao"] == 500
     assert metricas["comissaoMaiorTempo"] == "MOCK"
+
+
+def test_obter_estoque_fases(session: Session):
+    repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
+    service = DashboardService(repo, evento_repo, dashboard_repo=dashboard_repo)
+
+    estoque = service.obter_estoque_fases()
+    assert isinstance(estoque, list)
+
+
+def test_obter_mediana_handoff(session: Session):
+    repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
+    service = DashboardService(repo, evento_repo, dashboard_repo=dashboard_repo)
+
+    handoff = service.obter_mediana_handoff()
+    assert "total_em_transito" in handoff
+    assert "mediana_dias_transito" in handoff
+
+
+def test_obter_qualidade_base(session: Session):
+    repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
+    service = DashboardService(repo, evento_repo, dashboard_repo=dashboard_repo)
+
+    qualidade = service.obter_qualidade_base()
+    assert "completude_porcentagem" in qualidade
+    assert "total_proposicoes" in qualidade

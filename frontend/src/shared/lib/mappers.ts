@@ -80,8 +80,8 @@ export function mapProposicaoToProposition(p: Proposicao): Proposition {
     dataUltimoEvento: formatarDataBr(p.dataUltimaMovimentacao),
     autor: p.autor,
     atraso: p.temAtraso ? Math.max(0, p.tempoTotalDias - 180) : 0,
-    coberturaDados: p.tags?.includes("fallback") ? 75 : 94,
-    confiabilidade: p.tags?.includes("fallback") ? "media" : "alta",
+    coberturaDados: p.coberturaDados,
+    confiabilidade: p.confiabilidade,
     statusTramitacao,
     statusLabel: p.temAtraso ? "Em atraso" : p.status,
     transitouEntreCasas: p.orgaoOrigem?.toLowerCase().includes("senado") && p.orgaoAtual?.toLowerCase().includes("camara") || p.orgaoOrigem?.toLowerCase().includes("camara") && p.orgaoAtual?.toLowerCase().includes("senado"),
@@ -95,7 +95,10 @@ export function mapPeriodoFaseToPhaseEntry(p: {
   ocorrencia?: number; 
   dataEntrada?: string; 
   dataSaida?: string; 
-  diasCorridos: number 
+  diasCorridos: number;
+  motivoTravamento?: string | null;
+  numeroTurno?: number | null;
+  subtipoFase?: string | null;
 }, index: number, isLast: boolean): PhaseEntry {
   return {
     id: String(index + 1),
@@ -107,6 +110,9 @@ export function mapPeriodoFaseToPhaseEntry(p: {
     atrasoDias: p.diasCorridos > 45 ? p.diasCorridos - 45 : 0, // Mediana estimada em 45 dias
     isRecorrente: (p.ocorrencia || 1) > 1,
     isCurrent: isLast,
+    motivoTravamento: p.motivoTravamento || undefined,
+    numeroTurno: p.numeroTurno !== null ? p.numeroTurno : undefined,
+    subtipoFase: p.subtipoFase || undefined,
   };
 }
 

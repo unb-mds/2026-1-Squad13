@@ -10,6 +10,7 @@ from application.services.listar_movimentacoes_service import (
 from application.services.obter_confiabilidade_service import (
     ObterConfiabilidadeService,
 )
+from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import get_session
@@ -24,6 +25,9 @@ from infrastructure.repositories.sql_fase_analitica_repository import (
 )
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
+)
+from infrastructure.repositories.sql_periodo_fase_repository import (
+    SQLPeriodoFaseRepository,
 )
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
@@ -48,8 +52,27 @@ def get_detalhe_proposicao_service(
     return DetalheProposicaoService(repository, CamaraAdapter(), SenadoAdapter())
 
 
+def get_reconstruir_periodos_service(
+    session: Session = Depends(get_session),
+) -> ReconstruirPeriodosService:
+    periodo_repo = SQLPeriodoFaseRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    fase_repo = SQLFaseAnaliticaRepository(session)
+    proposicao_repo = SQLProposicaoRepository(session)
+
+    return ReconstruirPeriodosService(
+        periodo_repo=periodo_repo,
+        evento_repo=evento_repo,
+        fase_repo=fase_repo,
+        proposicao_repo=proposicao_repo,
+    )
+
+
 def get_listar_movimentacoes_service(
     session: Session = Depends(get_session),
+    reconstruir_service: ReconstruirPeriodosService = Depends(
+        get_reconstruir_periodos_service
+    ),
 ) -> ListarMovimentacoesService:
     # Este serviço precisa de múltiplos repositórios e adapters
     evento_repo = SQLEventoTramitacaoRepository(session)
@@ -66,6 +89,7 @@ def get_listar_movimentacoes_service(
         camara_adapter=CamaraAdapter(),
         senado_adapter=SenadoAdapter(),
         apensamento_repo=apensamento_repo,
+        reconstruir_service=reconstruir_service,
     )
 
 
