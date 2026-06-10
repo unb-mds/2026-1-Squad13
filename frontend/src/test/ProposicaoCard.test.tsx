@@ -30,6 +30,8 @@ const proposicaoBase: Proposicao = {
   temAtraso: false,
   atrasoCritico: false,
   temPrevisaoIA: false,
+  coberturaDados: 100,
+  confiabilidade: 'alta',
   tags: ['teste'],
 }
 

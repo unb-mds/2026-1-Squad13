@@ -28,11 +28,14 @@ class CamaraAdapter:
     ) -> httpx.Response:
         """Helper para realizar GET com retry otimizado."""
         max_retries = 3
-        
+
         for attempt in range(max_retries):
             try:
                 resp = await client.get(
-                    url, params=params, headers=self.headers, timeout=self.default_timeout
+                    url,
+                    params=params,
+                    headers=self.headers,
+                    timeout=self.default_timeout,
                 )
                 if resp.status_code == 429:
                     wait_time = 2 * (attempt + 1)
@@ -109,7 +112,9 @@ class CamaraAdapter:
                 except Exception as e:
                     # Se for 405, a API provavelmente removeu/restringiu este endpoint
                     if "405" in str(e):
-                        logger.info(f"ℹ️ API Câmara: Endpoint /emendas retornou 405 para {id_proposicao} (Provável restrição ou deprecation na API v2).")
+                        logger.info(
+                            f"ℹ️ API Câmara: Endpoint /emendas retornou 405 para {id_proposicao} (Provável restrição ou deprecation na API v2)."
+                        )
                     else:
                         logger.warning(
                             f"⚠️ Não foi possível buscar emendas para {id_proposicao} na Câmara: {e}"

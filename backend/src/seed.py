@@ -269,7 +269,9 @@ async def analyze_database_gaps(sources, years, types):
 
     # Timeout granular: 3s para conectar, 10s total
     timeout_config = httpx.Timeout(10.0, connect=3.0)
-    async with httpx.AsyncClient(follow_redirects=True, timeout=timeout_config) as client:
+    async with httpx.AsyncClient(
+        follow_redirects=True, timeout=timeout_config
+    ) as client:
         with Session(engine) as session:
             for ano in sorted(years, reverse=True):
                 for tipo in types:
@@ -313,11 +315,13 @@ async def analyze_database_gaps(sources, years, types):
                                     "local": local_count,
                                     "api": api_total,
                                     "coverage": coverage,
-                                    "error": False
+                                    "error": False,
                                 }
                             )
                         except Exception as e:
-                            logger.warning(f"🔌 Fonte {source.upper()} instável ({tipo} {ano}): {str(e) or type(e).__name__}")
+                            logger.warning(
+                                f"🔌 Fonte {source.upper()} instável ({tipo} {ano}): {str(e) or type(e).__name__}"
+                            )
                             results.append(
                                 {
                                     "ano": ano,
@@ -326,7 +330,7 @@ async def analyze_database_gaps(sources, years, types):
                                     "local": local_count,
                                     "api": "ERR",
                                     "coverage": 0,
-                                    "error": True
+                                    "error": True,
                                 }
                             )
 
@@ -343,7 +347,11 @@ async def analyze_database_gaps(sources, years, types):
                 cov_str = "N/A"
             else:
                 status = (
-                    "✅" if r["coverage"] >= 80 else "⚠️" if r["coverage"] >= 30 else "🚨"
+                    "✅"
+                    if r["coverage"] >= 80
+                    else "⚠️"
+                    if r["coverage"] >= 30
+                    else "🚨"
                 )
                 if r["api"] == 0 and r["local"] == 0:
                     status = "⚪"  # Sem dados em ambos
@@ -355,7 +363,14 @@ async def analyze_database_gaps(sources, years, types):
             )
         print("=" * 80)
 
-    gaps = [r for r in results if not r.get("error") and r["coverage"] < 95 and r["api"] != "ERR" and r["api"] > 0]
+    gaps = [
+        r
+        for r in results
+        if not r.get("error")
+        and r["coverage"] < 95
+        and r["api"] != "ERR"
+        and r["api"] > 0
+    ]
     return [
         {
             "source": g["fonte"].lower(),

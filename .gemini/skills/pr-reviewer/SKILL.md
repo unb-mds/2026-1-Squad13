@@ -39,8 +39,10 @@ Antes de gerar qualquer comentário, você deve carregar esses dois arquivos par
      - risco de breaking change;
      - impacto nas métricas do Squad Dashboard (labels, issues, CI/CD).
 
-5. Ler resultados de validação local:
-   - Ler `.gemini/pr-validation.json` e `.gemini/pr-validation.log` (gerados por `review-pr.sh`) para verificar se os linters (`Ruff`, `ESLint`, `TSC`) e testes (`Pytest`, `Vitest`) passaram locally.
+5. Executar ou Verificar Validação Local:
+   - Antes de analisar o código, você DEVE garantir que os resultados de validação em `.gemini/pr-validation.json` são RECENTES (comparar timestamp com os últimos commits).
+   - Se os resultados forem inexistentes ou obsoletos, você DEVE executar o script de validação: `.gemini/skills/pr-reviewer/scripts/review-pr.sh <num>`.
+   - Leia `.gemini/pr-validation.json` e `.gemini/pr-validation.log` para verificar se os linters (`Ruff`, `ESLint`, `TSC`) e testes (`Pytest`, `Vitest`) passaram locally. **Não ignore falhas de lint; reporte-as como bloqueios.**
 
 6. Aplicar critérios de avaliação:
    - Verifique se a alteração:
