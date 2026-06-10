@@ -7,8 +7,19 @@ import {
   obterTempoPorFase,
   obterEvolucaoTemporal,
   obterTransicoesCasas,
+  obterEstoque,
+  obterHandoff,
+  obterCobertura,
+  obterQualidade,
 } from "../api";
-import type { FiltrosProposicao, MetricasDashboard } from "../../types";
+import type {
+  FiltrosProposicao,
+  MetricasDashboard,
+  DashboardEstoqueResponse,
+  DashboardHandoffResponse,
+  CoberturaMetricaResponse,
+  DashboardQualidadeResponse,
+} from "../../types";
 
 // Mock data fallbacks from prototype
 const defaultPipelineData = [
@@ -65,6 +76,17 @@ const defaultHouseTransitionData = {
   totalSenado: 576,
 };
 
+const defaultEstoqueData: DashboardEstoqueResponse = {
+  ativo: [
+    { codigo: "PROTOCOLO_INICIAL", nome: "Protocolo inicial", natureza: "operacional", permiteEstoqueAtual: true, total: 142 },
+    { codigo: "ANALISE_COMISSOES", nome: "Análise em comissões", natureza: "operacional", permiteEstoqueAtual: true, total: 98 },
+    { codigo: "AGUARDANDO_PAUTA", nome: "Aguardando pauta", natureza: "operacional", permiteEstoqueAtual: true, total: 45 },
+  ],
+  passivo: [
+    { codigo: "ENCERRADA", nome: "Encerrada", natureza: "terminal", permiteEstoqueAtual: false, total: 847 },
+  ]
+};
+
 export function useDashboard(filtros: FiltrosProposicao) {
   const [metricas, setMetricas] = useState<MetricasDashboard | null>(null);
   const [pipelineData, setPipelineData] = useState<unknown[]>(defaultPipelineData);
@@ -73,6 +95,12 @@ export function useDashboard(filtros: FiltrosProposicao) {
   const [bottleneckData, setBottleneckData] = useState<any>(defaultBottleneckData); // Mantendo any por ser objeto complexo mockado
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [houseTransitionData, setHouseTransitionData] = useState<any>(defaultHouseTransitionData);
+  
+  const [estoqueData, setEstoqueData] = useState<DashboardEstoqueResponse | null>(null);
+  const [handoffData, setHandoffData] = useState<DashboardHandoffResponse | null>(null);
+  const [coberturaData, setCoberturaData] = useState<CoberturaMetricaResponse[]>([]);
+  const [qualidadeData, setQualidadeData] = useState<DashboardQualidadeResponse | null>(null);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +111,7 @@ export function useDashboard(filtros: FiltrosProposicao) {
 
     async function loadData() {
       try {
+        console.log("Dashboard: Iniciando carregamento de dados com filtros:", filtros);
         const [
           metricasRes,
           tempoFaseRes,
@@ -90,7 +119,11 @@ export function useDashboard(filtros: FiltrosProposicao) {
           temasRes,
           statusRes,
           evolucaoRes,
-          transicoesRes
+          transicoesRes,
+          estoqueRes,
+          handoffRes,
+          coberturaRes,
+          qualidadeRes
         ] = await Promise.allSettled([
           obterMetricas(filtros),
           obterTempoPorFase(filtros),
@@ -98,7 +131,11 @@ export function useDashboard(filtros: FiltrosProposicao) {
           obterComparacaoTemas(filtros),
           obterDadosStatus(filtros),
           obterEvolucaoTemporal(filtros),
-          obterTransicoesCasas(filtros)
+          obterTransicoesCasas(filtros),
+          obterEstoque(filtros),
+          obterHandoff(filtros),
+          obterCobertura(),
+          obterQualidade(filtros)
         ]);
 
         if (!active) return;
@@ -188,6 +225,31 @@ export function useDashboard(filtros: FiltrosProposicao) {
           setTimeSeriesData(defaultTimeSeriesData);
         }
 
+        // 6. Novos Dados de Analíticos
+        if (estoqueRes.status === "fulfilled" && estoqueRes.value) {
+          console.log("Dashboard: Dados de estoque carregados com sucesso:", estoqueRes.value);
+          setEstoqueData(estoqueRes.value);
+        } else {
+          console.warn("Dashboard: Falha ao carregar estoque ou sem dados:", estoqueRes.status);
+          const temFiltroAtivo = !!(
+            filtros.busca ||
+            filtros.tipo ||
+            filtros.status ||
+            filtros.orgaoOrigem
+          );
+          setEstoqueData(temFiltroAtivo ? { ativo: [], passivo: [] } : defaultEstoqueData);
+        }
+
+        if (handoffRes.status === "fulfilled" && handoffRes.value) {
+          setHandoffData(handoffRes.value);
+        }
+        if (coberturaRes.status === "fulfilled" && coberturaRes.value) {
+          setCoberturaData(coberturaRes.value);
+        }
+        if (qualidadeRes.status === "fulfilled" && qualidadeRes.value) {
+          setQualidadeData(qualidadeRes.value);
+        }
+
       } catch (err) {
         if (active) {
           console.error("Erro no useDashboard hook:", err);
@@ -213,6 +275,10 @@ export function useDashboard(filtros: FiltrosProposicao) {
     timeSeriesData,
     bottleneckData,
     houseTransitionData,
+    estoqueData,
+    handoffData,
+    coberturaData,
+    qualidadeData,
     loading,
     error
   };

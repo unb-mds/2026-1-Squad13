@@ -1,8 +1,14 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
+from application.services.atualizar_cobertura_service import AtualizarCoberturaService
 from application.services.dashboard_service import DashboardService
-from presentation.dashboard_dependencies import get_dashboard_service
+from presentation.dashboard_dependencies import (
+    get_atualizar_cobertura_service,
+    get_dashboard_service,
+)
 
 router = APIRouter(tags=["Dashboard"])
 
@@ -80,6 +86,55 @@ class TransicoesCasasResponse(BaseModel):
     totalSenado: int = Field(alias="totalSenado")
 
 
+class EstoqueFaseItem(BaseModel):
+    codigo: str
+    nome: str
+    natureza: str
+    permiteEstoqueAtual: bool = Field(validation_alias="permite_estoque_atual")
+    total: int
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class DashboardEstoqueResponse(BaseModel):
+    ativo: list[EstoqueFaseItem]
+    passivo: list[EstoqueFaseItem]
+
+
+class DashboardHandoffResponse(BaseModel):
+    totalEmTransito: int = Field(validation_alias="total_em_transito")
+    medianaDiasTransito: int = Field(validation_alias="mediana_dias_transito")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class CoberturaMetricaResponse(BaseModel):
+    ano: int
+    tipoProposicao: str = Field(validation_alias="tipo_proposicao")
+    totalLocal: int = Field(validation_alias="total_local")
+    totalApiOficial: int = Field(validation_alias="total_api_oficial")
+    percentualCobertura: float = Field(validation_alias="percentual_cobertura")
+    dataAtualizacao: datetime | None = Field(validation_alias="data_atualizacao")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class DashboardQualidadeResponse(BaseModel):
+    completudePorcentagem: float = Field(validation_alias="completude_porcentagem")
+    totalProposicoes: int = Field(validation_alias="total_proposicoes")
+    camposAnalisados: int = Field(validation_alias="campos_analisados")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
 class DashboardFilterParams(BaseModel):
     busca: str | None = Field(default=None)
     tipo: str | None = Field(default=None)
@@ -87,6 +142,7 @@ class DashboardFilterParams(BaseModel):
     orgao_origem: str | None = Field(default=None, alias="orgaoOrigem")
     data_inicio: str | None = Field(default=None, alias="dataInicio")
     data_fim: str | None = Field(default=None, alias="dataFim")
+    rito: str | None = Field(default=None)
 
     def to_dict(self) -> dict:
         return self.model_dump(exclude_none=True, by_alias=False)
@@ -182,3 +238,46 @@ def obter_transicoes_casas(
 ):
     filtros_dict = _montar_filtros(filtros)
     return service.obter_transicoes_casas(filtros_dict or None)
+
+
+@router.get("/dashboard/estoque", response_model=DashboardEstoqueResponse)
+def obter_estoque(
+    filtros: DashboardFilterParams = Depends(),
+    service: DashboardService = Depends(get_dashboard_service),
+):
+    filtros_dict = _montar_filtros(filtros)
+    dados = service.obter_estoque_fases(filtros_dict or None)
+    ativo = [
+        item
+        for item in dados
+        if item["natureza"] == "operacional" and item["permite_estoque_atual"]
+    ]
+    passivo = [item for item in dados if item["natureza"] == "terminal"]
+    return {"ativo": ativo, "passivo": passivo}
+
+
+@router.get("/dashboard/handoff", response_model=DashboardHandoffResponse)
+def obter_handoff(
+    filtros: DashboardFilterParams = Depends(),
+    service: DashboardService = Depends(get_dashboard_service),
+):
+    filtros_dict = _montar_filtros(filtros)
+    return service.obter_mediana_handoff(filtros_dict or None)
+
+
+@router.get("/dashboard/cobertura", response_model=list[CoberturaMetricaResponse])
+def obter_cobertura(
+    cobertura_service: AtualizarCoberturaService = Depends(
+        get_atualizar_cobertura_service
+    ),
+):
+    return cobertura_service.obter_todas_metricas_cobertura()
+
+
+@router.get("/dashboard/qualidade", response_model=DashboardQualidadeResponse)
+def obter_qualidade(
+    filtros: DashboardFilterParams = Depends(),
+    service: DashboardService = Depends(get_dashboard_service),
+):
+    filtros_dict = _montar_filtros(filtros)
+    return service.obter_qualidade_base(filtros_dict or None)

@@ -14,3 +14,6 @@ class PeriodoFase:
     dias_corridos: int
     eventos_relevantes: list[EventoTramitacao]
     ocorrencia: int  # 1ª, 2ª, 3ª vez nessa fase (para fases repetidas)
+    motivo_travamento: str | None = None
+    numero_turno: int | None = None
+    subtipo_fase: str | None = None

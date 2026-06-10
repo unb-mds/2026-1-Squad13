@@ -3,6 +3,10 @@ import logging
 
 import httpx
 
+from domain.classificacao_preditiva import (
+    classificar_tema_economico,
+    identificar_autor_executivo,
+)
 from domain.entities.proposicao import Proposicao
 
 logger = logging.getLogger(__name__)
@@ -246,65 +250,9 @@ class SenadoAdapter:
                         else (1 if autor_nome and autor_nome != "Não informado" else 0)
                     )
 
-                    # autor_e_poder_executivo:
-                    autor_e_poder_executivo = False
-                    if autor_nome:
-                        autor_lower = autor_nome.lower()
-                        autor_e_poder_executivo = (
-                            "poder executivo" in autor_lower
-                            or "presidente" in autor_lower
-                        )
-
-                    # tema_economico:
-                    ementa_texto = ementa or ""
-                    ementa_lower = ementa_texto.lower()
-                    palavras_chave_economia = [
-                        "tributo",
-                        "tributário",
-                        "tributária",
-                        "tributario",
-                        "tributaria",
-                        "imposto",
-                        "taxa",
-                        "contribuição",
-                        "contribuições",
-                        "contribuicao",
-                        "contribuicoes",
-                        "orçamento",
-                        "orçamentário",
-                        "orçamentária",
-                        "orcamento",
-                        "orcamentario",
-                        "orcamentaria",
-                        "fiscal",
-                        "financeiro",
-                        "financeira",
-                        "finanças",
-                        "financas",
-                        "crédito",
-                        "credito",
-                        "despesa",
-                        "receita",
-                        "economia",
-                        "econômico",
-                        "econômica",
-                        "economico",
-                        "economica",
-                        "ldo",
-                        "loa",
-                        "ppa",
-                        "pis",
-                        "cofins",
-                        "icms",
-                        "ipi",
-                        "iptu",
-                        "ipva",
-                        "irf",
-                        "iss",
-                    ]
-                    tema_economico = any(
-                        k in ementa_lower for k in palavras_chave_economia
-                    )
+                    # Classify power exec and theme via Domain functions
+                    autor_e_poder_executivo = identificar_autor_executivo(autor_nome)
+                    tema_economico = classificar_tema_economico(ementa)
 
                     return Proposicao(
                         id=str(id_materia),
@@ -682,62 +630,9 @@ class SenadoAdapter:
             len(autoria) if isinstance(autoria, list) else (1 if autoria else 0)
         )
 
-        # autor_e_poder_executivo:
-        autor_e_poder_executivo = False
-        if autor_nome:
-            autor_lower = autor_nome.lower()
-            autor_e_poder_executivo = (
-                "poder executivo" in autor_lower or "presidente" in autor_lower
-            )
-
-        # tema_economico:
-        ementa_texto = ementa or ""
-        ementa_lower = ementa_texto.lower()
-        palavras_chave_economia = [
-            "tributo",
-            "tributário",
-            "tributária",
-            "tributario",
-            "tributaria",
-            "imposto",
-            "taxa",
-            "contribuição",
-            "contribuições",
-            "contribuicao",
-            "contribuicoes",
-            "orçamento",
-            "orçamentário",
-            "orçamentária",
-            "orcamento",
-            "orcamentario",
-            "orcamentaria",
-            "fiscal",
-            "financeiro",
-            "financeira",
-            "finanças",
-            "financas",
-            "crédito",
-            "credito",
-            "despesa",
-            "receita",
-            "economia",
-            "econômico",
-            "econômica",
-            "economico",
-            "economica",
-            "ldo",
-            "loa",
-            "ppa",
-            "pis",
-            "cofins",
-            "icms",
-            "ipi",
-            "iptu",
-            "ipva",
-            "irf",
-            "iss",
-        ]
-        tema_economico = any(k in ementa_lower for k in palavras_chave_economia)
+        # Classify power exec and theme via Domain functions
+        autor_e_poder_executivo = identificar_autor_executivo(autor_nome)
+        tema_economico = classificar_tema_economico(ementa)
 
         return Proposicao(
             id=str(id_materia),
