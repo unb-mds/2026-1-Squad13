@@ -53,4 +53,3 @@ class DashboardRepositoryPort(Protocol):
     def obter_qualidade_base(self, filtros: dict | None) -> dict:
         """Calcula a completude geral e qualidade da base local."""
         ...
-

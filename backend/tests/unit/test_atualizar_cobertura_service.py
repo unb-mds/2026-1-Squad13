@@ -69,7 +69,9 @@ async def test_atualizar_snapshot_senado(service, mock_repos):
 def test_obter_metricas_cobertura(service, mock_repos):
     # Arrange
     dt = datetime.now(UTC)
-    snap = CoberturaSnapshot(id=1, ano=2026, tipo_proposicao="PL", total_api_oficial=100, data_atualizacao=dt)
+    snap = CoberturaSnapshot(
+        id=1, ano=2026, tipo_proposicao="PL", total_api_oficial=100, data_atualizacao=dt
+    )
     mock_repos["cobertura_repo"].buscar_por_ano_e_tipo.return_value = snap
     mock_repos["proposicao_repo"].contar.return_value = 85
 

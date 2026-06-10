@@ -51,4 +51,3 @@ class CamaraAdapterPort(Protocol):
     ) -> int:
         """Obtém o total de proposições para um tipo e ano na API da Câmara."""
         ...
-

@@ -1,13 +1,15 @@
-from datetime import date, datetime
 import logging
-from application.ports.evento_tramitacao_repository import EventoTramitacaoRepositoryPort
-from application.ports.periodo_fase_repository import PeriodoFaseRepositoryPort
+from datetime import date, datetime
+
+from application.ports.evento_tramitacao_repository import (
+    EventoTramitacaoRepositoryPort,
+)
 from application.ports.fase_analitica_repository import FaseAnaliticaRepositoryPort
+from application.ports.periodo_fase_repository import PeriodoFaseRepositoryPort
 from application.ports.proposicao_repository import ProposicaoRepositoryPort
-from domain.entities.periodo_fase import PeriodoFase
 from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.periodo_fase import PeriodoFase
 from domain.services.heuristica_travamento_service import HeuristicaTravamentoService
-from domain.entities.motivo_travamento import MotivoTravamentoEnum
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,9 @@ class ReconstruirPeriodosService:
         """
         proposicao = self.proposicao_repo.buscar_por_id(proposicao_id)
         if not proposicao:
-            logger.error(f"Proposição {proposicao_id} não encontrada para reconstrução de períodos.")
+            logger.error(
+                f"Proposição {proposicao_id} não encontrada para reconstrução de períodos."
+            )
             return []
 
         todas_fases = self.fase_repo.buscar_todas()
@@ -48,7 +52,7 @@ class ReconstruirPeriodosService:
         eventos = self.evento_repo.buscar_por_proposicao(proposicao_id)
 
         periodos = []
-        
+
         if not eventos:
             # Fallback robusto se não houver eventos
             fase_codigo = self._status_to_fase_codigo(proposicao.status)
@@ -58,7 +62,7 @@ class ReconstruirPeriodosService:
                 if proposicao.data_apresentacao
                 else date.today()
             )
-            
+
             periodo = PeriodoFase(
                 proposicao_id=proposicao_id,
                 fase_analitica_id=fase_id,
@@ -79,17 +83,18 @@ class ReconstruirPeriodosService:
             # Agrupa eventos contíguos que têm a mesma fase
             grouped_periods = []
             current_fase_id = None
-            
+
             for e in eventos:
                 fid = e.fase_analitica_id
                 if fid is None:
-                    fid = current_fase_id if current_fase_id is not None else default_fase_id
-                    
+                    fid = (
+                        current_fase_id
+                        if current_fase_id is not None
+                        else default_fase_id
+                    )
+
                 if current_fase_id is None or fid != current_fase_id:
-                    grouped_periods.append({
-                        "fase_analitica_id": fid,
-                        "events": [e]
-                    })
+                    grouped_periods.append({"fase_analitica_id": fid, "events": [e]})
                     current_fase_id = fid
                 else:
                     grouped_periods[-1]["events"].append(e)
@@ -99,38 +104,50 @@ class ReconstruirPeriodosService:
             for i, gp in enumerate(grouped_periods):
                 fid = gp["fase_analitica_id"]
                 gp_events = gp["events"]
-                
-                data_inicio = datetime.fromisoformat(gp_events[0].data_evento[:10]).date()
-                
+
+                data_inicio = datetime.fromisoformat(
+                    gp_events[0].data_evento[:10]
+                ).date()
+
                 data_fim = None
                 if i + 1 < len(grouped_periods):
                     next_gp_events = grouped_periods[i + 1]["events"]
-                    data_fim = datetime.fromisoformat(next_gp_events[0].data_evento[:10]).date()
-                    
+                    data_fim = datetime.fromisoformat(
+                        next_gp_events[0].data_evento[:10]
+                    ).date()
+
                 if data_fim and data_fim < data_inicio:
                     data_fim = data_inicio
-                    
+
                 recurrence_counts[fid] = recurrence_counts.get(fid, 0) + 1
                 recorrencia_num = recurrence_counts[fid]
-                
-                eh_fase_atual = (i == len(grouped_periods) - 1)
-                
+
+                eh_fase_atual = i == len(grouped_periods) - 1
+
                 duracao_dias = None
                 if data_fim:
                     duracao_dias = (data_fim - data_inicio).days
-                    
+
                 # Motivo de travamento
-                dur_check = duracao_dias if duracao_dias is not None else (date.today() - data_inicio).days
+                dur_check = (
+                    duracao_dias
+                    if duracao_dias is not None
+                    else (date.today() - data_inicio).days
+                )
                 motivo_travamento = None
                 if dur_check > 30:
                     last_event = gp_events[-1]
-                    motivo_travamento = HeuristicaTravamentoService.classificar_motivo_travamento(
-                        last_event.descricao_original
-                    ).value
-                    
+                    motivo_travamento = (
+                        HeuristicaTravamentoService.classificar_motivo_travamento(
+                            last_event.descricao_original
+                        ).value
+                    )
+
                 fase_codigo = fase_id_to_codigo.get(fid, "PROTOCOLO_INICIAL")
-                subtipo_fase, numero_turno = self._classificar_subtipo_e_turno(fase_codigo, gp_events)
-                
+                subtipo_fase, numero_turno = self._classificar_subtipo_e_turno(
+                    fase_codigo, gp_events
+                )
+
                 periodo = PeriodoFase(
                     proposicao_id=proposicao_id,
                     fase_analitica_id=fid,
@@ -151,20 +168,30 @@ class ReconstruirPeriodosService:
         # Atualiza o estado da Proposicao baseado no último período
         if periodos:
             ultimo_periodo = periodos[-1]
-            ultima_fase_codigo = fase_id_to_codigo.get(ultimo_periodo.fase_analitica_id, "PROTOCOLO_INICIAL")
-            
+            ultima_fase_codigo = fase_id_to_codigo.get(
+                ultimo_periodo.fase_analitica_id, "PROTOCOLO_INICIAL"
+            )
+
             if ultima_fase_codigo == "ENCERRADA":
-                last_event_desc = eventos[-1].descricao_original.lower() if eventos else ""
-                if "sancionad" in last_event_desc or "norma jurídica" in last_event_desc:
+                last_event_desc = (
+                    eventos[-1].descricao_original.lower() if eventos else ""
+                )
+                if (
+                    "sancionad" in last_event_desc
+                    or "norma jurídica" in last_event_desc
+                ):
                     proposicao.status = "Sancionada"
                 elif "vetad" in last_event_desc:
                     proposicao.status = "Vetada"
-                elif any(x in last_event_desc for x in ["rejeitad", "arquivad", "prejudicad", "retirad"]):
+                elif any(
+                    x in last_event_desc
+                    for x in ["rejeitad", "arquivad", "prejudicad", "retirad"]
+                ):
                     proposicao.status = "Arquivada"
                 else:
                     if proposicao.status not in ("Sancionada", "Vetada", "Arquivada"):
                         proposicao.status = "Arquivada"
-                
+
                 proposicao.data_encerramento = ultimo_periodo.data_inicio.isoformat()
             elif ultima_fase_codigo == "TRAMITE_ENTRE_CASAS":
                 proposicao.status = "Aprovada"
@@ -175,17 +202,17 @@ class ReconstruirPeriodosService:
             else:
                 proposicao.status = "Em Tramitação"
                 proposicao.data_encerramento = None
-                
+
             if eventos:
                 proposicao.data_ultima_movimentacao = eventos[-1].data_evento
-                
+
             proposicao.atualizar_metricas()
             self.proposicao_repo.salvar(proposicao)
 
         # Deleta períodos antigos e insere os novos
         self.periodo_repo.deletar_por_proposicao(proposicao_id)
         self.periodo_repo.salvar_lote(periodos)
-        
+
         return periodos
 
     def _status_to_fase_codigo(self, status: str | None) -> str:
