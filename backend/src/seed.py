@@ -34,6 +34,9 @@ from infrastructure.repositories.sql_fase_analitica_repository import (
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
 )
+from infrastructure.repositories.sql_periodo_fase_repository import (
+    SQLPeriodoFaseRepository,
+)
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
@@ -189,6 +192,12 @@ async def run(sources=None, years=None, types=None, limit=5, tasks=None) -> None
             fase_repo = SQLFaseAnaliticaRepository(session)
             orgao_repo = SQLOrgaoLegislativoRepository(session)
             apensamento_repo = SQLApensamentoRepository(session)
+            periodo_repo = SQLPeriodoFaseRepository(session)
+
+            reconstruir_service = ReconstruirPeriodosService(
+                periodo_repo, evento_repo, fase_repo, repo
+            )
+
             listar_service = ListarMovimentacoesService(
                 evento_repo,
                 repo,
@@ -197,6 +206,7 @@ async def run(sources=None, years=None, types=None, limit=5, tasks=None) -> None
                 camara,
                 senado,
                 apensamento_repo=apensamento_repo,
+                reconstruir_service=reconstruir_service,
             )
             dashboard_service = DashboardService(repo, evento_repo)
 

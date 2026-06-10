@@ -76,6 +76,17 @@ const defaultHouseTransitionData = {
   totalSenado: 576,
 };
 
+const defaultEstoqueData: DashboardEstoqueResponse = {
+  ativo: [
+    { codigo: "PROTOCOLO_INICIAL", nome: "Protocolo inicial", natureza: "operacional", permiteEstoqueAtual: true, total: 142 },
+    { codigo: "ANALISE_COMISSOES", nome: "Análise em comissões", natureza: "operacional", permiteEstoqueAtual: true, total: 98 },
+    { codigo: "AGUARDANDO_PAUTA", nome: "Aguardando pauta", natureza: "operacional", permiteEstoqueAtual: true, total: 45 },
+  ],
+  passivo: [
+    { codigo: "ENCERRADA", nome: "Encerrada", natureza: "terminal", permiteEstoqueAtual: false, total: 847 },
+  ]
+};
+
 export function useDashboard(filtros: FiltrosProposicao) {
   const [metricas, setMetricas] = useState<MetricasDashboard | null>(null);
   const [pipelineData, setPipelineData] = useState<unknown[]>(defaultPipelineData);
@@ -100,6 +111,7 @@ export function useDashboard(filtros: FiltrosProposicao) {
 
     async function loadData() {
       try {
+        console.log("Dashboard: Iniciando carregamento de dados com filtros:", filtros);
         const [
           metricasRes,
           tempoFaseRes,
@@ -215,8 +227,19 @@ export function useDashboard(filtros: FiltrosProposicao) {
 
         // 6. Novos Dados de Analíticos
         if (estoqueRes.status === "fulfilled" && estoqueRes.value) {
+          console.log("Dashboard: Dados de estoque carregados com sucesso:", estoqueRes.value);
           setEstoqueData(estoqueRes.value);
+        } else {
+          console.warn("Dashboard: Falha ao carregar estoque ou sem dados:", estoqueRes.status);
+          const temFiltroAtivo = !!(
+            filtros.busca ||
+            filtros.tipo ||
+            filtros.status ||
+            filtros.orgaoOrigem
+          );
+          setEstoqueData(temFiltroAtivo ? { ativo: [], passivo: [] } : defaultEstoqueData);
         }
+
         if (handoffRes.status === "fulfilled" && handoffRes.value) {
           setHandoffData(handoffRes.value);
         }
