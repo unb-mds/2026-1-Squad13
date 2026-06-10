@@ -102,10 +102,44 @@ export interface FiltrosProposicao {
   status: string
   dataInicio: string
   dataFim: string
+  rito?: string
 }
 
 export interface PaginacaoState {
   pagina: number
   itensPorPagina: number
   total: number
+}
+
+export interface EstoqueFaseItem {
+  codigo: string
+  nome: string
+  natureza: string
+  permiteEstoqueAtual: boolean
+  total: number
+}
+
+export interface DashboardEstoqueResponse {
+  ativo: EstoqueFaseItem[]
+  passivo: EstoqueFaseItem[]
+}
+
+export interface DashboardHandoffResponse {
+  totalEmTransito: number
+  medianaDiasTransito: number
+}
+
+export interface CoberturaMetricaResponse {
+  ano: number
+  tipoProposicao: string
+  totalLocal: number
+  totalApiOficial: number
+  percentualCobertura: number
+  dataAtualizacao: string | null
+}
+
+export interface DashboardQualidadeResponse {
+  completudePorcentagem: number
+  totalProposicoes: number
+  camposAnalisados: number
 }
