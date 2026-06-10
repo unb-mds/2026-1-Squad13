@@ -7,6 +7,9 @@ from infrastructure.database.models.apensamento_model import (
 from infrastructure.database.models.baseline_tramitacao_model import (
     BaselineTramitacaoModel,  # noqa: F401
 )
+from infrastructure.database.models.cobertura_snapshot_model import (
+    CoberturaSnapshotModel,  # noqa: F401
+)
 from infrastructure.database.models.evento_tramitacao_model import (
     EventoTramitacaoModel,  # noqa: F401
 )
@@ -16,6 +19,9 @@ from infrastructure.database.models.fase_analitica_model import (
 from infrastructure.database.models.log_coleta_model import LogColetaModel  # noqa: F401
 from infrastructure.database.models.orgao_legislativo_model import (
     OrgaoLegislativoModel,  # noqa: F401
+)
+from infrastructure.database.models.periodo_fase_model import (
+    PeriodoFaseModel,  # noqa: F401
 )
 from infrastructure.database.models.proposicao_model import (
     ProposicaoModel,  # noqa: F401

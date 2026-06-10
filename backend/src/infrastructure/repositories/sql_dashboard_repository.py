@@ -555,3 +555,378 @@ class SQLDashboardRepository:
             "totalCamara": total_camara,
             "totalSenado": total_senado,
         }
+
+    def obter_estoque_fases(self, filtros: dict | None = None) -> list[dict]:
+        from infrastructure.database.models.fase_analitica_model import (
+            FaseAnaliticaModel,
+        )
+        from infrastructure.database.models.periodo_fase_model import PeriodoFaseModel
+
+        statement = (
+            select(
+                FaseAnaliticaModel.codigo,
+                FaseAnaliticaModel.nome,
+                FaseAnaliticaModel.natureza,
+                FaseAnaliticaModel.permite_estoque_atual,
+                func.count(PeriodoFaseModel.proposicao_id).label("total"),
+            )
+            .join(
+                FaseAnaliticaModel,
+                PeriodoFaseModel.fase_analitica_id == FaseAnaliticaModel.id,
+            )
+            .where(PeriodoFaseModel.eh_fase_atual)
+        )
+
+        if filtros:
+            tipo = filtros.get("tipo")
+            if tipo:
+                statement = statement.where(
+                    func.lower(PeriodoFaseModel.tipo_proposicao) == tipo.lower()
+                )
+            rito = filtros.get("rito")
+            if rito:
+                statement = statement.where(
+                    func.lower(PeriodoFaseModel.rito) == rito.lower()
+                )
+
+        statement = statement.group_by(
+            FaseAnaliticaModel.codigo,
+            FaseAnaliticaModel.nome,
+            FaseAnaliticaModel.natureza,
+            FaseAnaliticaModel.permite_estoque_atual,
+            FaseAnaliticaModel.ordem_logica,
+        ).order_by(FaseAnaliticaModel.ordem_logica.asc())
+
+        rows = self.session.exec(statement).all()
+        return [
+            {
+                "codigo": row.codigo,
+                "nome": row.nome,
+                "natureza": row.natureza,
+                "permite_estoque_atual": row.permite_estoque_atual,
+                "total": row.total,
+            }
+            for row in rows
+        ]
+
+    def obter_mediana_handoff(self, filtros: dict | None = None) -> dict:
+        from infrastructure.database.models.fase_analitica_model import (
+            FaseAnaliticaModel,
+        )
+        from infrastructure.database.models.periodo_fase_model import PeriodoFaseModel
+
+        stmt_count = (
+            select(func.count(PeriodoFaseModel.proposicao_id))
+            .join(
+                FaseAnaliticaModel,
+                PeriodoFaseModel.fase_analitica_id == FaseAnaliticaModel.id,
+            )
+            .where(
+                PeriodoFaseModel.eh_fase_atual,
+                FaseAnaliticaModel.codigo == "TRAMITE_ENTRE_CASAS",
+            )
+        )
+        if filtros:
+            tipo = filtros.get("tipo")
+            if tipo:
+                stmt_count = stmt_count.where(
+                    func.lower(PeriodoFaseModel.tipo_proposicao) == tipo.lower()
+                )
+            rito = filtros.get("rito")
+            if rito:
+                stmt_count = stmt_count.where(
+                    func.lower(PeriodoFaseModel.rito) == rito.lower()
+                )
+        total_em_transito = self.session.exec(stmt_count).first() or 0
+
+        stmt_durations = (
+            select(
+                PeriodoFaseModel.data_inicio,
+                PeriodoFaseModel.data_fim,
+                PeriodoFaseModel.duracao_dias,
+            )
+            .join(
+                FaseAnaliticaModel,
+                PeriodoFaseModel.fase_analitica_id == FaseAnaliticaModel.id,
+            )
+            .where(FaseAnaliticaModel.codigo == "TRAMITE_ENTRE_CASAS")
+        )
+        if filtros:
+            tipo = filtros.get("tipo")
+            if tipo:
+                stmt_durations = stmt_durations.where(
+                    func.lower(PeriodoFaseModel.tipo_proposicao) == tipo.lower()
+                )
+            rito = filtros.get("rito")
+            if rito:
+                stmt_durations = stmt_durations.where(
+                    func.lower(PeriodoFaseModel.rito) == rito.lower()
+                )
+
+        rows = self.session.exec(stmt_durations).all()
+
+        import statistics
+        from datetime import date
+
+        duracoes = []
+        hoje = date.today()
+        for row in rows:
+            if row.duracao_dias is not None:
+                duracoes.append(row.duracao_dias)
+            else:
+                dur = (hoje - row.data_inicio).days
+                duracoes.append(max(0, dur))
+
+        mediana = int(statistics.median(duracoes)) if duracoes else 0
+
+        return {
+            "total_em_transito": total_em_transito,
+            "mediana_dias_transito": mediana,
+        }
+
+    def obter_tempo_por_fase(self, filtros: dict | None = None) -> list[dict]:
+        from infrastructure.database.models.fase_analitica_model import (
+            FaseAnaliticaModel,
+        )
+        from infrastructure.database.models.periodo_fase_model import PeriodoFaseModel
+
+        statement = select(
+            FaseAnaliticaModel.codigo,
+            FaseAnaliticaModel.nome,
+            FaseAnaliticaModel.ordem_logica,
+            PeriodoFaseModel.data_inicio,
+            PeriodoFaseModel.duracao_dias,
+            PeriodoFaseModel.proposicao_id,
+        ).join(
+            FaseAnaliticaModel,
+            PeriodoFaseModel.fase_analitica_id == FaseAnaliticaModel.id,
+        )
+
+        if filtros:
+            tipo = filtros.get("tipo")
+            if tipo:
+                statement = statement.where(
+                    func.lower(PeriodoFaseModel.tipo_proposicao) == tipo.lower()
+                )
+            rito = filtros.get("rito")
+            if rito:
+                statement = statement.where(
+                    func.lower(PeriodoFaseModel.rito) == rito.lower()
+                )
+
+        rows = self.session.exec(statement).all()
+
+        grouped = {}
+        from datetime import date
+
+        hoje = date.today()
+
+        for row in rows:
+            code = row.codigo
+            if code not in grouped:
+                grouped[code] = {
+                    "nome": row.nome,
+                    "ordem": row.ordem_logica,
+                    "duracoes": [],
+                    "props": set(),
+                }
+            grouped[code]["props"].add(row.proposicao_id)
+            if row.duracao_dias is not None:
+                grouped[code]["duracoes"].append(row.duracao_dias)
+            else:
+                dur = (hoje - row.data_inicio).days
+                grouped[code]["duracoes"].append(max(0, dur))
+
+        import statistics
+
+        resultado = []
+        for code, data in grouped.items():
+            mediana = (
+                int(statistics.median(data["duracoes"])) if data["duracoes"] else 0
+            )
+            resultado.append(
+                {
+                    "fase": data["nome"],
+                    "codigoFase": code,
+                    "ordemLogica": data["ordem"],
+                    "tempoMedioDias": mediana,
+                    "quantidadeProposicoes": len(data["props"]),
+                }
+            )
+
+        return sorted(resultado, key=lambda x: x["ordemLogica"])
+
+    def obter_qualidade_base(self, filtros: dict | None = None) -> dict:
+        statement = select(
+            func.count(ProposicaoModel.id).label("total"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.tipo.isnot(None), ProposicaoModel.tipo != ""
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("tipo"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.numero.isnot(None),
+                            ProposicaoModel.numero != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("numero"),
+            func.sum(case((ProposicaoModel.ano.isnot(None), 1), else_=0)).label("ano"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.ementa.isnot(None),
+                            ProposicaoModel.ementa != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("ementa"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.autor.isnot(None),
+                            ProposicaoModel.autor != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("autor"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.orgao_origem.isnot(None),
+                            ProposicaoModel.orgao_origem != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("orgao_origem"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.status.isnot(None),
+                            ProposicaoModel.status != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("status"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.orgao_atual.isnot(None),
+                            ProposicaoModel.orgao_atual != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("orgao_atual"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.data_apresentacao.isnot(None),
+                            ProposicaoModel.data_apresentacao != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("data_apresentacao"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.data_ultima_movimentacao.isnot(None),
+                            ProposicaoModel.data_ultima_movimentacao != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("data_ultima_movimentacao"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.link_oficial.isnot(None),
+                            ProposicaoModel.link_oficial != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("link_oficial"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            ProposicaoModel.regime_tramitacao.isnot(None),
+                            ProposicaoModel.regime_tramitacao != "",
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("regime_tramitacao"),
+        )
+        if filtros:
+            statement = self._aplicar_filtros(statement, filtros)
+
+        row = self.session.exec(statement).first()
+        if not row or row.total == 0:
+            return {
+                "completude_porcentagem": 100.0,
+                "total_proposicoes": 0,
+                "campos_analisados": 12,
+            }
+
+        total = row.total
+        campos = [
+            row.tipo,
+            row.numero,
+            row.ano,
+            row.ementa,
+            row.autor,
+            row.orgao_origem,
+            row.status,
+            row.orgao_atual,
+            row.data_apresentacao,
+            row.data_ultima_movimentacao,
+            row.link_oficial,
+            row.regime_tramitacao,
+        ]
+
+        soma_preenchidos = sum(c if c is not None else 0 for c in campos)
+        max_possivel = total * len(campos)
+        completude = (
+            (soma_preenchidos / max_possivel * 100) if max_possivel > 0 else 0.0
+        )
+
+        return {
+            "completude_porcentagem": round(completude, 2),
+            "total_proposicoes": total,
+            "campos_analisados": len(campos),
+        }

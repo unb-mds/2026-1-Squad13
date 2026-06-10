@@ -9,6 +9,10 @@ import type {
   ComparacaoTema,
   FiltrosProposicao,
   TempoPorFase,
+  DashboardEstoqueResponse,
+  DashboardHandoffResponse,
+  CoberturaMetricaResponse,
+  DashboardQualidadeResponse,
 } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -118,6 +122,7 @@ function _filtrosParaParams(filtros?: Partial<FiltrosProposicao>): string {
   if (filtros.orgaoOrigem) params.append('orgaoOrigem', filtros.orgaoOrigem)
   if (filtros.dataInicio) params.append('dataInicio', filtros.dataInicio)
   if (filtros.dataFim) params.append('dataFim', filtros.dataFim)
+  if (filtros.rito) params.append('rito', filtros.rito)
   const qs = params.toString()
   return qs ? `?${qs}` : ''
 }
@@ -182,6 +187,30 @@ export async function obterTransicoesCasas(filtros?: Partial<FiltrosProposicao>)
 export async function obterConfiabilidade(proposicaoId: string): Promise<any> {
   const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/confiabilidade`)
   if (!response.ok) throw new Error('Falha ao buscar confiabilidade da proposição')
+  return await response.json()
+}
+
+export async function obterEstoque(filtros?: Partial<FiltrosProposicao>): Promise<DashboardEstoqueResponse> {
+  const response = await fetch(`${API_BASE}/dashboard/estoque${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar estoque por fase')
+  return await response.json()
+}
+
+export async function obterHandoff(filtros?: Partial<FiltrosProposicao>): Promise<DashboardHandoffResponse> {
+  const response = await fetch(`${API_BASE}/dashboard/handoff${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar handoff')
+  return await response.json()
+}
+
+export async function obterCobertura(): Promise<CoberturaMetricaResponse[]> {
+  const response = await fetch(`${API_BASE}/dashboard/cobertura`)
+  if (!response.ok) throw new Error('Falha ao buscar cobertura da base')
+  return await response.json()
+}
+
+export async function obterQualidade(filtros?: Partial<FiltrosProposicao>): Promise<DashboardQualidadeResponse> {
+  const response = await fetch(`${API_BASE}/dashboard/qualidade${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar qualidade da base')
   return await response.json()
 }
 
