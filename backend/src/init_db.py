@@ -12,12 +12,17 @@ from infrastructure.database import engine
 from infrastructure.database.models.proposicao_model import (
     ProposicaoModel,  # noqa: F401
 )
+from infrastructure.database.models.periodo_fase_model import PeriodoFaseModel
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
 )
+from infrastructure.repositories.sql_proposicao_repository import SQLProposicaoRepository
+from infrastructure.repositories.sql_periodo_fase_repository import SQLPeriodoFaseRepository
+from infrastructure.repositories.sql_evento_tramitacao_repository import SQLEventoTramitacaoRepository
+from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 
 logger = logging.getLogger(__name__)
 
@@ -104,11 +109,57 @@ def seed_bootstrap_baselines():
             raise e
 
 
+def garantir_integridade_analitica():
+    """
+    Identifica proposições sem períodos analíticos e reconstrói o estoque.
+    Essencial para migração de bases antigas para o modelo R2.
+    """
+    logger.info("🛠️ Verificando integridade dos dados analíticos...")
+    from sqlmodel import select, func
+
+    with Session(engine) as session:
+        try:
+            # Busca proposições que não possuem nenhum período cadastrado
+            subquery = select(PeriodoFaseModel.proposicao_id)
+            statement = select(ProposicaoModel).where(ProposicaoModel.id.not_in(subquery))
+            props_faltantes = session.exec(statement).all()
+
+            if not props_faltantes:
+                logger.info("✅ Todos os dados analíticos estão íntegros.")
+                return
+
+            logger.info(f"⚠️ Detectadas {len(props_faltantes)} proposições sem períodos analíticos.")
+            logger.info("🚀 Iniciando reconstrução automática (Self-Healing)...")
+
+            # Inicializa serviços necessários
+            periodo_repo = SQLPeriodoFaseRepository(session)
+            evento_repo = SQLEventoTramitacaoRepository(session)
+            fase_repo = SQLFaseAnaliticaRepository(session)
+            prop_repo = SQLProposicaoRepository(session)
+            
+            reconstruir_service = ReconstruirPeriodosService(
+                periodo_repo, evento_repo, fase_repo, prop_repo
+            )
+
+            for i, prop in enumerate(props_faltantes):
+                try:
+                    reconstruir_service.reconstruir_para_proposicao(prop.id)
+                    if (i + 1) % 100 == 0:
+                        logger.info(f"⏳ Processadas {i + 1} de {len(props_faltantes)}...")
+                except Exception as e:
+                    logger.error(f"❌ Falha ao reconstruir proposição {prop.id}: {e}")
+            
+            logger.info(f"✨ Reconstrução finalizada com sucesso ({len(props_faltantes)} itens).")
+        except Exception as e:
+            logger.exception(f"❌ Erro durante verificação de integridade: {e}")
+
+
 def run():
     logger.info("🚀 [init_db] Iniciando processo de inicialização...")
     run_migrations()
     seed_lookup_tables()
     seed_bootstrap_baselines()
+    garantir_integridade_analitica()
     logger.info("✨ [init_db] Inicialização completa!")
 
 
