@@ -11,10 +11,10 @@ class SQLPeriodoFaseRepository:
         self.session = session
 
     def _to_entity(self, model: PeriodoFaseModel) -> PeriodoFase:
-        return PeriodoFase.model_validate(model.model_dump())
+        return PeriodoFase.model_validate(model)
 
     def _to_model(self, entity: PeriodoFase) -> PeriodoFaseModel:
-        return PeriodoFaseModel.model_validate(entity.model_dump())
+        return PeriodoFaseModel.model_validate(entity)
 
     def salvar_lote(self, periodos: list[PeriodoFase]) -> list[PeriodoFase]:
         """Persiste uma lista de períodos em lote."""
@@ -22,9 +22,9 @@ class SQLPeriodoFaseRepository:
             models = [self._to_model(p) for p in periodos]
             self.session.add_all(models)
             self.session.commit()
-            for m in models:
-                self.session.refresh(m)
-            return [self._to_entity(m) for m in models]
+            # Retorna a lista original para evitar re-mapeamento de objetos expirados pós-commit
+            # O ReconstruirPeriodosService não utiliza o retorno para obter IDs.
+            return periodos
         return []
 
     def buscar_por_proposicao(self, proposicao_id: str) -> list[PeriodoFase]:
