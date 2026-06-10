@@ -16,7 +16,8 @@ class SenadoAdapter:
 
     def __init__(self, base_url: str = "https://legis.senado.leg.br/dadosabertos"):
         self.base_url = base_url
-        self.timeout = 12  # Reduzido para falhar mais rápido em caso de instabilidade
+        # Timeout granular: 3s para conectar (Fail Fast), 8s para ler os dados
+        self.default_timeout = httpx.Timeout(8.0, connect=3.0)
 
     async def _get_with_retry(
         self,
@@ -28,10 +29,13 @@ class SenadoAdapter:
     ) -> httpx.Response:
         """Helper para realizar requisições com retry rápido em caso de erro."""
         max_retries = 3
+        # Usa o timeout customizado ou o padrão granular
+        timeout_config = timeout or self.default_timeout
+        
         for attempt in range(max_retries):
             try:
                 resp = await client.get(
-                    url, params=params, headers=headers, timeout=timeout or self.timeout
+                    url, params=params, headers=headers, timeout=timeout_config
                 )
 
                 if resp.status_code == 429:
@@ -52,12 +56,12 @@ class SenadoAdapter:
                 if resp.status_code != 404:
                     resp.raise_for_status()
                 return resp
-            except (httpx.ConnectTimeout, httpx.ConnectError):
+            except (httpx.ConnectTimeout, httpx.ConnectError) as e:
                 if attempt < max_retries - 1:
                     logger.warning(
-                        f"🔌 Erro de conexão com Senado. Tentando reconectar ({attempt + 1}/{max_retries})..."
+                        f"🔌 Erro de conexão com Senado ({type(e).__name__}). Possível Cold Start ou DNS lento. Tentando reconectar ({attempt + 1}/{max_retries})..."
                     )
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)  # Aumentado para dar tempo ao sistema operacional
                 else:
                     raise
             except httpx.TimeoutException:
@@ -321,7 +325,7 @@ class SenadoAdapter:
                 ):
                     url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
                     resp_proc = await _client.get(
-                        url_proc, headers=headers, timeout=self.timeout
+                        url_proc, headers=headers, timeout=self.default_timeout
                     )
                     if resp_proc.status_code == 200:
                         return self._processar_dados_processo(
@@ -342,7 +346,7 @@ class SenadoAdapter:
                 return None
             except httpx.TimeoutException:
                 logger.error(
-                    f"⏳ TIMEOUT ao acessar Senado para ID {id_materia} após {self.timeout}s."
+                    f"⏳ TIMEOUT ao acessar Senado para ID {id_materia} após {self.default_timeout}s."
                 )
                 return None
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
@@ -381,8 +385,8 @@ class SenadoAdapter:
                 return len(dados)
             return 1
         except Exception as e:
-            logger.error(f"Erro ao obter total do Senado ({tipo}, {ano}): {e}")
-            return 0
+            logger.error(f"❌ Erro ao obter total do Senado ({tipo}, {ano}): {str(e) or type(e).__name__}")
+            raise e
         finally:
             if client is None:
                 await _client.aclose()

@@ -16,7 +16,8 @@ class CamaraAdapter:
 
     def __init__(self):
         self.base_url = "https://dadosabertos.camara.leg.br/api/v2"
-        self.timeout = 12  # Reduzido para maior fluidez no terminal
+        # Timeout granular: 3s para conectar (Fail Fast), 8s para ler os dados
+        self.default_timeout = httpx.Timeout(8.0, connect=3.0)
         self.headers = {
             "Accept": "application/json",
             "User-Agent": "MonitorLegislativo/1.0",
@@ -27,10 +28,11 @@ class CamaraAdapter:
     ) -> httpx.Response:
         """Helper para realizar GET com retry otimizado."""
         max_retries = 3
+        
         for attempt in range(max_retries):
             try:
                 resp = await client.get(
-                    url, params=params, headers=self.headers, timeout=self.timeout
+                    url, params=params, headers=self.headers, timeout=self.default_timeout
                 )
                 if resp.status_code == 429:
                     wait_time = 2 * (attempt + 1)
@@ -105,9 +107,13 @@ class CamaraAdapter:
                         len(emendas_dados) if isinstance(emendas_dados, list) else 0
                     )
                 except Exception as e:
-                    logger.warning(
-                        f"Não foi possível buscar emendas para a proposição {id_proposicao} na Câmara: {e}"
-                    )
+                    # Se for 405, a API provavelmente removeu/restringiu este endpoint
+                    if "405" in str(e):
+                        logger.info(f"ℹ️ API Câmara: Endpoint /emendas retornou 405 para {id_proposicao} (Provável restrição ou deprecation na API v2).")
+                    else:
+                        logger.warning(
+                            f"⚠️ Não foi possível buscar emendas para {id_proposicao} na Câmara: {e}"
+                        )
 
                 # Classify power exec
                 autor_e_poder_executivo = False
@@ -197,7 +203,7 @@ class CamaraAdapter:
                 return None
             except httpx.TimeoutException:
                 logger.error(
-                    f"⏳ TIMEOUT ao acessar Câmara para ID {id_proposicao} após {self.timeout}s."
+                    f"⏳ TIMEOUT ao acessar Câmara para ID {id_proposicao} após {self.default_timeout}s."
                 )
                 return None
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
