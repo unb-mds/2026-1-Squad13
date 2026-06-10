@@ -12,10 +12,18 @@ from domain.entities.proposicao import Proposicao
 @pytest.fixture
 def mock_fases():
     return [
-        FaseAnalitica(id=1, codigo="PROTOCOLO_INICIAL", nome="Protocolo", ordem_logica=1),
-        FaseAnalitica(id=2, codigo="ANALISE_COMISSOES", nome="Comissões", ordem_logica=2),
-        FaseAnalitica(id=3, codigo="DELIBERACAO_PLENARIO", nome="Plenário", ordem_logica=3),
-        FaseAnalitica(id=4, codigo="TRAMITE_ENTRE_CASAS", nome="Handoff", ordem_logica=4),
+        FaseAnalitica(
+            id=1, codigo="PROTOCOLO_INICIAL", nome="Protocolo", ordem_logica=1
+        ),
+        FaseAnalitica(
+            id=2, codigo="ANALISE_COMISSOES", nome="Comissões", ordem_logica=2
+        ),
+        FaseAnalitica(
+            id=3, codigo="DELIBERACAO_PLENARIO", nome="Plenário", ordem_logica=3
+        ),
+        FaseAnalitica(
+            id=4, codigo="TRAMITE_ENTRE_CASAS", nome="Handoff", ordem_logica=4
+        ),
         FaseAnalitica(id=5, codigo="ETAPA_EXECUTIVO", nome="Executivo", ordem_logica=5),
         FaseAnalitica(id=6, codigo="ENCERRADA", nome="Encerrada", ordem_logica=6),
     ]

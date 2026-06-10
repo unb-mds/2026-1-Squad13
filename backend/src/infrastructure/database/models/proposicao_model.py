@@ -44,7 +44,7 @@ class ProposicaoModel(SQLModel, table=True):
     baseline_grupo_id: str | None = Field(default=None, nullable=True)
     data_calculo_metricas: datetime | None = Field(default=None, nullable=True)
     regime_tramitacao: str | None = Field(default=None, nullable=True)
-    
+
     # ML predictive variables
     numero_assinaturas: int | None = Field(default=0, nullable=True)
     numero_emendas: int | None = Field(default=0, nullable=True)

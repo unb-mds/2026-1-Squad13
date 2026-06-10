@@ -1,6 +1,9 @@
 from sqlmodel import Session, select
+
 from domain.entities.cobertura_snapshot import CoberturaSnapshot
-from infrastructure.database.models.cobertura_snapshot_model import CoberturaSnapshotModel
+from infrastructure.database.models.cobertura_snapshot_model import (
+    CoberturaSnapshotModel,
+)
 
 
 class SQLCoberturaSnapshotRepository:
@@ -27,7 +30,7 @@ class SQLCoberturaSnapshotRepository:
         else:
             statement = select(CoberturaSnapshotModel).where(
                 CoberturaSnapshotModel.ano == model.ano,
-                CoberturaSnapshotModel.tipo_proposicao == model.tipo_proposicao
+                CoberturaSnapshotModel.tipo_proposicao == model.tipo_proposicao,
             )
             existing = self.session.exec(statement).first()
             if existing:
@@ -40,11 +43,13 @@ class SQLCoberturaSnapshotRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
-    def buscar_por_ano_e_tipo(self, ano: int, tipo_proposicao: str) -> CoberturaSnapshot | None:
+    def buscar_por_ano_e_tipo(
+        self, ano: int, tipo_proposicao: str
+    ) -> CoberturaSnapshot | None:
         """Busca o snapshot de cobertura correspondente ao ano e tipo."""
         statement = select(CoberturaSnapshotModel).where(
             CoberturaSnapshotModel.ano == ano,
-            CoberturaSnapshotModel.tipo_proposicao == tipo_proposicao
+            CoberturaSnapshotModel.tipo_proposicao == tipo_proposicao,
         )
         model = self.session.exec(statement).first()
         return self._to_entity(model) if model else None

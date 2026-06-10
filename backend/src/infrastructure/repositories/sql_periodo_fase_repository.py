@@ -1,4 +1,5 @@
 from sqlmodel import Session, select
+
 from domain.entities.periodo_fase import PeriodoFase
 from infrastructure.database.models.periodo_fase_model import PeriodoFaseModel
 

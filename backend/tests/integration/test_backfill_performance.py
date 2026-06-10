@@ -52,5 +52,9 @@ async def test_batch_backfill_performance(db_session: Session):
     duration = end_time - start_time
 
     # 3. Asserções de integridade e tempo
-    assert duration < 300.0, f"Upsert de 10.000 proposições demorou {duration:.2f} segundos, excedendo o limite de 5 minutos."
-    print(f"\n⏱️ Performance do backfill: 10.000 proposições upsertadas em {duration:.4f}s.")
+    assert duration < 300.0, (
+        f"Upsert de 10.000 proposições demorou {duration:.2f} segundos, excedendo o limite de 5 minutos."
+    )
+    print(
+        f"\n⏱️ Performance do backfill: 10.000 proposições upsertadas em {duration:.4f}s."
+    )

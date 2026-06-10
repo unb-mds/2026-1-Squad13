@@ -25,7 +25,9 @@ def session_fixture():
 def test_salvar_e_buscar_snapshot(session: Session):
     repo = SQLCoberturaSnapshotRepository(session)
     dt = datetime.now(UTC)
-    snap = CoberturaSnapshot(ano=2026, tipo_proposicao="PL", total_api_oficial=150, data_atualizacao=dt)
+    snap = CoberturaSnapshot(
+        ano=2026, tipo_proposicao="PL", total_api_oficial=150, data_atualizacao=dt
+    )
 
     saved = repo.salvar(snap)
     assert saved.id is not None
@@ -40,11 +42,15 @@ def test_salvar_e_buscar_snapshot(session: Session):
 def test_salvar_upsert_snapshot(session: Session):
     repo = SQLCoberturaSnapshotRepository(session)
     dt1 = datetime.now(UTC)
-    snap1 = CoberturaSnapshot(ano=2026, tipo_proposicao="PL", total_api_oficial=150, data_atualizacao=dt1)
+    snap1 = CoberturaSnapshot(
+        ano=2026, tipo_proposicao="PL", total_api_oficial=150, data_atualizacao=dt1
+    )
     saved1 = repo.salvar(snap1)
 
     dt2 = datetime.now(UTC)
-    snap2 = CoberturaSnapshot(ano=2026, tipo_proposicao="PL", total_api_oficial=200, data_atualizacao=dt2)
+    snap2 = CoberturaSnapshot(
+        ano=2026, tipo_proposicao="PL", total_api_oficial=200, data_atualizacao=dt2
+    )
     saved2 = repo.salvar(snap2)
 
     # Devem ter o mesmo ID
@@ -59,8 +65,16 @@ def test_buscar_todos(session: Session):
     dt1 = datetime.now(UTC)
     dt2 = datetime.now(UTC)
 
-    repo.salvar(CoberturaSnapshot(ano=2025, tipo_proposicao="PL", total_api_oficial=100, data_atualizacao=dt1))
-    repo.salvar(CoberturaSnapshot(ano=2026, tipo_proposicao="PEC", total_api_oficial=50, data_atualizacao=dt2))
+    repo.salvar(
+        CoberturaSnapshot(
+            ano=2025, tipo_proposicao="PL", total_api_oficial=100, data_atualizacao=dt1
+        )
+    )
+    repo.salvar(
+        CoberturaSnapshot(
+            ano=2026, tipo_proposicao="PEC", total_api_oficial=50, data_atualizacao=dt2
+        )
+    )
 
     all_snaps = repo.buscar_todos()
     assert len(all_snaps) == 2

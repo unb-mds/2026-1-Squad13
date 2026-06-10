@@ -1,4 +1,5 @@
 from typing import Protocol
+
 from domain.entities.periodo_fase import PeriodoFase
 
 
