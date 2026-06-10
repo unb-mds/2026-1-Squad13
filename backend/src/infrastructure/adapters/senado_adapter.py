@@ -31,7 +31,7 @@ class SenadoAdapter:
         max_retries = 3
         # Usa o timeout customizado ou o padrão granular
         timeout_config = timeout or self.default_timeout
-        
+
         for attempt in range(max_retries):
             try:
                 resp = await client.get(
@@ -61,7 +61,9 @@ class SenadoAdapter:
                     logger.warning(
                         f"🔌 Erro de conexão com Senado ({type(e).__name__}). Possível Cold Start ou DNS lento. Tentando reconectar ({attempt + 1}/{max_retries})..."
                     )
-                    await asyncio.sleep(2)  # Aumentado para dar tempo ao sistema operacional
+                    await asyncio.sleep(
+                        2
+                    )  # Aumentado para dar tempo ao sistema operacional
                 else:
                     raise
             except httpx.TimeoutException:
@@ -385,7 +387,9 @@ class SenadoAdapter:
                 return len(dados)
             return 1
         except Exception as e:
-            logger.error(f"❌ Erro ao obter total do Senado ({tipo}, {ano}): {str(e) or type(e).__name__}")
+            logger.error(
+                f"❌ Erro ao obter total do Senado ({tipo}, {ano}): {str(e) or type(e).__name__}"
+            )
             raise e
         finally:
             if client is None:

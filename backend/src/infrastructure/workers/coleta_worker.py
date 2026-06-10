@@ -5,6 +5,7 @@ from celery import shared_task
 from sqlmodel import Session
 
 from application.services.coletar_em_lote_service import ColetarEmLoteService
+from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import engine
@@ -29,7 +30,6 @@ from infrastructure.repositories.sql_periodo_fase_repository import (
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
 )
-from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 
 logger = logging.getLogger(__name__)
 

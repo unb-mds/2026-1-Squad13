@@ -45,9 +45,20 @@ class ReconstruirPeriodosService:
             return []
 
         todas_fases = self.fase_repo.buscar_todas()
+        if not todas_fases:
+            logger.warning(
+                f"Nenhuma fase analítica encontrada no banco para reconstruir proposição {proposicao_id}. "
+                "Certifique-se de que o seed de fases foi executado."
+            )
+            return []
+
         fase_codigo_to_id = {f.codigo: f.id for f in todas_fases}
         fase_id_to_codigo = {f.id: f.codigo for f in todas_fases}
         default_fase_id = fase_codigo_to_id.get("PROTOCOLO_INICIAL")
+
+        # Se mesmo com fases, não houver o PROTOCOLO_INICIAL, usamos o ID da primeira fase disponível como fallback extremo
+        if default_fase_id is None and todas_fases:
+            default_fase_id = todas_fases[0].id
 
         eventos = self.evento_repo.buscar_por_proposicao(proposicao_id)
 
