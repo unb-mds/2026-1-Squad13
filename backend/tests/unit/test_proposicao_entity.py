@@ -162,3 +162,30 @@ def test_normalizar_campo_status_com_status_original():
     p.normalizar_campo_status()
     assert p.status == "Em Tramitação"
     assert p.status_original == "AGUARDANDO DISTRIBUIÇÃO"
+
+
+def test_cobertura_dados_inclui_emendas():
+    """Verifica se a falta do dado de emendas penaliza a cobertura."""
+    p = Proposicao(
+        tipo="PL",
+        numero="123",
+        ano=2024,
+        ementa="Teste",
+        autor="Autor",
+        orgao_origem="Câmara",
+        status="Em Tramitação",
+        orgao_atual="CCJ",
+        data_apresentacao="2024-01-01",
+        data_ultima_movimentacao="2024-01-01",
+        link_oficial="http://link",
+        regime_tramitacao="ORDINARIO",
+        numero_emendas=None,  # Faltando dado
+    )
+
+    cobertura_sem_dado = p.cobertura_dados
+
+    p.numero_emendas = 10
+    cobertura_com_dado = p.cobertura_dados
+
+    assert cobertura_com_dado > cobertura_sem_dado
+
