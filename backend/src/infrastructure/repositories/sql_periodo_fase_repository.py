@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 
 from domain.entities.periodo_fase import PeriodoFase
 from infrastructure.database.models.periodo_fase_model import PeriodoFaseModel
@@ -39,10 +39,8 @@ class SQLPeriodoFaseRepository:
 
     def deletar_por_proposicao(self, proposicao_id: str) -> None:
         """Deleta todos os períodos de uma proposição."""
-        statement = select(PeriodoFaseModel).where(
+        statement = delete(PeriodoFaseModel).where(
             PeriodoFaseModel.proposicao_id == proposicao_id
         )
-        models = self.session.exec(statement).all()
-        for m in models:
-            self.session.delete(m)
+        self.session.exec(statement)
         self.session.commit()
