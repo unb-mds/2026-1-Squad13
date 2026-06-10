@@ -291,14 +291,17 @@ class DashboardService:
     def obter_tempo_por_fase(self, filtros: dict | None = None) -> list[dict]:
         """
         Calcula o tempo médio que proposições passam em cada fase analítica.
-
-        Retorna apenas fases com ao menos uma proposição registrada,
-        ordenadas por ordem_logica. Eventos sem fase_analitica_id são ignorados.
+        Usa o repositório SQL otimizado se disponível.
         """
         cache_key = self._gerar_cache_key("dashboard:tempo_por_fase", filtros)
         cached = self._get_cached(cache_key)
         if cached is not None:
             return cached
+
+        if self.dashboard_repo:
+            resultado = self.dashboard_repo.obter_tempo_por_fase(filtros)
+            self._set_cache(cache_key, resultado)
+            return resultado
 
         if self.fase_repo is None:
             return []
@@ -452,5 +455,44 @@ class DashboardService:
             raise ValueError("dashboard_repo é obrigatório")
 
         resultado = self.dashboard_repo.obter_transicoes_casas(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_estoque_fases(self, filtros: dict | None = None) -> list[dict]:
+        cache_key = self._gerar_cache_key("dashboard:estoque_fases", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_estoque_fases(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_mediana_handoff(self, filtros: dict | None = None) -> dict:
+        cache_key = self._gerar_cache_key("dashboard:mediana_handoff", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_mediana_handoff(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_qualidade_base(self, filtros: dict | None = None) -> dict:
+        cache_key = self._gerar_cache_key("dashboard:qualidade_base", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_qualidade_base(filtros)
         self._set_cache(cache_key, resultado)
         return resultado

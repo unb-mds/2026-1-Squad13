@@ -1,8 +1,11 @@
-from datetime import datetime, timezone
 import logging
-from application.ports.cobertura_snapshot_repository import CoberturaSnapshotRepositoryPort
-from application.ports.proposicao_repository import ProposicaoRepositoryPort
+from datetime import UTC, datetime
+
 from application.ports.camara_adapter import CamaraAdapterPort
+from application.ports.cobertura_snapshot_repository import (
+    CoberturaSnapshotRepositoryPort,
+)
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
 from application.ports.senado_adapter import SenadoAdapterPort
 from domain.entities.cobertura_snapshot import CoberturaSnapshot
 
@@ -27,20 +30,28 @@ class AtualizarCoberturaService:
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
 
-    async def atualizar_snapshot(self, ano: int, tipo_proposicao: str, origem: str) -> CoberturaSnapshot:
+    async def atualizar_snapshot(
+        self, ano: int, tipo_proposicao: str, origem: str
+    ) -> CoberturaSnapshot:
         """
         Consulta a API oficial (origem = 'camara' ou 'senado') e persiste o snapshot de total oficial.
         """
         total_api_oficial = 0
         try:
             if origem.lower() == "camara" or "câmara" in origem.lower():
-                total_api_oficial = await self.camara_adapter.obter_total(tipo_proposicao, ano)
+                total_api_oficial = await self.camara_adapter.obter_total(
+                    tipo_proposicao, ano
+                )
             elif origem.lower() == "senado":
-                total_api_oficial = await self.senado_adapter.obter_total(tipo_proposicao, ano)
+                total_api_oficial = await self.senado_adapter.obter_total(
+                    tipo_proposicao, ano
+                )
             else:
                 logger.error(f"Origem desconhecida: {origem}")
         except Exception as e:
-            logger.error(f"Erro ao obter total oficial de {origem} para {tipo_proposicao} {ano}: {e}")
+            logger.error(
+                f"Erro ao obter total oficial de {origem} para {tipo_proposicao} {ano}: {e}"
+            )
 
         # Se falhar e já existir um snapshot, mantemos o valor antigo para evitar sobregravar com 0
         if total_api_oficial == 0:
@@ -52,7 +63,7 @@ class AtualizarCoberturaService:
             ano=ano,
             tipo_proposicao=tipo_proposicao,
             total_api_oficial=total_api_oficial,
-            data_atualizacao=datetime.now(timezone.utc)
+            data_atualizacao=datetime.now(UTC),
         )
         return self.cobertura_repo.salvar(snapshot)
 
@@ -62,9 +73,11 @@ class AtualizarCoberturaService:
         """
         snapshot = self.cobertura_repo.buscar_por_ano_e_tipo(ano, tipo_proposicao)
         total_local = self.proposicao_repo.contar(tipo=tipo_proposicao, ano=ano)
-        
+
         total_api_oficial = snapshot.total_api_oficial if snapshot else 0
-        percentual = (total_local / total_api_oficial * 100) if total_api_oficial > 0 else 0.0
+        percentual = (
+            (total_local / total_api_oficial * 100) if total_api_oficial > 0 else 0.0
+        )
 
         return {
             "ano": ano,
@@ -72,5 +85,32 @@ class AtualizarCoberturaService:
             "total_local": total_local,
             "total_api_oficial": total_api_oficial,
             "percentual_cobertura": round(percentual, 2),
-            "data_atualizacao": snapshot.data_atualizacao if snapshot else None
+            "data_atualizacao": snapshot.data_atualizacao if snapshot else None,
         }
+
+    def obter_todas_metricas_cobertura(self) -> list[dict]:
+        """
+        Calcula e retorna a métrica de cobertura para todos os snapshots registrados.
+        """
+        snapshots = self.cobertura_repo.buscar_todos()
+        resultados = []
+        for snapshot in snapshots:
+            total_local = self.proposicao_repo.contar(
+                tipo=snapshot.tipo_proposicao, ano=snapshot.ano
+            )
+            percentual = (
+                (total_local / snapshot.total_api_oficial * 100)
+                if snapshot.total_api_oficial > 0
+                else 0.0
+            )
+            resultados.append(
+                {
+                    "ano": snapshot.ano,
+                    "tipo_proposicao": snapshot.tipo_proposicao,
+                    "total_local": total_local,
+                    "total_api_oficial": snapshot.total_api_oficial,
+                    "percentual_cobertura": round(percentual, 2),
+                    "data_atualizacao": snapshot.data_atualizacao,
+                }
+            )
+        return resultados
