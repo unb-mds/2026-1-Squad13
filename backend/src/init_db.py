@@ -151,9 +151,11 @@ def garantir_integridade_analitica():
                 periodo_repo, evento_repo, fase_repo, prop_repo
             )
 
+            sucesso_count = 0
             for i, prop in enumerate(props_faltantes):
                 try:
                     reconstruir_service.reconstruir_para_proposicao(prop.id)
+                    sucesso_count += 1
                     if (i + 1) % 100 == 0:
                         logger.info(
                             f"⏳ Processadas {i + 1} de {len(props_faltantes)}..."
@@ -162,7 +164,7 @@ def garantir_integridade_analitica():
                     logger.error(f"❌ Falha ao reconstruir proposição {prop.id}: {e}")
 
             logger.info(
-                f"✨ Reconstrução finalizada com sucesso ({len(props_faltantes)} itens)."
+                f"✨ Reconstrução finalizada com sucesso. Total reconstruído: {sucesso_count}/{len(props_faltantes)} itens."
             )
         except Exception as e:
             logger.exception(f"❌ Erro durante verificação de integridade: {e}")
