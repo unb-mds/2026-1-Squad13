@@ -384,6 +384,9 @@ class CamaraAdapter:
                     )
                     break
 
+        # Deduplica os IDs coletados antes de buscar os detalhes externos
+        ids_unicos = list(dict.fromkeys(ids_coletados))
+
         # Busca os detalhes completos para montar as entidades Proposicao
         proposicoes_completas = []
         semaphore = asyncio.Semaphore(
@@ -394,7 +397,7 @@ class CamaraAdapter:
             async with semaphore:
                 return await self.buscar_por_id(id_prop)
 
-        tasks = [fetch_full(id_prop) for id_prop in ids_coletados]
+        tasks = [fetch_full(id_prop) for id_prop in ids_unicos]
         resultados = await asyncio.gather(*tasks, return_exceptions=True)
 
         for res in resultados:
