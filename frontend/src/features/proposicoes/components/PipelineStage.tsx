@@ -43,7 +43,7 @@ export function PipelineStage({ name, count, percentage, medianDays, isActive }:
         <span
           className={`inline-block px-[7px] py-0.5 rounded-full text-[10px] font-medium ${
             isActive
-              ? "bg-primary text-white"
+              ? "bg-primary text-primary-foreground"
               : "bg-secondary text-muted-foreground"
           }`}
         >

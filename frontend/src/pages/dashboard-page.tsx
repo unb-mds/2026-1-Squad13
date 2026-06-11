@@ -545,9 +545,9 @@ export function DashboardPage() {
                   key="line-saidas"
                   type="monotone"
                   dataKey="saidas"
-                  stroke="var(--volt-400)"
+                  stroke="var(--chart-saidas)"
                   strokeWidth={2.5}
-                  dot={{ fill: "var(--volt-400)", r: 4 }}
+                  dot={{ fill: "var(--chart-saidas)", r: 4 }}
                   name="Saídas"
                 />
               </LineChart>

@@ -73,7 +73,7 @@ else
   fi
   if [ "$RUN_FRONTEND_RELATED" = true ]; then
     echo -e "${BLUE}⚛️ Rodando Testes de Impacto no Frontend (Vitest Related)...${NC}"
-    cd frontend && npx vitest run --related $FRONTEND_FILES && cd ..
+    cd frontend && npx vitest related $FRONTEND_FILES --run && cd ..
     EXIT_CODE=$((EXIT_CODE + $?))
   fi
 fi
