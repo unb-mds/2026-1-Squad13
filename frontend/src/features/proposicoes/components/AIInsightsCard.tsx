@@ -48,8 +48,8 @@ export function AIInsightsCard({ proposition, phasesHistory = [] }: AIInsightsCa
 
   const getDelayStatus = () => {
     if (proposition.atraso <= 0) return { label: "No prazo", color: "bg-muted text-muted-foreground" };
-    if (proposition.atraso <= 15) return { label: "Atraso leve", color: "bg-amber-100 text-amber-700 border-amber-200" };
-    return { label: "Atraso crítico", color: "bg-red-100 text-red-700 border-red-200" };
+    if (proposition.atraso <= 15) return { label: "Atraso leve", color: "bg-warning/10 text-warning border-warning/20" };
+    return { label: "Atraso crítico", color: "bg-destructive/10 text-destructive border-destructive/20" };
   };
 
   const delayStatus = getDelayStatus();
@@ -82,7 +82,7 @@ export function AIInsightsCard({ proposition, phasesHistory = [] }: AIInsightsCa
   });
 
   return (
-    <div className="bg-[#f7f9fa] border border-border rounded-lg overflow-hidden border-l-2 border-l-primary">
+    <div className="bg-accent/30 border border-border rounded-lg overflow-hidden border-l-2 border-l-primary">
       {/* Header */}
       <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center gap-2 mb-3">
@@ -139,12 +139,12 @@ export function AIInsightsCard({ proposition, phasesHistory = [] }: AIInsightsCa
                 <p className="text-[18px] font-medium text-foreground">{proposition.diasTotais}d</p>
                 <p className="text-[11px] text-muted-foreground">dias totais</p>
               </div>
-              <div className={`rounded-md p-3 ${proposition.atraso > 0 ? 'bg-amber-50' : 'bg-secondary'}`}>
+              <div className={`rounded-md p-3 ${proposition.atraso > 0 ? 'bg-warning/10' : 'bg-secondary'}`}>
                 <p className="text-[11px] uppercase text-muted-foreground mb-1">Etapa atual</p>
-                <p className={`text-[18px] font-medium ${proposition.atraso > 0 ? 'text-amber-700' : 'text-foreground'}`}>
+                <p className={`text-[18px] font-medium ${proposition.atraso > 0 ? 'text-warning' : 'text-foreground'}`}>
                   {proposition.diasNaEtapa}d
                 </p>
-                <p className={`text-[11px] ${proposition.atraso > 0 ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
+                <p className={`text-[11px] ${proposition.atraso > 0 ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
                   +{proposition.atraso}d acima mediana
                 </p>
               </div>
@@ -165,7 +165,7 @@ export function AIInsightsCard({ proposition, phasesHistory = [] }: AIInsightsCa
               <span className="inline-flex items-center px-3 py-1 bg-primary text-primary-foreground rounded-full text-[11px] font-medium">
                 {proposition.faseAtual}
               </span>
-              <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 border border-blue-200 rounded-full text-[11px] font-medium">
+              <span className="inline-flex items-center px-3 py-1 bg-info/10 text-info border border-info/20 rounded-full text-[11px] font-medium">
                 {proposition.casaAtual}
               </span>
               <span className={`inline-flex items-center px-3 py-1 border rounded-full text-[11px] font-medium ${delayStatus.color}`}>
@@ -187,8 +187,8 @@ export function AIInsightsCard({ proposition, phasesHistory = [] }: AIInsightsCa
         {activeTab === "atraso" && proposition.atraso > 0 && (
           <div className="space-y-4">
             {/* Deviation Banner */}
-            <div className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <div className="text-[28px] font-medium text-amber-700">
+            <div className="flex items-center gap-4 p-4 bg-warning/10 border border-warning/20 rounded-lg">
+              <div className="text-[28px] font-medium text-warning">
                 +{proposition.atraso}d
               </div>
               <div className="flex-1">
@@ -217,7 +217,7 @@ export function AIInsightsCard({ proposition, phasesHistory = [] }: AIInsightsCa
                     </div>
                     <div className="flex-1 h-6 bg-secondary rounded-sm overflow-hidden">
                       <div
-                        className={`h-full ${phase.atrasoDias && phase.atrasoDias > 0 ? 'bg-amber-500' : 'bg-primary'}`}
+                        className={`h-full ${phase.atrasoDias && phase.atrasoDias > 0 ? 'bg-warning' : 'bg-primary'}`}
                         style={{ width: `${(phase.duracaoDias / maxDuration) * 100}%` }}
                       />
                     </div>
@@ -226,7 +226,7 @@ export function AIInsightsCard({ proposition, phasesHistory = [] }: AIInsightsCa
                     </div>
                     <div className="w-[36px] text-right">
                       {phase.atrasoDias && phase.atrasoDias > 0 ? (
-                        <span className="text-[11px] text-amber-600">+{phase.atrasoDias}d</span>
+                        <span className="text-[11px] text-warning">+{phase.atrasoDias}d</span>
                       ) : (
                         <span className="text-[11px] text-muted-foreground">—</span>
                       )}
@@ -280,7 +280,7 @@ export function AIInsightsCard({ proposition, phasesHistory = [] }: AIInsightsCa
                     {prop.fase}
                   </span>
                   {prop.atraso > 0 ? (
-                    <span className="inline-flex items-center px-2.5 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full text-[11px]">
+                    <span className="inline-flex items-center px-2.5 py-1 bg-warning/10 text-warning border border-warning/20 rounded-full text-[11px]">
                       +{prop.atraso}d atraso
                     </span>
                   ) : (
