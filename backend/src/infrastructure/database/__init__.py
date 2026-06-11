@@ -17,6 +17,9 @@ from infrastructure.database.models.fase_analitica_model import (
     FaseAnaliticaModel,  # noqa: F401
 )
 from infrastructure.database.models.log_coleta_model import LogColetaModel  # noqa: F401
+from infrastructure.database.models.auditoria_coleta_model import (
+    AuditoriaColetaModel,  # noqa: F401
+)
 from infrastructure.database.models.orgao_legislativo_model import (
     OrgaoLegislativoModel,  # noqa: F401
 )
