@@ -4,6 +4,23 @@ Referência rápida para contribuir com o projeto de forma consistente.
 
 ---
 
+## 🛡️ Validação Local (Git Hooks)
+
+Para garantir a integridade do monorepo e evitar falhas no CI, o projeto utiliza Git Hooks para validar mudanças antes de cada `git push`.
+
+**É obrigatório instalar o hook ao iniciar no projeto:**
+
+```bash
+./scripts/dev/setup-hooks.sh
+```
+
+### O que o Hook faz?
+- **Mudanças em Documentação**: Push direto (instantâneo).
+- **Mudanças Técnicas (Código/Testes)**: Roda uma validação seletiva inteligente (apenas o que foi afetado).
+- **Mudanças Críticas (Scripts/Infra)**: Roda a suite completa de testes e build.
+
+---
+
 ## Branches
 
 Crie sempre uma branch a partir da `develop` atualizada. Use o prefixo correspondente ao tipo de mudança:
