@@ -49,7 +49,7 @@ export function DetalheProposicaoPage() {
     return (
       <div className="p-6 text-center text-foreground bg-background min-h-screen">
         <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-white font-medium mb-1">Proposição não encontrada</p>
+        <p className="text-foreground font-medium mb-1">Proposição não encontrada</p>
         <button onClick={() => navigate("/dashboard")} className="text-sm text-primary hover:underline">
           Voltar para a Dashboard
         </button>
@@ -303,13 +303,13 @@ export function DetalheProposicaoPage() {
         <EventTimeline events={events} filterByPhaseId={selectedPhaseId} />
 
         {/* Methodological Notes */}
-        <div className="bg-gradient-to-br from-blue-50/5 to-blue-50/20 border border-blue-500/20 rounded-lg p-6">
+        <div className="bg-gradient-to-br from-info/5 to-info/10 border border-info/20 rounded-lg p-6">
           <div className="flex items-start gap-4">
             <div className="flex items-center justify-center w-11 h-11 bg-primary rounded-xl flex-shrink-0 shadow-sm">
               <FileText className="w-6 h-6 text-primary-foreground" />
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
+              <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
                 Sobre a Metodologia Analítica
                 <span className="text-xs font-normal text-primary bg-primary/10 px-2 py-0.5 rounded">
                   Narrativa Temporal Unificada

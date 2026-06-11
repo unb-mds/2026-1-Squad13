@@ -47,25 +47,25 @@ export function formatarTempo(dias: number): string {
 
 export function corStatus(status: StatusProposicao): string {
   const mapa: Record<StatusProposicao, string> = {
-    'Em Tramitação': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    'Em Pauta': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    'Aprovada': 'bg-volt-400/20 text-volt-300 border-volt-400/30',
-    'Sancionada': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    'Vetada': 'bg-rose-500/20 text-rose-300 border-rose-500/30',
-    'Arquivada': 'bg-ink-400/20 text-ink-300 border-ink-400/30',
+    'Em Tramitação': 'bg-info/10 text-info border-info/20',
+    'Em Pauta': 'bg-info/10 text-info border-info/20',
+    'Aprovada': 'bg-primary/10 text-primary border-primary/20',
+    'Sancionada': 'bg-primary/10 text-primary border-primary/20',
+    'Vetada': 'bg-destructive/10 text-destructive border-destructive/20',
+    'Arquivada': 'bg-muted text-muted-foreground border-border',
   }
-  return mapa[status] ?? 'bg-ink-400/20 text-ink-300 border-ink-400/30'
+  return mapa[status] ?? 'bg-muted text-muted-foreground border-border'
 }
 
 export function corTipo(tipo: string): string {
   const mapa: Record<string, string> = {
-    PL: 'bg-indigo-500/20 text-indigo-300',
-    PEC: 'bg-amber-500/20 text-amber-300',
-    PDL: 'bg-cyan-500/20 text-cyan-300',
-    MP: 'bg-rose-500/20 text-rose-300',
-    PLP: 'bg-violet-500/20 text-violet-300',
+    PL: 'bg-info/10 text-info',
+    PEC: 'bg-warning/10 text-warning',
+    PDL: 'bg-accent text-accent-foreground',
+    MP: 'bg-destructive/10 text-destructive',
+    PLP: 'bg-primary/10 text-primary',
   }
-  return mapa[tipo] ?? 'bg-ink-400/20 text-ink-300'
+  return mapa[tipo] ?? 'bg-muted text-muted-foreground'
 }
 
 export function paginar<T>(items: T[], pagina: number, itensPorPagina: number): T[] {
