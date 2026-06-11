@@ -70,9 +70,9 @@ async def test_camara_adapter_erro_rede(adapter):
         proposicao = await adapter.buscar_por_id(12345)
 
         assert proposicao is None
-        # Verifica se houve retentativas (3 tentativas no total conforme CamaraAdapter)
-        assert mock_get.call_count == 3
-        assert mock_sleep.call_count == 2
+        # Verifica se houve retentativas (3 tentativas para cada uma das 3 requisições em paralelo)
+        assert mock_get.call_count == 9
+        assert mock_sleep.call_count == 6
 
 
 @pytest.mark.asyncio
