@@ -3,6 +3,10 @@ import logging
 
 import httpx
 
+from domain.classificacao_preditiva import (
+    classificar_tema_economico,
+    identificar_autor_executivo,
+)
 from domain.entities.proposicao import Proposicao
 
 logger = logging.getLogger(__name__)
@@ -16,53 +20,53 @@ class CamaraAdapter:
 
     def __init__(self):
         self.base_url = "https://dadosabertos.camara.leg.br/api/v2"
-        self.timeout = 25  # Timeout aumentado para lidar com lentidão eventual
+        # Timeout granular: 3s para conectar (Fail Fast), 8s para ler os dados
+        self.default_timeout = httpx.Timeout(8.0, connect=3.0)
         self.headers = {
             "Accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 (MonitorLegislativo/1.0)",
+            "User-Agent": "MonitorLegislativo/1.0",
         }
 
     async def _get_with_retry(
         self, client: httpx.AsyncClient, url: str, params: dict | None = None
     ) -> httpx.Response:
-        """Helper para realizar GET com retry básico em caso de erros temporários."""
+        """Helper para realizar GET com retry otimizado."""
         max_retries = 3
+
         for attempt in range(max_retries):
             try:
                 resp = await client.get(
-                    url, params=params, headers=self.headers, timeout=self.timeout
+                    url,
+                    params=params,
+                    headers=self.headers,
+                    timeout=self.default_timeout,
                 )
-                # Erros 5xx ou 429 (Rate Limit) configuram instabilidade/limitação para retry
-                if (
-                    resp.status_code >= 500 or resp.status_code == 429
-                ) and attempt < max_retries - 1:
-                    wait_time = 2**attempt  # Backoff exponencial: 1s, 2s, 4s
+                if resp.status_code == 429:
+                    wait_time = 2 * (attempt + 1)
                     logger.warning(
-                        f"⚠️ Erro {resp.status_code} na Câmara. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
+                        f"⏳ Câmara aplicando Rate Limit. Aguardando {wait_time}s..."
                     )
                     await asyncio.sleep(wait_time)
                     continue
+
+                if resp.status_code >= 500 and attempt < max_retries - 1:
+                    logger.warning(
+                        f"🔄 Câmara instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
+                    )
+                    await asyncio.sleep(1)
+                    continue
+
                 resp.raise_for_status()
                 return resp
-            except (httpx.RequestError, httpx.HTTPStatusError) as e:
-                # Se for erro de status 4xx (exceto 429 que já tratamos acima), não fazemos retry
-                if (
-                    isinstance(e, httpx.HTTPStatusError)
-                    and e.response.status_code < 500
-                    and e.response.status_code != 429
-                ):
-                    raise
-
+            except httpx.RequestError as e:
                 if attempt < max_retries - 1:
-                    wait_time = 2**attempt
-                    error_type = type(e).__name__
                     logger.warning(
-                        f"🔄 Falha [{error_type}] na Câmara: {e}. Tentativa {attempt + 1}/{max_retries}. Aguardando {wait_time}s..."
+                        f"🔌 Falha de rede na Câmara ({type(e).__name__}). Retentando..."
                     )
-                    await asyncio.sleep(wait_time)
+                    await asyncio.sleep(1)
                 else:
                     raise
-        raise httpx.RequestError("Máximo de tentativas excedido na Câmara")
+        raise httpx.RequestError("Câmara indisponível")
 
     async def buscar_por_id(
         self, id_proposicao: int, client: httpx.AsyncClient | None = None
@@ -99,6 +103,37 @@ class CamaraAdapter:
                 regime_raw = (dados.get("regime") or "").upper()
                 regime_tramitacao = "URGENCIA" if "URG" in regime_raw else "ORDINARIO"
 
+                # Fetch amendments gracefully via related propositions
+                numero_emendas = None
+                try:
+                    # Issue 253: /emendas returned 405, migrating to /relacionadas
+                    resp_relacionadas = await self._get_with_retry(
+                        _client, f"{url_proposicao}/relacionadas"
+                    )
+                    relacionadas_dados = resp_relacionadas.json().get("dados", [])
+                    if isinstance(relacionadas_dados, list):
+                        # Filter for amendments: siglas starting with EM (EMP, EMC, EMR, etc) or SBT (Substitutivos)
+                        emendas = [
+                            r
+                            for r in relacionadas_dados
+                            if (r.get("siglaTipo") or "").startswith("EM")
+                            or (r.get("siglaTipo") or "") == "SBT"
+                        ]
+                        numero_emendas = len(emendas)
+                        logger.info(
+                            f"✅ API Câmara: {numero_emendas} emendas encontradas via /relacionadas para {id_proposicao}"
+                        )
+                except Exception as e:
+                    # Set to None to indicate missing data/failure
+                    logger.warning(
+                        f"⚠️ Não foi possível buscar emendas para {id_proposicao} na Câmara via /relacionadas: {e}"
+                    )
+
+                # Classify power exec and theme via Domain functions
+                autor_e_poder_executivo = identificar_autor_executivo(autor_principal)
+                ementa_texto = dados.get("ementa", "") or ""
+                tema_economico = classificar_tema_economico(ementa_texto)
+
                 return Proposicao(
                     id=str(id_proposicao),
                     tipo=dados.get("siglaTipo", ""),
@@ -110,13 +145,17 @@ class CamaraAdapter:
                     status=status_info.get("despacho")
                     or status_info.get("descricaoSituacao")
                     or "Sem status",
-                    ementa=dados.get("ementa", "") or "Sem ementa",
+                    ementa=ementa_texto or "Sem ementa",
                     data_apresentacao=dados.get("dataApresentacao", ""),
                     data_ultima_movimentacao=data_ultima_movimentacao,
                     orgao_atual=orgao_atual,
                     link_oficial=f"https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao={id_proposicao}",
                     regime_tramitacao=regime_tramitacao,
                     tags=[],
+                    numero_assinaturas=len(autores_dados),
+                    numero_emendas=numero_emendas,
+                    autor_e_poder_executivo=autor_e_poder_executivo,
+                    tema_economico=tema_economico,
                 )
 
             except httpx.ConnectError:
@@ -126,7 +165,7 @@ class CamaraAdapter:
                 return None
             except httpx.TimeoutException:
                 logger.error(
-                    f"⏳ TIMEOUT ao acessar Câmara para ID {id_proposicao} após {self.timeout}s."
+                    f"⏳ TIMEOUT ao acessar Câmara para ID {id_proposicao} após {self.default_timeout}s."
                 )
                 return None
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
@@ -143,6 +182,43 @@ class CamaraAdapter:
             if client is None:
                 await _client.aclose()
 
+    async def obter_total(
+        self, tipo: str, ano: int, client: httpx.AsyncClient | None = None
+    ) -> int:
+        """Obtém o total de proposições para um tipo e ano na API da Câmara."""
+        url = f"{self.base_url}/proposicoes"
+        params = {
+            "siglaTipo": tipo,
+            "ano": ano,
+            "itens": 1,  # Só precisamos dos metadados de paginação
+        }
+        _client = client or httpx.AsyncClient(follow_redirects=True)
+        try:
+            resp = await self._get_with_retry(_client, url, params=params)
+            # A API da Câmara não retorna o total absoluto de forma direta no 'dados',
+            # mas podemos inferir pelo link 'last' se existir, ou apenas listar todos.
+            # No entanto, a forma mais segura de obter o total para análise de gaps é
+            # olhar os links da resposta.
+            # Atualização: A API v2 retorna o total nos metadados de links ou podemos fazer uma busca sem limite de itens.
+            # Para simplificar e ser rápido, vamos usar o fato de que se pedirmos 1 item,
+            # os links 'last' terão o parâmetro 'pagina' que indica o total de itens (já que itens=1).
+            links = resp.json().get("links", [])
+            for link in links:
+                if link["rel"] == "last":
+                    from urllib.parse import parse_qs, urlparse
+
+                    parsed = urlparse(link["href"])
+                    qs = parse_qs(parsed.query)
+                    return int(qs.get("pagina", [0])[0])
+            # Se não tiver 'last', e tiver dados, o total é o tamanho de dados da página 1
+            return len(resp.json().get("dados", []))
+        except Exception as e:
+            logger.error(f"Erro ao obter total da Câmara ({tipo}, {ano}): {e}")
+            return 0
+        finally:
+            if client is None:
+                await _client.aclose()
+
     async def listar_recentes(
         self,
         tipo: str,
@@ -150,14 +226,16 @@ class CamaraAdapter:
         ano: int | None = None,
         client: httpx.AsyncClient | None = None,
         numero: str | None = None,
+        pagina: int = 1,
     ) -> list[int]:
-        """Busca uma lista de IDs das proposições filtrando por tipo, ano e opcionalmente número."""
+        """Busca uma lista de IDs das proposições filtrando por tipo, ano e opcionalmente número/página."""
         url = f"{self.base_url}/proposicoes"
         params = {
             "siglaTipo": tipo,
             "ordem": "DESC",
-            "ordenarPor": "ano",
+            "ordenarPor": "id",
             "itens": quantidade,
+            "pagina": pagina,
         }
         if ano:
             params["ano"] = ano

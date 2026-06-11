@@ -42,6 +42,10 @@ class Proposicao(SQLModel):
     data_calculo_metricas: datetime | None = None
     regime_tramitacao: str | None = None
     tags: list[str] = []
+    numero_assinaturas: int | None = 0
+    numero_emendas: int | None = 0
+    autor_e_poder_executivo: bool | None = False
+    tema_economico: bool | None = False
 
     def normalizar_campo_status(self):
         """Normaliza o campo status para um dos 6 valores canônicos do domínio."""
@@ -145,6 +149,7 @@ class Proposicao(SQLModel):
             self.data_ultima_movimentacao,
             self.link_oficial,
             self.regime_tramitacao,
+            self.numero_emendas,
         ]
         preenchidos = sum(
             1 for c in campos_validar if c is not None and str(c).strip() != ""

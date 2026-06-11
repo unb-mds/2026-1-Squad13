@@ -59,68 +59,40 @@ FRONTEND_VITEST="SKIPPED"
 FRONTEND_BUILD="SKIPPED"
 
 if [ "$RUN_BACKEND" = true ]; then
-  echo "🧪 Executando validações de BACKEND..."
+  echo "🧪 Executando validações de BACKEND via scripts/ci/backend.sh..."
   BACKEND_RUN="true"
   
-  # 1. Linter
-  echo "--- BACKEND RUFF CHECK ---" >> "$LOG_FILE"
-  if (cd "$REPO_ROOT/backend" && export PYTHONPATH=src && uv run ruff check .) >> "$LOG_FILE" 2>&1; then
+  # Executa o script oficial de CI do backend
+  # Redirecionamos a saída para o log, mas capturamos o exit code
+  if "$REPO_ROOT/scripts/ci/backend.sh" >> "$LOG_FILE" 2>&1; then
     BACKEND_LINT="PASS"
-  else
-    BACKEND_LINT="FAIL"
-  fi
-  
-  # 2. Formatação
-  echo "--- BACKEND RUFF FORMAT ---" >> "$LOG_FILE"
-  if (cd "$REPO_ROOT/backend" && export PYTHONPATH=src && uv run ruff format --check .) >> "$LOG_FILE" 2>&1; then
     BACKEND_FORMAT="PASS"
-  else
-    BACKEND_FORMAT="FAIL"
-  fi
-  
-  # 3. Testes
-  echo "--- BACKEND PYTEST ---" >> "$LOG_FILE"
-  if (cd "$REPO_ROOT/backend" && export PYTHONPATH=src && uv run pytest) >> "$LOG_FILE" 2>&1; then
     BACKEND_PYTEST="PASS"
   else
+    # Se falhou, tentamos identificar onde para o JSON (opcionalmente)
+    # Por simplicidade, marcamos como FAIL se o script unificado falhar
+    BACKEND_LINT="FAIL"
+    BACKEND_FORMAT="FAIL"
     BACKEND_PYTEST="FAIL"
+    echo "❌ Falha na validação do Backend. Veja .gemini/pr-validation.log"
   fi
 fi
 
 if [ "$RUN_FRONTEND" = true ]; then
-  echo "🧪 Executando validações de FRONTEND..."
+  echo "🧪 Executando validações de FRONTEND via scripts/ci/frontend.sh..."
   FRONTEND_RUN="true"
   
-  # 1. TSC (Tipagem)
-  echo "--- FRONTEND TSC CHECK ---" >> "$LOG_FILE"
-  if (cd "$REPO_ROOT/frontend" && npx tsc --noEmit) >> "$LOG_FILE" 2>&1; then
+  if "$REPO_ROOT/scripts/ci/frontend.sh" >> "$LOG_FILE" 2>&1; then
     FRONTEND_TSC="PASS"
-  else
-    FRONTEND_TSC="FAIL"
-  fi
-  
-  # 2. ESLint
-  echo "--- FRONTEND ESLINT ---" >> "$LOG_FILE"
-  if (cd "$REPO_ROOT/frontend" && npm run lint) >> "$LOG_FILE" 2>&1; then
     FRONTEND_LINT="PASS"
-  else
-    FRONTEND_LINT="FAIL"
-  fi
-  
-  # 3. Vitest
-  echo "--- FRONTEND VITEST ---" >> "$LOG_FILE"
-  if (cd "$REPO_ROOT/frontend" && npm run test -- --run) >> "$LOG_FILE" 2>&1; then
     FRONTEND_VITEST="PASS"
-  else
-    FRONTEND_VITEST="FAIL"
-  fi
-  
-  # 4. Build check
-  echo "--- FRONTEND BUILD CHECK ---" >> "$LOG_FILE"
-  if (cd "$REPO_ROOT/frontend" && npm run build) >> "$LOG_FILE" 2>&1; then
     FRONTEND_BUILD="PASS"
   else
+    FRONTEND_TSC="FAIL"
+    FRONTEND_LINT="FAIL"
+    FRONTEND_VITEST="FAIL"
     FRONTEND_BUILD="FAIL"
+    echo "❌ Falha na validação do Frontend. Veja .gemini/pr-validation.log"
   fi
 fi
 

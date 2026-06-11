@@ -1,5 +1,6 @@
 import hashlib
 import json
+import statistics
 from datetime import date, datetime
 from typing import Any
 
@@ -290,14 +291,17 @@ class DashboardService:
     def obter_tempo_por_fase(self, filtros: dict | None = None) -> list[dict]:
         """
         Calcula o tempo médio que proposições passam em cada fase analítica.
-
-        Retorna apenas fases com ao menos uma proposição registrada,
-        ordenadas por ordem_logica. Eventos sem fase_analitica_id são ignorados.
+        Usa o repositório SQL otimizado se disponível.
         """
         cache_key = self._gerar_cache_key("dashboard:tempo_por_fase", filtros)
         cached = self._get_cached(cache_key)
         if cached is not None:
             return cached
+
+        if self.dashboard_repo:
+            resultado = self.dashboard_repo.obter_tempo_por_fase(filtros)
+            self._set_cache(cache_key, resultado)
+            return resultado
 
         if self.fase_repo is None:
             return []
@@ -313,10 +317,22 @@ class DashboardService:
 
         # Filtrar apenas chaves aceitas na assinatura de filtrar() do repositório
         chaves_aceitas = {
-            "tipo", "numero", "ano", "autor", "uf_autor", "status",
-            "busca", "orgao_origem", "data_inicio", "data_fim", "limit", "offset"
+            "tipo",
+            "numero",
+            "ano",
+            "autor",
+            "uf_autor",
+            "status",
+            "busca",
+            "orgao_origem",
+            "data_inicio",
+            "data_fim",
+            "limit",
+            "offset",
         }
-        filtros_seguros = {k: v for k, v in (filtros or {}).items() if k in chaves_aceitas}
+        filtros_seguros = {
+            k: v for k, v in (filtros or {}).items() if k in chaves_aceitas
+        }
 
         todas = self.repository.filtrar(**filtros_seguros)
         if not todas:
@@ -330,10 +346,14 @@ class DashboardService:
         # {fase_id: {"dias": [...], "proposicoes": set()}}
         acumulador: dict[int, dict] = {}
 
+        # Inicializa acumulador para garantir que todas as fases apareçam
+        for f_id in mapa_fases.keys():
+            acumulador[f_id] = {"dias": [], "proposicoes": set()}
+
         for prop in todas:
             eventos = mapa_eventos.get(str(prop.id), [])
-            # filtra eventos sem fase definida
             eventos_com_fase = [e for e in eventos if e.fase_analitica_id is not None]
+
             if not eventos_com_fase:
                 continue
 
@@ -341,8 +361,9 @@ class DashboardService:
             data_entrada: str | None = None
 
             for evento in eventos_com_fase:
-                if evento.fase_analitica_id != fase_atual:
-                    # registra tempo na fase anterior
+                f_id = evento.fase_analitica_id
+
+                if f_id != fase_atual:
                     if fase_atual is not None and data_entrada is not None:
                         try:
                             entrada = datetime.fromisoformat(data_entrada[:10]).date()
@@ -351,48 +372,59 @@ class DashboardService:
                             ).date()
                             dias = (saida - entrada).days
                             if dias >= 0:
-                                if fase_atual not in acumulador:
-                                    acumulador[fase_atual] = {
-                                        "dias": [],
-                                        "proposicoes": set(),
-                                    }
                                 acumulador[fase_atual]["dias"].append(dias)
                                 acumulador[fase_atual]["proposicoes"].add(str(prop.id))
                         except (ValueError, AttributeError):
                             pass
 
-                    fase_atual = evento.fase_analitica_id
+                    fase_atual = f_id
                     data_entrada = evento.data_evento
+                    acumulador[f_id]["proposicoes"].add(str(prop.id))
 
-            # registra tempo da última fase (ainda em tramitação ou encerrada)
+            # Tempo da última fase atingida
             if fase_atual is not None and data_entrada is not None:
                 try:
+                    info_fase = mapa_fases.get(fase_atual)
                     entrada = datetime.fromisoformat(data_entrada[:10]).date()
-                    saida = date.today()
+                    if (
+                        info_fase and info_fase["ordem"] >= 8
+                    ) or prop.data_encerramento:
+                        saida = (
+                            datetime.fromisoformat(prop.data_encerramento[:10]).date()
+                            if prop.data_encerramento
+                            else entrada
+                        )
+                    else:
+                        saida = date.today()
                     dias = (saida - entrada).days
                     if dias >= 0:
-                        if fase_atual not in acumulador:
-                            acumulador[fase_atual] = {"dias": [], "proposicoes": set()}
                         acumulador[fase_atual]["dias"].append(dias)
                         acumulador[fase_atual]["proposicoes"].add(str(prop.id))
                 except (ValueError, AttributeError):
                     pass
 
         resultado = []
+        # Só retorna algo se houver pelo menos uma proposição contabilizada em alguma fase
+        if not any(len(d["proposicoes"]) > 0 for d in acumulador.values()):
+            self._set_cache(cache_key, [])
+            return []
+
         for fase_id, dados in acumulador.items():
             info = mapa_fases.get(fase_id)
             if info is None:
                 continue
-            tempo_medio = (
-                sum(dados["dias"]) / len(dados["dias"]) if dados["dias"] else 0
-            )
+
+            qtd = len(dados["proposicoes"])
+
+            tempo_estatistico = statistics.median(dados["dias"]) if dados["dias"] else 0
+
             resultado.append(
                 {
                     "fase": info["nome"],
                     "codigoFase": info["codigo"],
                     "ordemLogica": info["ordem"],
-                    "tempoMedioDias": int(tempo_medio),
-                    "quantidadeProposicoes": len(dados["proposicoes"]),
+                    "tempoMedioDias": int(tempo_estatistico),
+                    "quantidadeProposicoes": qtd,
                 }
             )
 
@@ -423,5 +455,44 @@ class DashboardService:
             raise ValueError("dashboard_repo é obrigatório")
 
         resultado = self.dashboard_repo.obter_transicoes_casas(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_estoque_fases(self, filtros: dict | None = None) -> list[dict]:
+        cache_key = self._gerar_cache_key("dashboard:estoque_fases", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_estoque_fases(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_mediana_handoff(self, filtros: dict | None = None) -> dict:
+        cache_key = self._gerar_cache_key("dashboard:mediana_handoff", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_mediana_handoff(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_qualidade_base(self, filtros: dict | None = None) -> dict:
+        cache_key = self._gerar_cache_key("dashboard:qualidade_base", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_qualidade_base(filtros)
         self._set_cache(cache_key, resultado)
         return resultado

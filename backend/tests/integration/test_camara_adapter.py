@@ -37,3 +37,20 @@ async def test_camara_adapter_buscar_por_id_invalido():
     proposicao = await adapter.buscar_por_id(id_invalido)
 
     assert proposicao is None
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_camara_adapter_emendas_pl2630_2020():
+    """Verifica se o CamaraAdapter consegue contabilizar emendas para o PL 2630/2020 via /relacionadas."""
+    adapter = CamaraAdapter()
+    id_pl_2630 = 2256735  # ID do PL 2630/2020
+
+    proposicao = await adapter.buscar_por_id(id_pl_2630)
+
+    assert proposicao is not None
+    assert proposicao.numero_emendas is not None
+    assert (
+        proposicao.numero_emendas > 0
+    ), f"Deveria ter emendas, mas retornou {proposicao.numero_emendas}."
+

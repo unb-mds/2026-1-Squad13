@@ -6,12 +6,15 @@ set -euo pipefail
 
 TITLE="${1:-}"
 TEMPLATE_OR_BODY="${2:-}"
-LABELS="${3:-}"
+# Coleta todas as labels dos argumentos restantes e as une com vírgula
+shift 2 || true
+IFS=,
+LABELS="${*:-}"
 
 if [ -z "$TITLE" ] || [ -z "$TEMPLATE_OR_BODY" ] || [ -z "$LABELS" ]; then
   echo "Erro: Parâmetros insuficientes."
-  echo "Uso: $0 \"<Título>\" \"<template_name ou body_file>\" \"<labels>\""
-  echo "Templates disponíveis: bug, feature, refactor, technical-debt, ou qualquer arquivo .md em templates/"
+  echo "Uso: $0 \"<Título>\" \"<template_name ou body_file>\" \"<label1>\" \"<label2>\" ..."
+  echo "Nota: As labels podem ser passadas individualmente ou como uma string separada por vírgulas."
   exit 1
 fi
 
