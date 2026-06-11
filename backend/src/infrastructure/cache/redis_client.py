@@ -45,12 +45,14 @@ class RedisClient(CacheProvider):
     def invalidate(self, prefix: str) -> None:
         """Invalida todas as chaves que começam com o prefixo fornecido usando SCAN."""
         try:
-            cursor = "0"
-            while cursor != 0:
+            cursor = 0
+            while True:
                 cursor, keys = self.client.scan(
                     cursor=cursor, match=f"{prefix}*", count=100
                 )
                 if keys:
                     self.client.delete(*keys)
+                if cursor == 0:
+                    break
         except redis.RedisError as e:
             logger.error(f"Erro ao acessar o Redis (INVALIDATE): {e}")

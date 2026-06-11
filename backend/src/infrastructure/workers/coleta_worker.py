@@ -5,6 +5,7 @@ from celery import shared_task
 from sqlmodel import Session
 
 from application.services.coletar_em_lote_service import ColetarEmLoteService
+from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.database import engine
@@ -22,6 +23,9 @@ from infrastructure.repositories.sql_log_coleta_repository import (
 )
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
+)
+from infrastructure.repositories.sql_periodo_fase_repository import (
+    SQLPeriodoFaseRepository,
 )
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
@@ -46,8 +50,16 @@ def task_coletar_proposicoes_diario():
             orgao_repo = SQLOrgaoLegislativoRepository(session)
             apensamento_repo = SQLApensamentoRepository(session)
             log_repo = SQLLogColetaRepository(session)
+            periodo_repo = SQLPeriodoFaseRepository(session)
             camara_adapter = CamaraAdapter()
             senado_adapter = SenadoAdapter()
+
+            reconstruir_service = ReconstruirPeriodosService(
+                periodo_repo=periodo_repo,
+                evento_repo=evento_repo,
+                fase_repo=fase_repo,
+                proposicao_repo=repository,
+            )
 
             service = ColetarEmLoteService(
                 repository=repository,
@@ -58,10 +70,32 @@ def task_coletar_proposicoes_diario():
                 log_repo=log_repo,
                 camara_adapter=camara_adapter,
                 senado_adapter=senado_adapter,
+                reconstruir_service=reconstruir_service,
             )
             return await service.executar_coleta_diaria()
 
     resumo = asyncio.run(_run())
 
+    logger.info(f"Worker finalizado. Resumo: {resumo}")
+    return resumo
+
+
+@shared_task(name="backfill_emendas_issue_253")
+def task_backfill_emendas():
+    """
+    Task do Celery para rodar o backfill de emendas em background.
+    Disparada após migrations ou via dashboard.
+    """
+    logger.info("Iniciando worker: task_backfill_emendas")
+    from application.services.backfill_emendas_service import BackfillEmendasService
+
+    async def _run():
+        with Session(engine) as session:
+            camara = CamaraAdapter()
+            senado = SenadoAdapter()
+            service = BackfillEmendasService(session, camara, senado)
+            return await service.executar()
+
+    resumo = asyncio.run(_run())
     logger.info(f"Worker finalizado. Resumo: {resumo}")
     return resumo

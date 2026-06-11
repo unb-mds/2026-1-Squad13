@@ -18,6 +18,7 @@ from application.ports.orgao_legislativo_repository import (
 from application.ports.proposicao_repository import ProposicaoRepositoryPort
 from application.ports.senado_adapter import SenadoAdapterPort
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from domain.entities.proposicao import Proposicao
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ class ColetarEmLoteService:
         log_repo: LogColetaRepositoryPort,
         camara_adapter: CamaraAdapterPort,
         senado_adapter: SenadoAdapterPort,
+        reconstruir_service: ReconstruirPeriodosService | None = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
@@ -48,6 +50,7 @@ class ColetarEmLoteService:
         self.log_repo = log_repo
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
+        self.reconstruir_service = reconstruir_service
 
         self.listar_movimentacoes_service = ListarMovimentacoesService(
             evento_repo=self.evento_repo,
@@ -57,6 +60,7 @@ class ColetarEmLoteService:
             camara_adapter=self.camara_adapter,
             senado_adapter=self.senado_adapter,
             apensamento_repo=self.apensamento_repo,
+            reconstruir_service=self.reconstruir_service,
         )
 
     async def executar_coleta_diaria(self) -> dict:

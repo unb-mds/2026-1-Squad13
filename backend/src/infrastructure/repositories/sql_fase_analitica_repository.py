@@ -44,8 +44,15 @@ class SQLFaseAnaliticaRepository:
         Upsert idempotente das 8 fases a partir de FASES_SEED.
         """
         for fase_data in FASES_SEED:
-            existente = self.buscar_por_codigo(fase_data["codigo"])
-            if existente is None:
+            statement = select(FaseAnaliticaModel).where(
+                FaseAnaliticaModel.codigo == fase_data["codigo"]
+            )
+            model = self.session.exec(statement).first()
+            if model is None:
                 model = FaseAnaliticaModel(**fase_data)
+                self.session.add(model)
+            else:
+                for key, val in fase_data.items():
+                    setattr(model, key, val)
                 self.session.add(model)
         self.session.commit()

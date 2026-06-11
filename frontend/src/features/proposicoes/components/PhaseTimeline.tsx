@@ -11,6 +11,9 @@ export interface PhaseEntry {
   atrasoDias?: number;
   isRecorrente: boolean;
   isCurrent: boolean;
+  motivoTravamento?: string;
+  numeroTurno?: number;
+  subtipoFase?: string;
 }
 
 interface PhaseTimelineProps {
@@ -177,11 +180,21 @@ export function PhaseTimeline({ phases, onPhaseClick }: PhaseTimelineProps) {
                   </div>
 
                   {/* Metrics */}
-                  <div className="flex items-center gap-4 text-sm">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                     <div className="flex items-center gap-1.5">
                       <span className="text-muted-foreground">Duração:</span>
                       <span className="font-medium text-foreground">{phase.duracaoDias} dias</span>
                     </div>
+                    {phase.numeroTurno !== undefined && phase.numeroTurno !== null && (
+                      <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-semibold">
+                        <span>{phase.numeroTurno}º Turno</span>
+                      </div>
+                    )}
+                    {phase.subtipoFase && (
+                      <div className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-2 py-0.5 rounded text-xs font-semibold uppercase">
+                        <span>{phase.subtipoFase}</span>
+                      </div>
+                    )}
                     {phase.atrasoDias !== undefined && (
                       <div className="flex items-center gap-1.5">
                         <span className="text-muted-foreground">Atraso:</span>
@@ -207,6 +220,16 @@ export function PhaseTimeline({ phases, onPhaseClick }: PhaseTimelineProps) {
                       </div>
                     )}
                   </div>
+
+                  {/* Travamento Alert */}
+                  {phase.motivoTravamento && (
+                    <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-800">
+                        <strong>Motivo de Travamento:</strong> {phase.motivoTravamento}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Atraso Alert */}
                   {phase.atrasoDias !== undefined && phase.atrasoDias > 15 && (

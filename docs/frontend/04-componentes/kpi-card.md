@@ -51,16 +51,16 @@ interface KPICardProps {
 
 ---
 
-54: ## 5. Resolução da Duplicação de Componentes (Issue #235)
-55: Durante a auditoria técnica, a duplicidade foi resolvida removendo o componente redundante `KpiCard` (camelCase) do arquivo [index.tsx](../../../frontend/src/shared/ui/index.tsx). Agora, o componente oficial e único do projeto é o `<KPICard />` (PascalCase), localizado em `shared/components/KPICard.tsx`.
-56: 
-57: ---
-58: 
-59: ## 6. Oportunidades de Padronização Visando Temas (Dark Mode)
-60: * **Estilização Semântica:** Substituir as classes de estilização de cor fixa (ex: `bg-red-100` e `text-red-600`) por variáveis do tema Tailwind (ex: `bg-destructive/10 text-destructive`) para garantir suporte nativo e consistente ao tema escuro global.
-61: 
-62: ---
-63: 
-64: ## 7. Arquivos Relacionados
-65: * **Implementação Oficial:** [KPICard.tsx](../../../frontend/src/shared/components/KPICard.tsx)
-66: * **Consumo do Componente:** [dashboard-page.tsx](../../../frontend/src/pages/dashboard-page.tsx#L353-L383)
+## 5. Resolução da Duplicação de Componentes (Issue #235)
+Durante a auditoria técnica, a duplicidade foi resolvida removendo o componente redundante `KpiCard` (camelCase) do arquivo [index.tsx](../../../frontend/src/shared/ui/index.tsx). Agora, o componente oficial e único do projeto é o `<KPICard />` (PascalCase), localizado em `shared/components/KPICard.tsx`.
+
+---
+
+## 6. Oportunidades de Padronização Visando Temas (Dark Mode)
+* **Estilização Semântica:** Substituir as classes de estilização de cor fixa (ex: `bg-red-100` e `text-red-600`) por variáveis do tema Tailwind (ex: `bg-destructive/10 text-destructive`) para garantir suporte nativo e consistente ao tema escuro global.
+
+---
+
+## 7. Arquivos Relacionados
+* **Implementação Oficial:** [KPICard.tsx](../../../frontend/src/shared/components/KPICard.tsx)
+* **Consumo do Componente:** [dashboard-page.tsx](../../../frontend/src/pages/dashboard-page.tsx#L353-L383)

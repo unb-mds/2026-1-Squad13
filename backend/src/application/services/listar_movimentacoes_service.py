@@ -27,6 +27,7 @@ from application.services.agregar_por_fase_service import AgregarPorFaseService
 from application.services.normalizar_tramitacao_service import (
     NormalizarTramitacaoService,
 )
+from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
@@ -47,6 +48,7 @@ class ListarMovimentacoesService:
         camara_adapter: CamaraAdapterPort,
         senado_adapter: SenadoAdapterPort,
         apensamento_repo: ApensamentoRepositoryPort | None = None,
+        reconstruir_service: ReconstruirPeriodosService | None = None,
     ):
         self.evento_repo = evento_repo
         self.proposicao_repo = proposicao_repo
@@ -55,6 +57,7 @@ class ListarMovimentacoesService:
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
         self.apensamento_repo = apensamento_repo
+        self.reconstruir_service = reconstruir_service
         self._agregar_service = AgregarPorFaseService(fase_repo)
 
     async def executar(
@@ -256,6 +259,10 @@ class ListarMovimentacoesService:
                     self.evento_repo.salvar_lote(eventos)
                     self._sincronizar_proposicao(proposicao, eventos)
                     self.proposicao_repo.salvar(proposicao)
+
+                    # Reconstrói os períodos para persistência e uso no dashboard (estoque)
+                    if self.reconstruir_service:
+                        self.reconstruir_service.reconstruir_para_proposicao(real_id)
             else:
                 # Fallback para tipos não unificáveis (ou sem proposição)
                 if proposicao and "Câmara" in (proposicao.orgao_origem or ""):
