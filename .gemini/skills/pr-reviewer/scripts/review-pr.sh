@@ -26,6 +26,16 @@ gh pr view "$PR_NUMBER" \
 echo "📄 Listando arquivos alterados..."
 gh pr diff "$PR_NUMBER" --name-only > "$GEMINI_DIR/changed-files.txt"
 
+FILES_CHANGED=$(wc -l < "$GEMINI_DIR/changed-files.txt")
+echo "📊 Volume de arquivos: $FILES_CHANGED"
+
+if [ "$FILES_CHANGED" -gt 10 ]; then
+  echo "⚠️  Alto volume detectado. Gerando diff limpo (ignoring whitespace)..."
+  # Tenta identificar a base branch para o diff local
+  BASE_BRANCH=$(gh pr view "$PR_NUMBER" --json baseRefName --template '{{.baseRefName}}')
+  git diff -w "$BASE_BRANCH...HEAD" > "$GEMINI_DIR/pr-clean-diff.txt" || echo "Não foi possível gerar diff local" > "$GEMINI_DIR/pr-clean-diff.txt"
+fi
+
 echo "✅ Arquivos de contexto gerados."
 
 # Determina o escopo das alterações

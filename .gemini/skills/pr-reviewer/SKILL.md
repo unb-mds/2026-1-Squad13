@@ -109,7 +109,10 @@ approve / comment / request-changes
 ## Regras para o agente
 
 - Nunca assumir que o código está correto sem verificar o arquivo real; use o `gh` para coletar o status e o diff, e o repositório local para ler o código.  
-- Se houver ambiguidade sobre camada, responsabilidade ou decisão, **sempre referenciar explicitamente** o que `project-memory.md` já consolida (ex.: “a memória evolutiva já consolidou que controllers não devem processar regra de negócio”).  
+- **Desconfie de PRs massivas**: Se uma PR altera muitos arquivos sob a justificativa de "lint" ou "formatação", você deve auditar pelo menos 5 arquivos aleatórios usando `git diff -w` para garantir que não há regressão de lógica ou arquitetura escondida.
+- Se houver ambiguidade sobre camada, responsabilidade ou decisão, **sempre referenciar explicitamente** o que `project-memory.md` já consolida.
+- **Blindagem de Ports**: Se o projeto já consolidou o uso de Ports (Interfaces), qualquer retorno ao uso de classes concretas em camadas superiores deve ser reportado como falha bloqueante de arquitetura.
 - Evitar comentários de estilo triviais quando houver riscos arquiteturais ou de I/O mais relevantes.  
 - Se a PR mexe em `squad-dashboard` ou CI/CD, lembre que labels e workflows alimentam o Squad Dashboard; trate isso com prioridade.
 - Leia sempre os arquivos `.gemini/pr-validation.json` e `.gemini/pr-validation.log` se disponíveis, para enriquecer a seção de Validação Local no parecer.
+�ão de Validação Local no parecer.
