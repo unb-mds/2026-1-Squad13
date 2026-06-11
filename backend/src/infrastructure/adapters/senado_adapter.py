@@ -97,28 +97,60 @@ class SenadoAdapter:
         e depois o de processo se necessário.
         """
         url = f"{self.base_url}/materia/{id_materia}"
+        url_emendas = f"{self.base_url}/materia/emendas/{id_materia}"
         headers = {"Accept": "application/json"}
 
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
             try:
-                resp = await self._get_with_retry(_client, url, headers=headers)
-                if resp.status_code == 404:
-                    url = f"{self.base_url}/processo/{id_materia}?v=1"
-                    resp = await self._get_with_retry(_client, url, headers=headers)
+                # Dispara requisições da matéria principal e emendas em paralelo
+                task_materia = self._get_with_retry(_client, url, headers=headers)
+                task_emendas = self._get_with_retry(
+                    _client, url_emendas, headers=headers
+                )
+
+                res_materia, res_emendas = await asyncio.gather(
+                    task_materia, task_emendas, return_exceptions=True
+                )
+
+                # Processa a requisição principal da matéria com fallback para o endpoint de processo se der 404
+                if isinstance(res_materia, Exception):
+                    if (
+                        isinstance(res_materia, httpx.HTTPStatusError)
+                        and res_materia.response.status_code == 404
+                    ):
+                        url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
+                        resp = await self._get_with_retry(
+                            _client, url_proc, headers=headers
+                        )
+                    else:
+                        raise res_materia
+                else:
+                    resp = res_materia
+                    if resp.status_code == 404:
+                        url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
+                        resp = await self._get_with_retry(
+                            _client, url_proc, headers=headers
+                        )
 
                 resp.raise_for_status()
                 dados_brutos = resp.json()
 
-                # Fetch emendas asynchronously only if main request succeeded
+                # Processa a requisição de emendas de forma resiliente a falhas
                 numero_emendas = None
-                try:
-                    url_emendas = f"{self.base_url}/materia/emendas/{id_materia}"
-                    resp_emendas = await self._get_with_retry(
-                        _client, url_emendas, headers=headers
-                    )
-                    if resp_emendas.status_code == 200:
-                        data_emendas = resp_emendas.json()
+                if isinstance(res_emendas, Exception):
+                    if (
+                        isinstance(res_emendas, httpx.HTTPStatusError)
+                        and res_emendas.response.status_code == 404
+                    ):
+                        numero_emendas = 0
+                    else:
+                        logger.warning(
+                            f"Não foi possível buscar emendas para proposição {id_materia} no Senado: {res_emendas}"
+                        )
+                else:
+                    if res_emendas.status_code == 200:
+                        data_emendas = res_emendas.json()
                         emendas_obj = (
                             data_emendas.get("EmendaMateria", {})
                             .get("Materia", {})
@@ -131,14 +163,8 @@ class SenadoAdapter:
                             numero_emendas = 1
                         else:
                             numero_emendas = 0
-                    elif resp_emendas.status_code == 404:
-                        numero_emendas = (
-                            0  # Not found is actually 0 emendas in Senate API
-                        )
-                except Exception as e:
-                    logger.warning(
-                        f"Não foi possível buscar emendas para proposição {id_materia} no Senado: {e}"
-                    )
+                    elif res_emendas.status_code == 404:
+                        numero_emendas = 0
 
                 if (
                     "DetalheMateria" in dados_brutos
@@ -356,6 +382,7 @@ class SenadoAdapter:
         ano: int | None = None,
         client: httpx.AsyncClient | None = None,
         numero: str | None = None,
+        pagina: int = 1,
     ) -> list[int]:
         """Busca uma lista de IDs das matérias de um determinado tipo no Senado, opcionalmente por ano e número."""
         url = f"{self.base_url}/processo"
@@ -392,9 +419,10 @@ class SenadoAdapter:
                     elif "id" in m:
                         ids.append(int(m["id"]))
 
-                    if len(ids) >= quantidade:
-                        break
-                return ids
+                # Aplica paginação simulada na lista completa
+                start_offset = (pagina - 1) * quantidade
+                end_offset = start_offset + quantidade
+                return ids[start_offset:end_offset]
             except Exception as e:
                 logger.error(f"Erro ao listar recentes do Senado: {e}")
                 return []
