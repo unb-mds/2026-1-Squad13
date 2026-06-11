@@ -4,9 +4,13 @@ import time
 import httpx
 from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel, Field
-from sqlmodel import Session, text
+from sqlmodel import Session, select, text
 
 from infrastructure.database import get_redis_client, get_session
+from infrastructure.database.models.auditoria_coleta_model import AuditoriaColetaModel
+from infrastructure.repositories.sql_auditoria_coleta_repository import (
+    SQLAuditoriaColetaRepository,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Health"])
@@ -92,12 +96,55 @@ async def health(response: Response, session: Session = Depends(get_session)):
         details="Conectado" if senado_ok else "Falha de conectividade",
     )
 
+    # 4. Auditoria de Coleta Batch
+    try:
+        auditoria_repo = SQLAuditoriaColetaRepository(session)
+        ultima_exec = auditoria_repo.obter_ultima_execucao("coleta_diaria")
+
+        if ultima_exec:
+            # Busca as últimas 3 execuções para checar se houve falhas consecutivas
+            statement = (
+                select(AuditoriaColetaModel)
+                .where(AuditoriaColetaModel.nome_job == "coleta_diaria")
+                .order_by(AuditoriaColetaModel.data_inicio.desc())
+                .limit(3)
+            )
+            recentes = session.exec(statement).all()
+
+            falhas_consecutivas = len(recentes) > 0 and all(
+                r.status == "falha" for r in recentes
+            )
+
+            comp_status = "ok"
+            if falhas_consecutivas:
+                comp_status = "error"
+                details = f"Alerta: Coletas diárias falhando consecutivamente. Última: {ultima_exec.data_inicio.isoformat()} com status {ultima_exec.status}."
+            else:
+                details = f"Última execução em {ultima_exec.data_inicio.isoformat()} com status {ultima_exec.status}."
+                if ultima_exec.status == "falha":
+                    comp_status = "degraded"
+
+            components["coleta_batch"] = HealthComponentStatus(
+                status=comp_status, details=details
+            )
+        else:
+            components["coleta_batch"] = HealthComponentStatus(
+                status="ok",
+                details="Nenhuma execução de coleta registrada ainda.",
+            )
+    except Exception as e:
+        logger.error(f"Erro no Healthcheck (Auditoria Coleta): {e}")
+        components["coleta_batch"] = HealthComponentStatus(
+            status="error", details=str(e)
+        )
+
     # Determinação do status geral
     overall_status = "ok"
+    coleta_batch_status = components.get("coleta_batch", {}).status
     if is_critical_failure:
         overall_status = "error"
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    elif not camara_ok or not senado_ok:
+    elif not camara_ok or not senado_ok or coleta_batch_status in ["degraded", "error"]:
         overall_status = "degraded"
 
     return HealthResponse(

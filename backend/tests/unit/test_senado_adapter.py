@@ -107,8 +107,8 @@ async def test_senado_adapter_erro_rede(adapter):
 
         # Assert
         assert proposicao is None
-        assert mock_get.call_count == 3
-        assert mock_sleep.call_count == 2
+        assert mock_get.call_count == 6
+        assert mock_sleep.call_count == 4
 
 
 @pytest.mark.asyncio

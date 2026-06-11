@@ -28,11 +28,17 @@ RUN_BACKEND_INTEGRATION=false
 RUN_FRONTEND_RELATED=false
 RUN_ALL=false
 
-# Lista de arquivos para o Vitest
+# Listas de arquivos para validações incrementais
 FRONTEND_FILES=""
+BACKEND_FILES=""
 
 for file in $CHANGED_FILES; do
-  # Lógica Backend por Camadas (Segurança por vizinhança)
+  # Lógica Backend por Camadas e Linter (.py)
+  if [[ $file == backend/src/* ]] || [[ $file == backend/tests/* ]]; then
+    if [[ $file == *.py ]]; then
+      BACKEND_FILES="$BACKEND_FILES ${file#backend/}"
+    fi
+  fi
   if [[ $file == backend/src/domain/* ]] || [[ $file == backend/src/application/* ]]; then
     RUN_BACKEND_UNIT=true
   fi
@@ -40,7 +46,7 @@ for file in $CHANGED_FILES; do
     RUN_BACKEND_INTEGRATION=true
   fi
   
-  # Lógica Frontend Related (Segurança via Grafo de Dependências)
+  # Lógica Frontend Related (Segurança via Grafo de Dependências) e Linter
   if [[ $file == frontend/* ]]; then
     if [[ $file == *.ts ]] || [[ $file == *.tsx ]] || [[ $file == *.js ]]; then
       RUN_FRONTEND_RELATED=true
@@ -61,6 +67,45 @@ if [ "$RUN_ALL" = true ]; then
   ./scripts/ci/test.sh
   EXIT_CODE=$?
 else
+  # --- VALIDAÇÕES DE LINTER & ESTILO INCREMENTAIS ---
+  
+  # Linter Backend (Ruff)
+  if [ -n "$BACKEND_FILES" ]; then
+    echo -e "${BLUE}🐍 Verificando Linter e Formatação no Backend (Incremental)...${NC}"
+    cd backend
+    uv run ruff check $BACKEND_FILES
+    RUFF_CHECK_CODE=$?
+    uv run ruff format --check $BACKEND_FILES
+    RUFF_FORMAT_CODE=$?
+    cd ..
+    if [ $RUFF_CHECK_CODE -ne 0 ] || [ $RUFF_FORMAT_CODE -ne 0 ]; then
+      echo -e "${RED}❌ Falha de linter/formatação no Backend!${NC}"
+      echo -e "${RED}Execute 'uv run ruff check --fix .' e 'uv run ruff format .' na pasta backend/ para corrigir.${NC}"
+      EXIT_CODE=$((EXIT_CODE + 1))
+    fi
+  fi
+
+  # Linter Frontend (ESLint)
+  if [ -n "$FRONTEND_FILES" ]; then
+    echo -e "${BLUE}⚛️ Verificando Linter no Frontend (Incremental)...${NC}"
+    cd frontend
+    npx eslint $FRONTEND_FILES
+    ESLINT_CODE=$?
+    cd ..
+    if [ $ESLINT_CODE -ne 0 ]; then
+      echo -e "${RED}❌ Falha de linter no Frontend! Corrija os erros acima antes de dar push.${NC}"
+      EXIT_CODE=$((EXIT_CODE + 1))
+    fi
+  fi
+
+  # Se houver erros de linter, aborta imediatamente antes de rodar os testes
+  if [ $EXIT_CODE -ne 0 ]; then
+    echo -e "${RED}❌ Validação de linter falhou. Abortando execução dos testes.${NC}"
+    echo -e "${RED}❌ Falha na validação! O push foi bloqueado para sua segurança.${NC}"
+    exit 1
+  fi
+
+  # --- SUÍTES DE TESTE SELETIVAS ---
   if [ "$RUN_BACKEND_UNIT" = true ]; then
     echo -e "${BLUE}🐍 Mudanças em Domain/App. Rodando Testes Unitários...${NC}"
     cd backend && uv run pytest tests/unit && cd ..
