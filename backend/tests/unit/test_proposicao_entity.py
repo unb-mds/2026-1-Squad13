@@ -188,4 +188,3 @@ def test_cobertura_dados_inclui_emendas():
     cobertura_com_dado = p.cobertura_dados
 
     assert cobertura_com_dado > cobertura_sem_dado
-

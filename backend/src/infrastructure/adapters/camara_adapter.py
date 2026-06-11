@@ -77,13 +77,34 @@ class CamaraAdapter:
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
             try:
-                resp_prop = await self._get_with_retry(_client, url_proposicao)
-                dados = resp_prop.json()["dados"]
+                # Dispara as três requisições em paralelo
+                task_prop = self._get_with_retry(_client, url_proposicao)
+                task_autores = self._get_with_retry(_client, url_autores)
+                task_relacionadas = self._get_with_retry(
+                    _client, f"{url_proposicao}/relacionadas"
+                )
 
-                resp_autores = await self._get_with_retry(_client, url_autores)
-                autores_dados = resp_autores.json()["dados"]
+                res_prop, res_autores, res_relacionadas = await asyncio.gather(
+                    task_prop, task_autores, task_relacionadas, return_exceptions=True
+                )
 
-                # Processamento de autores
+                if isinstance(res_prop, Exception):
+                    logger.error(
+                        f"Erro ao obter dados básicos da Câmara para ID {id_proposicao}: {res_prop}"
+                    )
+                    raise res_prop
+
+                dados = res_prop.json()["dados"]
+
+                # Processamento de autores (resiliente a falhas)
+                if isinstance(res_autores, Exception):
+                    logger.warning(
+                        f"Erro ao obter autores da Câmara para ID {id_proposicao}: {res_autores}"
+                    )
+                    autores_dados = []
+                else:
+                    autores_dados = res_autores.json().get("dados", [])
+
                 nomes = [a["nome"] for a in autores_dados]
                 autor_principal = nomes[0] if nomes else "Não informado"
                 uf_autor = (
@@ -103,14 +124,14 @@ class CamaraAdapter:
                 regime_raw = (dados.get("regime") or "").upper()
                 regime_tramitacao = "URGENCIA" if "URG" in regime_raw else "ORDINARIO"
 
-                # Fetch amendments gracefully via related propositions
+                # Fetch emendas gracefully via related propositions
                 numero_emendas = None
-                try:
-                    # Issue 253: /emendas returned 405, migrating to /relacionadas
-                    resp_relacionadas = await self._get_with_retry(
-                        _client, f"{url_proposicao}/relacionadas"
+                if isinstance(res_relacionadas, Exception):
+                    logger.warning(
+                        f"⚠️ Não foi possível buscar emendas para {id_proposicao} na Câmara via /relacionadas: {res_relacionadas}"
                     )
-                    relacionadas_dados = resp_relacionadas.json().get("dados", [])
+                else:
+                    relacionadas_dados = res_relacionadas.json().get("dados", [])
                     if isinstance(relacionadas_dados, list):
                         # Filter for amendments: siglas starting with EM (EMP, EMC, EMR, etc) or SBT (Substitutivos)
                         emendas = [
@@ -123,11 +144,6 @@ class CamaraAdapter:
                         logger.info(
                             f"✅ API Câmara: {numero_emendas} emendas encontradas via /relacionadas para {id_proposicao}"
                         )
-                except Exception as e:
-                    # Set to None to indicate missing data/failure
-                    logger.warning(
-                        f"⚠️ Não foi possível buscar emendas para {id_proposicao} na Câmara via /relacionadas: {e}"
-                    )
 
                 # Classify power exec and theme via Domain functions
                 autor_e_poder_executivo = identificar_autor_executivo(autor_principal)
@@ -368,6 +384,9 @@ class CamaraAdapter:
                     )
                     break
 
+        # Deduplica os IDs coletados antes de buscar os detalhes externos
+        ids_unicos = list(dict.fromkeys(ids_coletados))
+
         # Busca os detalhes completos para montar as entidades Proposicao
         proposicoes_completas = []
         semaphore = asyncio.Semaphore(
@@ -378,7 +397,7 @@ class CamaraAdapter:
             async with semaphore:
                 return await self.buscar_por_id(id_prop)
 
-        tasks = [fetch_full(id_prop) for id_prop in ids_coletados]
+        tasks = [fetch_full(id_prop) for id_prop in ids_unicos]
         resultados = await asyncio.gather(*tasks, return_exceptions=True)
 
         for res in resultados:

@@ -4,6 +4,9 @@ from sqlmodel import Session, SQLModel, create_engine
 from infrastructure.database.models.apensamento_model import (
     ApensamentoModel,  # noqa: F401
 )
+from infrastructure.database.models.auditoria_coleta_model import (
+    AuditoriaColetaModel,  # noqa: F401
+)
 from infrastructure.database.models.baseline_tramitacao_model import (
     BaselineTramitacaoModel,  # noqa: F401
 )

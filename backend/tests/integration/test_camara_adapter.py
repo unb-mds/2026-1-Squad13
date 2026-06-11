@@ -50,7 +50,6 @@ async def test_camara_adapter_emendas_pl2630_2020():
 
     assert proposicao is not None
     assert proposicao.numero_emendas is not None
-    assert (
-        proposicao.numero_emendas > 0
-    ), f"Deveria ter emendas, mas retornou {proposicao.numero_emendas}."
-
+    assert proposicao.numero_emendas > 0, (
+        f"Deveria ter emendas, mas retornou {proposicao.numero_emendas}."
+    )

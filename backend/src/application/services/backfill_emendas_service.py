@@ -12,6 +12,7 @@ from infrastructure.repositories.sql_proposicao_repository import (
 
 logger = logging.getLogger(__name__)
 
+
 class BackfillEmendasService:
     """
     Serviço de aplicação para realizar o backfill do número de emendas.
@@ -21,7 +22,7 @@ class BackfillEmendasService:
         self,
         session: Session,
         camara_adapter: CamaraAdapter,
-        senado_adapter: SenadoAdapter
+        senado_adapter: SenadoAdapter,
     ):
         self.session = session
         self.repo = SQLProposicaoRepository(session)
@@ -48,7 +49,9 @@ class BackfillEmendasService:
             logger.info("✅ Nenhuma proposição precisando de backfill.")
             return {"atualizadas": 0, "falhas": 0}
 
-        logger.info(f"📦 Encontradas {len(proposicoes_model)} proposições para atualizar.")
+        logger.info(
+            f"📦 Encontradas {len(proposicoes_model)} proposições para atualizar."
+        )
 
         atualizadas = 0
         falhas = 0
@@ -80,5 +83,7 @@ class BackfillEmendasService:
 
             self.session.commit()
 
-        logger.info(f"✨ Backfill finalizado! Atualizadas: {atualizadas}, Falhas: {falhas}")
+        logger.info(
+            f"✨ Backfill finalizado! Atualizadas: {atualizadas}, Falhas: {falhas}"
+        )
         return {"atualizadas": atualizadas, "falhas": falhas}
