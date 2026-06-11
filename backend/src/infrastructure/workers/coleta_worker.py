@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from celery import shared_task
+from celery.exceptions import MaxRetriesExceededError, Retry
 from sqlmodel import Session
 
 from application.services.coletar_em_lote_service import ColetarEmLoteService
@@ -34,16 +35,25 @@ from infrastructure.repositories.sql_proposicao_repository import (
 logger = logging.getLogger(__name__)
 
 
-@shared_task(name="coletar_proposicoes_diario")
-def task_coletar_proposicoes_diario():
+@shared_task(bind=True, name="coletar_proposicoes_diario", max_retries=3)
+def task_coletar_proposicoes_diario(self):
     """
     Task diária do Celery para buscar proposições em lote (Câmara e Senado).
     Delega a orquestração para o Application Service.
     """
-    logger.info("Iniciando worker: task_coletar_proposicoes_diario")
+    job_id = self.request.id or "coleta-manual"
+    nome_job = "coleta_diaria"
+    logger.info(f"Iniciando worker: task_coletar_proposicoes_diario (job_id: {job_id})")
+
+    from infrastructure.repositories.sql_auditoria_coleta_repository import (
+        SQLAuditoriaColetaRepository,
+    )
 
     async def _run():
         with Session(engine) as session:
+            auditoria_repo = SQLAuditoriaColetaRepository(session)
+            auditoria_repo.registrar_inicio(job_id, nome_job)
+
             repository = SQLProposicaoRepository(session)
             evento_repo = SQLEventoTramitacaoRepository(session)
             fase_repo = SQLFaseAnaliticaRepository(session)
@@ -72,12 +82,59 @@ def task_coletar_proposicoes_diario():
                 senado_adapter=senado_adapter,
                 reconstruir_service=reconstruir_service,
             )
-            return await service.executar_coleta_diaria()
 
-    resumo = asyncio.run(_run())
+            try:
+                resumo = await service.executar_coleta_diaria()
 
-    logger.info(f"Worker finalizado. Resumo: {resumo}")
-    return resumo
+                itens_processados = resumo.get("camara", {}).get(
+                    "itens_coletados", 0
+                ) + resumo.get("senado", {}).get("itens_coletados", 0)
+
+                camara_status = resumo.get("camara", {}).get("status")
+                senado_status = resumo.get("senado", {}).get("status")
+
+                if camara_status == "sucesso" and senado_status == "sucesso":
+                    status_geral = "sucesso"
+                    erro_msg = None
+                elif camara_status == "falha" and senado_status == "falha":
+                    status_geral = "falha"
+                    erro_msg = f"Falha na Camara ({resumo['camara']['erro']}) e Senado ({resumo['senado']['erro']})"
+                else:
+                    status_geral = "parcial"
+                    erro_msg = f"Camara: {camara_status}. Senado: {senado_status}."
+
+                auditoria_repo.registrar_fim(
+                    job_id, status_geral, itens_processados, erro_msg
+                )
+                return resumo
+            except Exception as e:
+                auditoria_repo.registrar_fim(job_id, "falha", 0, str(e))
+                raise
+
+    try:
+        resumo = asyncio.run(_run())
+
+        camara_status = resumo.get("camara", {}).get("status")
+        senado_status = resumo.get("senado", {}).get("status")
+        if camara_status == "falha" and senado_status == "falha":
+            delay = 60 * (2**self.request.retries)
+            logger.warning(
+                f"Coleta falhou totalmente nas duas fontes. Agendando retry em {delay}s..."
+            )
+            raise self.retry(exc=Exception("Coleta falhou totalmente"), countdown=delay)
+
+        logger.info(f"Worker finalizado. Resumo: {resumo}")
+        return resumo
+    except Exception as exc:
+        if isinstance(exc, (Retry, MaxRetriesExceededError)):
+            raise exc
+
+        delay = 60 * (2**self.request.retries)
+        try:
+            raise self.retry(exc=exc, countdown=delay)
+        except MaxRetriesExceededError:
+            logger.exception("Limite máximo de retries excedido para a coleta diária.")
+            raise exc from None
 
 
 @shared_task(name="backfill_emendas_issue_253")
