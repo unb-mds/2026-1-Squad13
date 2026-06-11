@@ -1,7 +1,8 @@
 import re
 from typing import Optional
-from sqlmodel import SQLModel
+
 from pydantic import field_validator
+from sqlmodel import SQLModel
 
 # Regex para validar formato ISO: YYYY-MM-DD com hora opcional
 _ISO_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?$"

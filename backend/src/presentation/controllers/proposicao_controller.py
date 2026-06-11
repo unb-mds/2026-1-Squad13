@@ -1,30 +1,32 @@
-from typing import Optional, List
 from enum import Enum
-from fastapi import APIRouter, HTTPException, Query, Depends
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+from sqlmodel import Session
+
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
-from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.gerar_estimativa_service import GerarEstimativaUseCase
+from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+from infrastructure.adapters.camara_adapter import CamaraAdapter
+from infrastructure.adapters.senado_adapter import SenadoAdapter
+from infrastructure.database import get_session
 from infrastructure.repositories.sql_apensamento_repository import (
     SQLApensamentoRepository,
-)
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
 )
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
-from infrastructure.adapters.camara_adapter import CamaraAdapter
-from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
 )
-from infrastructure.database import get_session
-from sqlmodel import Session
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 router = APIRouter()
 

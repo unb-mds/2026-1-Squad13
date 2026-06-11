@@ -1,5 +1,7 @@
 from typing import Optional
+
 from sqlmodel import Session, select
+
 from domain.entities.user import User
 from infrastructure.database.models.user_model import UserModel
 

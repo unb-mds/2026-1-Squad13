@@ -1,6 +1,8 @@
-import pytest
 from datetime import date
 from unittest.mock import Mock
+
+import pytest
+
 from application.services.dashboard_service import DashboardService
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento

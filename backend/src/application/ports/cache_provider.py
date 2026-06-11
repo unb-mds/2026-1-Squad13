@@ -1,4 +1,4 @@
-from typing import Protocol, Any, Optional
+from typing import Any, Optional, Protocol
 
 
 class CacheProvider(Protocol):

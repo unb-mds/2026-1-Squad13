@@ -1,5 +1,7 @@
-import redis
 import logging
+
+import redis
+
 from application.ports.token_blacklist_provider import TokenBlacklistProvider
 
 logger = logging.getLogger(__name__)

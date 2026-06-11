@@ -1,15 +1,28 @@
-import redis
 from typing import Optional
-from sqlmodel import SQLModel, create_engine, Session
-from ..config import settings
+
+import redis
+from sqlmodel import Session, SQLModel, create_engine
+
+from infrastructure.database.models.apensamento_model import (
+    ApensamentoModel,  # noqa: F401
+)
+from infrastructure.database.models.evento_tramitacao_model import (
+    EventoTramitacaoModel,  # noqa: F401
+)
+from infrastructure.database.models.fase_analitica_model import (
+    FaseAnaliticaModel,  # noqa: F401
+)
+from infrastructure.database.models.orgao_legislativo_model import (
+    OrgaoLegislativoModel,  # noqa: F401
+)
 
 # Importando modelos para garantir que sejam registrados antes de init_db
-from infrastructure.database.models.proposicao_model import ProposicaoModel  # noqa: F401
+from infrastructure.database.models.proposicao_model import (
+    ProposicaoModel,  # noqa: F401
+)
 from infrastructure.database.models.user_model import UserModel  # noqa: F401
-from infrastructure.database.models.fase_analitica_model import FaseAnaliticaModel  # noqa: F401
-from infrastructure.database.models.orgao_legislativo_model import OrgaoLegislativoModel  # noqa: F401
-from infrastructure.database.models.evento_tramitacao_model import EventoTramitacaoModel  # noqa: F401
-from infrastructure.database.models.apensamento_model import ApensamentoModel  # noqa: F401
+
+from ..config import settings
 
 # O motor de conexão (Engine)
 # echo=True faz com que o SQLModel imprima os comandos SQL no console (útil para aprender)

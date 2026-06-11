@@ -1,7 +1,9 @@
-import redis
-import uuid
 import logging
+import uuid
 from typing import Optional
+
+import redis
+
 from application.ports.password_reset_token_provider import PasswordResetTokenProvider
 
 logger = logging.getLogger(__name__)

@@ -7,17 +7,17 @@ deleção seletiva, contagem por tipo e persistência de campos JSON/bool.
 """
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.proposicao import Proposicao
 from domain.entities.tipo_evento import TipoEvento
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
+)
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
 )
 
 

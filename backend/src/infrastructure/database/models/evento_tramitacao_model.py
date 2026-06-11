@@ -1,5 +1,6 @@
 from typing import Optional
-from sqlalchemy import Column, JSON, Index
+
+from sqlalchemy import JSON, Column, Index
 from sqlmodel import Field, SQLModel
 
 

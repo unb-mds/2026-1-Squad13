@@ -1,5 +1,6 @@
-from sqlmodel import SQLModel
 from typing import Optional
+
+from sqlmodel import SQLModel
 
 
 class User(SQLModel):

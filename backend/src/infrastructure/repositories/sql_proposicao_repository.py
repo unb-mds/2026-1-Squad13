@@ -1,6 +1,8 @@
 from typing import List, Optional
+
 from sqlalchemy import func
 from sqlmodel import Session, select
+
 from domain.entities.proposicao import Proposicao
 from infrastructure.database.models.proposicao_model import ProposicaoModel
 

@@ -1,6 +1,7 @@
 import pytest
-from infrastructure.adapters.camara_adapter import CamaraAdapter
+
 from domain.entities.proposicao import Proposicao
+from infrastructure.adapters.camara_adapter import CamaraAdapter
 
 
 @pytest.mark.integration

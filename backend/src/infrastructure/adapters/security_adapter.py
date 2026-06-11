@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from typing import Union
+
 import bcrypt
 from jose import jwt
+
 from infrastructure.config import settings
 
 

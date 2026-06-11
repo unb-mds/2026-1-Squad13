@@ -1,5 +1,7 @@
 from typing import List, Optional
+
 from sqlmodel import Session, select
+
 from domain.entities.apensamento import Apensamento
 from infrastructure.database.models.apensamento_model import ApensamentoModel
 

@@ -11,6 +11,7 @@ Idempotente: pode ser executado múltiplas vezes sem erro.
 """
 
 from sqlmodel import text
+
 from infrastructure.database import engine
 
 

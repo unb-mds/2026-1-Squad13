@@ -1,19 +1,21 @@
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
+from sqlmodel import Session
+
 from application.services.dashboard_service import DashboardService
 from infrastructure.cache.redis_client import RedisClient
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
-from infrastructure.database import get_session, get_redis_client
+from infrastructure.database import get_redis_client, get_session
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
-from sqlmodel import Session
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 router = APIRouter()
 

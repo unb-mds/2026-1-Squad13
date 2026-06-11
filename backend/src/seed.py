@@ -10,13 +10,21 @@ Ordem de execução:
 """
 
 import argparse
-from sqlmodel import Session, select, func
+
+from sqlmodel import Session, func, select
+
+from application.services.dashboard_service import DashboardService
+from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import init_db, get_session, get_redis_client, engine
+from infrastructure.cache.redis_client import RedisClient
+from infrastructure.database import engine, get_redis_client, get_session, init_db
 from infrastructure.database.models.proposicao_model import ProposicaoModel
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
+)
+from infrastructure.repositories.sql_evento_tramitacao_repository import (
+    SQLEventoTramitacaoRepository,
 )
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
@@ -24,15 +32,9 @@ from infrastructure.repositories.sql_fase_analitica_repository import (
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
 )
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
 )
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
-)
-from infrastructure.cache.redis_client import RedisClient
-from application.services.listar_movimentacoes_service import ListarMovimentacoesService
-from application.services.dashboard_service import DashboardService
 from init_db import seed_demo_user
 
 
@@ -170,11 +172,17 @@ def run(force=False) -> None:
                 eventos = listar_service.executar(str(prop_db.id))
 
                 # Atualiza métricas reais baseadas no histórico completo
-                tempo = dashboard_service._calcular_tempo_total(eventos, prop_db.tempo_total_dias or 0, prop_db)
-                status = dashboard_service._extrair_status_atual(eventos, prop_db.status)
+                tempo = dashboard_service._calcular_tempo_total(
+                    eventos, prop_db.tempo_total_dias or 0, prop_db
+                )
+                status = dashboard_service._extrair_status_atual(
+                    eventos, prop_db.status
+                )
 
                 prop_db.tempo_total_dias = tempo
-                prop_db.tem_atraso = (tempo > 180) and (prop_db.data_encerramento is None)
+                prop_db.tem_atraso = (tempo > 180) and (
+                    prop_db.data_encerramento is None
+                )
                 prop_db.status = status
 
                 repo.salvar(prop_db)

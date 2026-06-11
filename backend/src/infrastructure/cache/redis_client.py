@@ -1,6 +1,8 @@
-import redis
 import logging
 from typing import Any, Optional
+
+import redis
+
 from application.ports.cache_provider import CacheProvider
 
 logger = logging.getLogger(__name__)

@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
-from datetime import datetime, timezone, timedelta
 from jose import jwt
+
 from application.services.auth_service import AuthService
-from infrastructure.config import settings
 from domain.exceptions import TokenRevogadoError
+from infrastructure.config import settings
 
 
 class MockTokenBlacklistProvider:

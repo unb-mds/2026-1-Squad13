@@ -1,7 +1,7 @@
 from domain.entities.proposicao import Proposicao
-from infrastructure.repositories.proposicao_repository import ProposicaoRepository
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
+from infrastructure.repositories.proposicao_repository import ProposicaoRepository
 
 
 class DetalheProposicaoService:

@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 import requests
-from unittest.mock import MagicMock, patch
+
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 
 

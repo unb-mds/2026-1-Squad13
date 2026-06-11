@@ -1,17 +1,18 @@
-import pytest
 import json
-from sqlmodel import Session, SQLModel, create_engine
 from typing import Any, Optional
 
+import pytest
+from sqlmodel import Session, SQLModel, create_engine
+
+from application.ports.cache_provider import CacheProvider
+from application.services.dashboard_service import DashboardService
 from domain.entities.proposicao import Proposicao
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
-from application.services.dashboard_service import DashboardService
-from application.ports.cache_provider import CacheProvider
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 
 class MockCacheProvider(CacheProvider):

@@ -12,8 +12,8 @@ from typing import List, Optional
 from sqlmodel import Session, select
 
 from domain.entities.orgao_legislativo import (
-    CasaLegislativa,
     ORGAOS_SEED,
+    CasaLegislativa,
     OrgaoLegislativo,
 )
 from infrastructure.database.models.orgao_legislativo_model import OrgaoLegislativoModel

@@ -1,6 +1,7 @@
+from datetime import date, datetime
+from typing import List, Optional
+
 from sqlmodel import SQLModel
-from typing import Optional, List
-from datetime import datetime, date
 
 
 class Proposicao(SQLModel):

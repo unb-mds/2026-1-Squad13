@@ -1,7 +1,8 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional, List
-from sqlalchemy import Column, JSON
+from typing import List, Optional
+
+from sqlalchemy import JSON, Column
 from sqlalchemy.dialects import postgresql
+from sqlmodel import Field, SQLModel
 
 
 class ProposicaoModel(SQLModel, table=True):

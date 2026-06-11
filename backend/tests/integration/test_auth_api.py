@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+
 from domain.entities.user import User
 from infrastructure.adapters.security_adapter import get_password_hash
 from infrastructure.repositories.sql_user_repository import SQLUserRepository

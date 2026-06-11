@@ -1,12 +1,13 @@
-import pytest
 from unittest.mock import Mock
 
+import pytest
+
 from application.services.recuperacao_senha_service import (
-    SolicitarRecuperacaoSenhaUseCase,
     RedefinirSenhaUseCase,
+    SolicitarRecuperacaoSenhaUseCase,
 )
-from domain.exceptions import UsuarioNaoEncontradoError, TokenInvalidoError
 from domain.entities.user import User
+from domain.exceptions import TokenInvalidoError, UsuarioNaoEncontradoError
 
 
 @pytest.fixture

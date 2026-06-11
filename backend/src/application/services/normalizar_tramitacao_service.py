@@ -5,26 +5,24 @@ Transforma dados das APIs (Câmara/Senado) em eventos analíticos estruturados.
 """
 
 import re
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import List, Optional
 
-from domain.entities.evento_tramitacao import EventoTramitacao
-from domain.entities.orgao_legislativo import CasaLegislativa
-from domain.entities.tipo_evento import TipoEvento
 from domain.classificar_evento import (
     classificar_tipo_evento,
     determinar_fase_analitica,
+)
+from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.orgao_legislativo import CasaLegislativa
+from domain.entities.tipo_evento import TipoEvento
+from infrastructure.repositories.sql_apensamento_repository import (
+    SQLApensamentoRepository,
 )
 from infrastructure.repositories.sql_fase_analitica_repository import (
     SQLFaseAnaliticaRepository,
 )
 from infrastructure.repositories.sql_orgao_legislativo_repository import (
     SQLOrgaoLegislativoRepository,
-)
-
-
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
 )
 
 

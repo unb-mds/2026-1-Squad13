@@ -1,5 +1,6 @@
 from typing import Optional
-from sqlmodel import SQLModel, Field, Column, JSON
+
+from sqlmodel import JSON, Column, Field, SQLModel
 
 
 class ApensamentoModel(SQLModel, table=True):

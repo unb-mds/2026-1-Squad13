@@ -1,25 +1,27 @@
 import logging
-import redis
-from jose import JWTError
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from domain.entities.user import User, UserCreate, UserLogin, UserResponse, Token
+
+import redis
+from jose import JWTError
+
+from application.ports.token_blacklist_provider import TokenBlacklistProvider
+from domain.entities.user import Token, User, UserCreate, UserLogin, UserResponse
 from domain.exceptions import (
-    TokenRevogadoError,
     ContaBloqueadaError,
     CredenciaisInvalidasError,
     EmailJaCadastradoError,
+    TokenRevogadoError,
 )
 from domain.services.login_attempt_service import LoginAttemptProvider
-from application.ports.token_blacklist_provider import TokenBlacklistProvider
-from infrastructure.repositories.sql_user_repository import SQLUserRepository
 from infrastructure.adapters.security_adapter import (
-    get_password_hash,
-    verify_password,
     create_access_token,
     decode_access_token,
+    get_password_hash,
+    verify_password,
 )
 from infrastructure.config import settings
+from infrastructure.repositories.sql_user_repository import SQLUserRepository
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 
 

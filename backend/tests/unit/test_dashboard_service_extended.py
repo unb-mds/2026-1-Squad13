@@ -1,10 +1,12 @@
-import pytest
 from unittest.mock import Mock
-from domain.entities.proposicao import Proposicao
-from domain.entities.evento_tramitacao import EventoTramitacao
-from domain.entities.tipo_evento import TipoEvento
-from domain.entities.fase_analitica import FaseAnalitica
+
+import pytest
+
 from application.services.dashboard_service import DashboardService
+from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.fase_analitica import FaseAnalitica
+from domain.entities.proposicao import Proposicao
+from domain.entities.tipo_evento import TipoEvento
 
 
 @pytest.fixture
@@ -247,6 +249,7 @@ def test_obter_dados_status(mock_repo, mock_evento_repo):
 
 # --- Testes de obter_tempo_por_fase ---
 
+
 def _fase(id_: int, codigo: str, nome: str, ordem: int) -> FaseAnalitica:
     f = FaseAnalitica(codigo=codigo, nome=nome, ordem_logica=ordem)
     f.id = id_
@@ -287,7 +290,9 @@ def test_obter_tempo_por_fase_sem_fase_repo(mock_repo, mock_evento_repo):
 def test_obter_tempo_por_fase_sem_proposicoes(mock_repo, mock_evento_repo):
     """Sem proposições, retorna lista vazia."""
     fase_repo = Mock()
-    fase_repo.buscar_todas.return_value = [_fase(1, "PROTOCOLO_INICIAL", "Protocolo inicial", 1)]
+    fase_repo.buscar_todas.return_value = [
+        _fase(1, "PROTOCOLO_INICIAL", "Protocolo inicial", 1)
+    ]
     mock_repo.filtrar.return_value = []
     service = DashboardService(mock_repo, mock_evento_repo, fase_repo)
     assert service.obter_tempo_por_fase() == []
@@ -296,7 +301,9 @@ def test_obter_tempo_por_fase_sem_proposicoes(mock_repo, mock_evento_repo):
 def test_obter_tempo_por_fase_eventos_sem_fase(mock_repo, mock_evento_repo):
     """Eventos com fase_analitica_id=None são ignorados; retorna lista vazia."""
     fase_repo = Mock()
-    fase_repo.buscar_todas.return_value = [_fase(1, "PROTOCOLO_INICIAL", "Protocolo inicial", 1)]
+    fase_repo.buscar_todas.return_value = [
+        _fase(1, "PROTOCOLO_INICIAL", "Protocolo inicial", 1)
+    ]
     prop = _prop("1")
     mock_repo.filtrar.return_value = [prop]
     evento_sem_fase = EventoTramitacao(
@@ -307,7 +314,9 @@ def test_obter_tempo_por_fase_eventos_sem_fase(mock_repo, mock_evento_repo):
         descricao_original="",
         fase_analitica_id=None,
     )
-    mock_evento_repo.buscar_por_multiplas_proposicoes.return_value = {"1": [evento_sem_fase]}
+    mock_evento_repo.buscar_por_multiplas_proposicoes.return_value = {
+        "1": [evento_sem_fase]
+    }
     service = DashboardService(mock_repo, mock_evento_repo, fase_repo)
     assert service.obter_tempo_por_fase() == []
 

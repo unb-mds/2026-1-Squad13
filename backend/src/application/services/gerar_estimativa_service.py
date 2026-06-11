@@ -1,4 +1,5 @@
-from typing import Protocol, List
+from typing import List, Protocol
+
 from infrastructure.config import settings
 from src.domain.services.estimativa_aprovacao_service import (
     EstimativaAprovacaoService,

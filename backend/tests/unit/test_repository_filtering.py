@@ -1,5 +1,6 @@
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
+
 from domain.entities.proposicao import Proposicao
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,

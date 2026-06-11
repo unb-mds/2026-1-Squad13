@@ -1,10 +1,12 @@
+from unittest.mock import MagicMock, Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
+
 from application.services.normalizar_tramitacao_service import (
     NormalizarTramitacaoService,
 )
-from domain.entities.tipo_evento import TipoEvento
 from domain.entities.orgao_legislativo import CasaLegislativa
+from domain.entities.tipo_evento import TipoEvento
 
 
 @pytest.fixture

@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 import requests
-from unittest.mock import MagicMock, patch
+
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 
 
@@ -42,7 +44,11 @@ def test_camara_adapter_normalizacao_sucesso(adapter):
         mock_response_rel.json.return_value = {"dados": [], "links": []}
         mock_response_rel.raise_for_status.return_value = None
 
-        mock_get.side_effect = [mock_response_prop, mock_response_autores, mock_response_rel]
+        mock_get.side_effect = [
+            mock_response_prop,
+            mock_response_autores,
+            mock_response_rel,
+        ]
 
         # Act
         proposicao = adapter.buscar_por_id(12345)
@@ -125,26 +131,29 @@ def test_camara_adapter_contagem_emendas_com_paginacao(adapter):
     # Mock da primeira página
     mock_page1 = {
         "dados": [
-            {"siglaTipo": "EMP"}, # Emenda de Plenário (Soma)
-            {"siglaTipo": "EMC"}, # Emenda na Comissão (Soma)
-            {"siglaTipo": "SBT"}, # Substitutivo (Soma)
+            {"siglaTipo": "EMP"},  # Emenda de Plenário (Soma)
+            {"siglaTipo": "EMC"},  # Emenda na Comissão (Soma)
+            {"siglaTipo": "SBT"},  # Substitutivo (Soma)
             {"siglaTipo": "PL"},  # Outro tipo (Não soma)
         ],
         "links": [
-            {"rel": "next", "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2256735/relacionadas?pagina=2"}
-        ]
+            {
+                "rel": "next",
+                "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2256735/relacionadas?pagina=2",
+            }
+        ],
     }
 
     # Mock da segunda página (última)
     mock_page2 = {
         "dados": [
-            {"siglaTipo": "EMD"}, # Emenda de Devolução/Outra (Soma: inicia com EM)
-            {"siglaTipo": "REQ"}, # Requerimento (Não soma)
+            {"siglaTipo": "EMD"},  # Emenda de Devolução/Outra (Soma: inicia com EM)
+            {"siglaTipo": "REQ"},  # Requerimento (Não soma)
         ],
         "links": [
             {"rel": "self", "href": "...pagina=2"},
-            {"rel": "first", "href": "...pagina=1"}
-        ]
+            {"rel": "first", "href": "...pagina=1"},
+        ],
     }
 
     # Mock da proposição principal e autores (necessários para o buscar_por_id)
@@ -155,7 +164,7 @@ def test_camara_adapter_contagem_emendas_com_paginacao(adapter):
             "ano": 2020,
             "ementa": "Fake News",
             "dataApresentacao": "2020-01-01",
-            "statusProposicao": {"dataHora": "2020-01-01T10:00:00"}
+            "statusProposicao": {"dataHora": "2020-01-01T10:00:00"},
         }
     }
     mock_dados_autores = {"dados": [{"nome": "Autor Teste", "siglaUf": "DF"}]}
@@ -186,9 +195,11 @@ def test_camara_adapter_contagem_emendas_com_paginacao(adapter):
         # Assert
         assert proposicao is not None
         # EMP, EMC, SBT (P1) + EMD (P2) = 4 emendas
-        assert hasattr(proposicao, "numero_emendas"), "Entidade Proposicao deve ter campo numero_emendas"
+        assert hasattr(proposicao, "numero_emendas"), (
+            "Entidade Proposicao deve ter campo numero_emendas"
+        )
         assert proposicao.numero_emendas == 4
-        
+
         # Verifica se chamou o endpoint correto
         # Chamada 1: /proposicoes/id
         # Chamada 2: /proposicoes/id/autores

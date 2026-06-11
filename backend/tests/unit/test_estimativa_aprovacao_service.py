@@ -1,4 +1,5 @@
 import pytest
+
 from src.domain.services.estimativa_aprovacao_service import EstimativaAprovacaoService
 
 

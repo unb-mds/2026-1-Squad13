@@ -1,4 +1,5 @@
 from typing import List, Optional
+
 from domain.entities.proposicao import Proposicao
 
 

@@ -1,8 +1,9 @@
 from unittest.mock import Mock
-from domain.entities.proposicao import Proposicao
-from domain.entities.evento_tramitacao import EventoTramitacao
-from domain.entities.tipo_evento import TipoEvento
+
 from application.services.dashboard_service import DashboardService
+from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.proposicao import Proposicao
+from domain.entities.tipo_evento import TipoEvento
 
 
 def _mock_proposicao(id_str, status, tempo=None):

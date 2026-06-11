@@ -1,9 +1,11 @@
-import requests
 import logging
-from typing import Optional, List
-from domain.entities.proposicao import Proposicao
+from typing import List, Optional
+
+import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+from domain.entities.proposicao import Proposicao
 
 logger = logging.getLogger(__name__)
 
