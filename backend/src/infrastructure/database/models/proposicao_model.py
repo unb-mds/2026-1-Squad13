@@ -31,6 +31,7 @@ class ProposicaoModel(SQLModel, table=True):
     link_oficial: Optional[str] = None
     data_encerramento: Optional[str] = None
     previsao_aprovacao_dias: Optional[int] = None
+    numero_emendas: Optional[int] = 0
 
     # Armazenar lista como JSONB no Postgres para busca eficiente (@>),
     # mas mantendo JSON genérico para compatibilidade com SQLite nos testes.

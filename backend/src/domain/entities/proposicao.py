@@ -30,6 +30,7 @@ class Proposicao(SQLModel):
     data_encerramento: Optional[str] = None
     previsao_aprovacao_dias: Optional[int] = None
     tags: List[str] = []
+    numero_emendas: Optional[int] = 0
 
     def normalizar_campo_status(self):
         """Normaliza o campo status para algo mais conciso e legível."""

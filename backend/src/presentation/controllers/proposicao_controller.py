@@ -79,6 +79,7 @@ class ProposicaoResponse(BaseModel):
     previsaoAprovacaoDias: Optional[int] = Field(
         default=None, alias="previsaoAprovacaoDias"
     )
+    numeroEmendas: int = Field(alias="numeroEmendas")
 
 
 class ProposicoesListResponse(BaseModel):
@@ -131,6 +132,7 @@ def _to_response(p) -> dict:
         "codigoNormalizado": p.codigo_normalizado,
         "dataEncerramento": p.data_encerramento,
         "previsaoAprovacaoDias": p.previsao_aprovacao_dias,
+        "numeroEmendas": p.numero_emendas or 0,
     }
 
 
