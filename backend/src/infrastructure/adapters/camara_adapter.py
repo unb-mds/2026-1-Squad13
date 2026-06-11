@@ -60,6 +60,9 @@ class CamaraAdapter:
             ):
                 orgao_atual = f"Apensada ao {orgao_atual}"
 
+            # Contagem de emendas via endpoint de relacionadas (v2)
+            numero_emendas = self._contar_emendas(id_proposicao)
+
             return Proposicao(
                 id=str(id_proposicao),
                 tipo=dados.get("siglaTipo", ""),
@@ -77,6 +80,7 @@ class CamaraAdapter:
                 orgao_atual=orgao_atual,
                 link_oficial=f"https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao={id_proposicao}",
                 tags=[],
+                numero_emendas=numero_emendas,
             )
 
         except requests.exceptions.RequestException as e:
@@ -89,6 +93,45 @@ class CamaraAdapter:
                 f"Erro ao processar dados da Câmara para ID {id_proposicao}: {e}"
             )
             return None
+
+    def _contar_emendas(self, id_proposicao: int) -> int:
+        """
+        Busca proposições relacionadas e conta quantas são emendas.
+        Lida com paginação da API da Câmara e filtra por siglas (EMP, EMC, SBT, etc).
+        """
+        url = f"{self.base_url}/proposicoes/{id_proposicao}/relacionadas"
+        total_emendas = 0
+
+        while url:
+            try:
+                resp = self.session.get(url, timeout=self.timeout)
+                resp.raise_for_status()
+                payload = resp.json()
+                dados = payload.get("dados", [])
+
+                # Filtro: inicia com "EM" (EMP, EMC, EMD, etc) ou é exatamente "SBT" (Substitutivo)
+                emendas_na_pagina = [
+                    d
+                    for d in dados
+                    if d.get("siglaTipo", "").startswith("EM")
+                    or d.get("siglaTipo") == "SBT"
+                ]
+                total_emendas += len(emendas_na_pagina)
+
+                # Paginação: verifica se existe link para a próxima página
+                url = None
+                for link in payload.get("links", []):
+                    if link.get("rel") == "next":
+                        url = link.get("href")
+                        break
+
+            except requests.exceptions.RequestException as e:
+                logger.error(
+                    f"Erro ao buscar relacionadas para ID {id_proposicao}: {e}"
+                )
+                break  # Retorna o que já foi contabilizado até o erro
+
+        return total_emendas
 
     def listar_recentes(
         self, tipo: str, quantidade: int = 10, ano: Optional[int] = None
