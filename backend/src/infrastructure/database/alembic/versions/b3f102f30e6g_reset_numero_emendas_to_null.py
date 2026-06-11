@@ -30,6 +30,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade: Volta para 0 (comportamento antigo)."""
-    op.execute(
-        "UPDATE proposicao SET numero_emendas = 0 WHERE numero_emendas IS NULL;"
-    )
+    op.execute("UPDATE proposicao SET numero_emendas = 0 WHERE numero_emendas IS NULL;")
