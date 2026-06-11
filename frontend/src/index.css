@@ -19,6 +19,10 @@
   --accent-foreground: #1a2332;
   --destructive: #c53030;
   --destructive-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --info: #3b82f6;
+  --info-foreground: #ffffff;
   --border: #d4dce4;
   --input: transparent;
   --input-background: #ffffff;
@@ -35,6 +39,7 @@
   --status-em-atraso: #dc2626;
   --status-concluida: #059669;
   --status-aguardando: #f59e0b;
+  --chart-saidas: #64748b;
   --radius: 0.5rem;
 }
 
@@ -55,6 +60,10 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
+  --warning: oklch(0.7 0.2 60);
+  --warning-foreground: oklch(0.1 0 0);
+  --info: oklch(0.6 0.2 250);
+  --info-foreground: oklch(0.985 0 0);
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
   --ring: oklch(0.439 0 0);
@@ -65,6 +74,7 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+  --chart-saidas: #94a3b8;
 }
 
 @layer base {
@@ -89,15 +99,16 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-ink-900;
+    background-color: var(--secondary);
+    opacity: 0.3;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-ink-600 rounded-full;
+    @apply bg-muted rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-ink-500;
+    @apply bg-accent rounded-full;
   }
 }
 

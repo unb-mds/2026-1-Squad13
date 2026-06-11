@@ -51,20 +51,16 @@ interface KPICardProps {
 
 ---
 
-## 5. Problemas Identificados e Débito de Código
-Durante a auditoria, identificamos uma **duplicação técnica de componente**:
-1. **Ativo:** `KPICard` definido em [KPICard.tsx](../../../frontend/src/shared/components/KPICard.tsx) (utilizado no layout principal da `DashboardPage`).
-2. **Duplicado/Legado:** `KpiCard` (grafado em camelCase/PascalCase semântico) definido na biblioteca de UI geral em [index.tsx](../../../frontend/src/shared/ui/index.tsx#L127-L150). Este último usa estilização fixa escura (`bg-ink-800`) e não suporta indicadores de tendência (`trend`) nem ícones personalizados em modo de alarme.
+## 5. Resolução da Duplicação de Componentes (Issue #235)
+Durante a auditoria técnica, a duplicidade foi resolvida removendo o componente redundante `KpiCard` (camelCase) do arquivo [index.tsx](../../../frontend/src/shared/ui/index.tsx). Agora, o componente oficial e único do projeto é o `<KPICard />` (PascalCase), localizado em `shared/components/KPICard.tsx`.
 
 ---
 
-## 6. Oportunidades de Padronização
-* **Unificação:** Mover as capacidades de tendência (`trend`) do `KPICard` ativo para o `KpiCard` de `shared/ui`, excluindo o arquivo `shared/components/KPICard.tsx` para eliminar a redundância de declaração.
-* **Estilização Semântica:** Substituir as classes de estilização de cor fixa (ex: `bg-red-100` e `text-red-600`) por variáveis do tema Tailwind (ex: `bg-destructive/10 text-destructive`) para garantir suporte nativo e consistente a temas escuros.
+## 6. Oportunidades de Padronização Visando Temas (Dark Mode)
+* **Estilização Semântica:** Substituir as classes de estilização de cor fixa (ex: `bg-red-100` e `text-red-600`) por variáveis do tema Tailwind (ex: `bg-destructive/10 text-destructive`) para garantir suporte nativo e consistente ao tema escuro global.
 
 ---
 
 ## 7. Arquivos Relacionados
-* **Implementação Ativa:** [KPICard.tsx](../../../frontend/src/shared/components/KPICard.tsx)
-* **Implementação Redundante:** [shared/ui/index.tsx](../../../frontend/src/shared/ui/index.tsx#L127-L150)
+* **Implementação Oficial:** [KPICard.tsx](../../../frontend/src/shared/components/KPICard.tsx)
 * **Consumo do Componente:** [dashboard-page.tsx](../../../frontend/src/pages/dashboard-page.tsx#L353-L383)

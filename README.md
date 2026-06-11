@@ -10,7 +10,14 @@ Sistema para busca e acompanhamento de proposições legislativas, com foco inic
 
 Se você possui **Docker** instalado, utilize os scripts de automação na pasta `scripts/`:
 
-### 1. Subir o Ambiente Completo (Docker)
+### 1. Configurar Validação Automática (Git Hooks)
+Este comando instala um script que valida suas mudanças (lint, tipos e testes) automaticamente antes de cada `git push`, garantindo que você nunca envie código quebrado para o repositório.
+
+```bash
+./scripts/dev/setup-hooks.sh
+```
+
+### 2. Subir o Ambiente Completo (Docker)
 Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend, Frontend e Workers automaticamente usando healthchecks para garantir a ordem correta.
 
 ```bash
