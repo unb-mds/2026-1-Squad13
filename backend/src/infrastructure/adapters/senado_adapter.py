@@ -589,6 +589,9 @@ class SenadoAdapter:
             except Exception as e:
                 logger.error(f"Erro na listagem em lote do Senado: {e}")
 
+        # Deduplica os IDs coletados antes de buscar os detalhes externos
+        ids_unicos = list(dict.fromkeys(ids_coletados))
+
         proposicoes_completas = []
         # Limite menor para o Senado pois a API costuma ser mais lenta/instável
         semaphore = asyncio.Semaphore(5)
@@ -597,7 +600,7 @@ class SenadoAdapter:
             async with semaphore:
                 return await self.buscar_por_id(id_prop)
 
-        tasks = [fetch_full(id_prop) for id_prop in ids_coletados]
+        tasks = [fetch_full(id_prop) for id_prop in ids_unicos]
         resultados = await asyncio.gather(*tasks, return_exceptions=True)
 
         for res in resultados:

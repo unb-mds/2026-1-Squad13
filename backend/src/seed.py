@@ -17,6 +17,7 @@ from application.services.dashboard_service import DashboardService
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from domain.constants import LIMITE_DIAS_ATRASO
+from domain.entities.proposicao import Proposicao
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
@@ -157,16 +158,27 @@ async def run(sources=None, years=None, types=None, limit=5, tasks=None) -> None
                             local_offset : local_offset + task.get("limit", limit)
                         ]
 
-                    batch = []
-                    for id_p in ids:
-                        try:
-                            p = await adapter.buscar_por_id(id_p, client=client)
-                            if p:
-                                p.atualizar_metricas()
-                                p.normalizar_campo_status()
-                                batch.append(p)
-                        except Exception:
-                            continue
+                    # Deduplica IDs antes de realizar requisições externas
+                    ids_unicos = list(dict.fromkeys(ids))
+
+                    # Semáforo para controlar concorrência das requisições externas (limite de 10)
+                    semaphore_details = asyncio.Semaphore(10)
+
+                    async def fetch_prop(id_p):
+                        async with semaphore_details:
+                            try:
+                                p = await adapter.buscar_por_id(id_p, client=client)
+                                if p:
+                                    p.atualizar_metricas()
+                                    p.normalizar_campo_status()
+                                    return p
+                            except Exception as e:
+                                logger.warning(f"Erro ao buscar proposição {id_p}: {e}")
+                            return None
+
+                    tasks = [fetch_prop(id_p) for id_p in ids_unicos]
+                    results_props = await asyncio.gather(*tasks, return_exceptions=True)
+                    batch = [r for r in results_props if isinstance(r, Proposicao)]
                     return batch
                 except Exception as e:
                     logger.error(
@@ -184,8 +196,6 @@ async def run(sources=None, years=None, types=None, limit=5, tasks=None) -> None
             return
 
         logger.info(f"💾 Processando e analisando {len(all_proposicoes)} itens...")
-        inseridos = 0
-        atualizados = 0
 
         with next(get_session()) as session:
             repo = SQLProposicaoRepository(session)
@@ -211,44 +221,58 @@ async def run(sources=None, years=None, types=None, limit=5, tasks=None) -> None
             )
             dashboard_service = DashboardService(repo, evento_repo)
 
+            # 1. Preparação das tags e ementas resumidas em lote
             for p in all_proposicoes:
-                try:
-                    p.tags = generate_tags(p.ementa)
-                    if not p.ementa_resumida:
-                        p.ementa_resumida = (
-                            p.ementa[:150] + "..."
-                            if p.ementa and len(p.ementa) > 150
-                            else p.ementa
+                p.tags = generate_tags(p.ementa)
+                if not p.ementa_resumida:
+                    p.ementa_resumida = (
+                        p.ementa[:150] + "..."
+                        if p.ementa and len(p.ementa) > 150
+                        else p.ementa
+                    )
+
+            # 2. Persistência em lote (Bulk Upsert) das proposições
+            repo.upsert_em_lote_por_numero_canonico(all_proposicoes)
+
+            # 3. Busca paralela das movimentações e cálculo das métricas finais
+            # Semáforo para controlar concorrência de persistência e chamadas de API
+            sem_persistencia = asyncio.Semaphore(10)
+
+            async def processar_eventos_prop(p):
+                async with sem_persistencia:
+                    try:
+                        prop_db = repo.buscar_por_codigo(p.tipo, p.numero, p.ano)
+                        if not prop_db:
+                            return
+
+                        eventos = await listar_service.executar(
+                            str(prop_db.id),
+                            modo=ModoMovimentacao.COMPLETO,
+                            client=client,
                         )
 
-                    prop_db = repo.buscar_por_id(p.id)
-                    if prop_db is None:
-                        prop_db = repo.salvar(p)
-                        inseridos += 1
-                    else:
-                        prop_db.status = p.status
-                        prop_db.normalizar_campo_status()
+                        prop_db.tempo_total_dias = (
+                            dashboard_service._calcular_tempo_total(
+                                eventos, prop_db.tempo_total_dias or 0, prop_db
+                            )
+                        )
+                        prop_db.status = dashboard_service._extrair_status_atual(
+                            eventos, prop_db.status
+                        )
+                        prop_db.tem_atraso = (
+                            prop_db.tempo_total_dias > LIMITE_DIAS_ATRASO
+                        ) and (prop_db.data_encerramento is None)
                         repo.salvar(prop_db)
-                        atualizados += 1
+                    except Exception as e:
+                        logger.error(
+                            f"❌ Erro ao processar eventos para {p.tipo} {p.numero}/{p.ano}: {e}"
+                        )
 
-                    eventos = await listar_service.executar(
-                        str(prop_db.id), modo=ModoMovimentacao.COMPLETO, client=client
-                    )
-                    prop_db.tempo_total_dias = dashboard_service._calcular_tempo_total(
-                        eventos, prop_db.tempo_total_dias or 0, prop_db
-                    )
-                    prop_db.status = dashboard_service._extrair_status_atual(
-                        eventos, prop_db.status
-                    )
-                    prop_db.tem_atraso = (
-                        prop_db.tempo_total_dias > LIMITE_DIAS_ATRASO
-                    ) and (prop_db.data_encerramento is None)
-                    repo.salvar(prop_db)
-                except Exception as e:
-                    logger.error(f"❌ Erro em {p.id}: {e}")
+            tasks = [processar_eventos_prop(p) for p in all_proposicoes]
+            await asyncio.gather(*tasks, return_exceptions=True)
 
         logger.info(
-            f"✨ Ciclo Finalizado! Inseridos: {inseridos}, Atualizados: {atualizados}"
+            f"✨ Ciclo Finalizado! Processadas {len(all_proposicoes)} proposições em lote."
         )
         try:
             # Invalida o cache do dashboard para refletir os novos dados imediatamente
