@@ -2,6 +2,7 @@
 set -euo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/../common.sh"
+ensure_env_file
 
 cd "$PROJECT_ROOT"
 log_info "Iniciando workers Celery em background..."
