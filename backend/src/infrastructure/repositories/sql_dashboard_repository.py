@@ -262,8 +262,9 @@ class SQLDashboardRepository:
         ]
 
     def obter_gargalos(self, filtros: dict | None) -> list[dict]:
+        orgao_expr = func.coalesce(ProposicaoModel.orgao_atual, "Desconhecido")
         stmt = select(
-            func.coalesce(ProposicaoModel.orgao_atual, "Desconhecido").label("orgao"),
+            orgao_expr.label("orgao"),
             func.count().label("quantidade"),
             func.sum(
                 case(
@@ -280,7 +281,7 @@ class SQLDashboardRepository:
             func.coalesce(func.avg(ProposicaoModel.tempo_total_dias), 0).label(
                 "tempo_medio"
             ),
-        ).group_by(func.coalesce(ProposicaoModel.orgao_atual, "Desconhecido"))
+        ).group_by(orgao_expr)
 
         stmt = self._aplicar_filtros(stmt, filtros)
 
@@ -290,7 +291,7 @@ class SQLDashboardRepository:
             taxa_atraso = (
                 (row.atrasos / row.quantidade * 100) if row.quantidade > 0 else 0
             )
-            tempo_meses = (row.tempo_medio / 30.0) if row.tempo_medio else 0
+            tempo_meses = (float(row.tempo_medio) / 30.0) if row.tempo_medio else 0
             resultado.append(
                 {
                     "orgao": row.orgao,
