@@ -29,7 +29,12 @@ celery_app.conf.beat_schedule = {
         "task": "processar_metricas_todas_ativas",
         "schedule": crontab(minute=0, hour=4),
     },
+    "preencher-lacunas-cobertura": {
+        "task": "preencher_lacunas_cobertura",
+        "schedule": crontab(minute="*/15"),
+    },
 }
+
 
 # --- Setup de Logging Estruturado para Produção ---
 

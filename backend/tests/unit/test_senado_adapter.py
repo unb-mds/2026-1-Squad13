@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from domain.entities.proposicao import Proposicao
+from domain.exceptions import ApiConnectionError
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 
 
@@ -102,11 +103,10 @@ async def test_senado_adapter_erro_rede(adapter):
     ):
         mock_get.side_effect = httpx.RequestError("Erro de conexão")
 
-        # Act
-        proposicao = await adapter.buscar_por_id(54321)
+        # Act & Assert
+        with pytest.raises(ApiConnectionError):
+            await adapter.buscar_por_id(54321)
 
-        # Assert
-        assert proposicao is None
         assert mock_get.call_count == 6
         assert mock_sleep.call_count == 4
 

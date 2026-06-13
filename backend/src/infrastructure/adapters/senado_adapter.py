@@ -8,6 +8,13 @@ from domain.classificacao_preditiva import (
     identificar_autor_executivo,
 )
 from domain.entities.proposicao import Proposicao
+from domain.exceptions import (
+    ApiConnectionError,
+    ApiException,
+    ApiRateLimitError,
+    ApiServerError,
+    ApiTimeoutError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,19 +50,26 @@ class SenadoAdapter:
                 )
 
                 if resp.status_code == 429:
-                    wait_time = 3 * (attempt + 1)
-                    logger.warning(
-                        f"⏳ Senado aplicando Rate Limit. Aguardando {wait_time}s..."
-                    )
-                    await asyncio.sleep(wait_time)
-                    continue
+                    retry_after = resp.headers.get("Retry-After")
+                    if attempt < max_retries - 1:
+                        wait_time = 3 * (attempt + 1)
+                        logger.warning(
+                            f"⏳ Senado aplicando Rate Limit. Aguardando {wait_time}s..."
+                        )
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        raise ApiRateLimitError("Senado com limite de requisições excedido", retry_after=retry_after)
 
-                if resp.status_code >= 500 and attempt < max_retries - 1:
-                    logger.warning(
-                        f"🔄 Senado instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
-                    )
-                    await asyncio.sleep(1)
-                    continue
+                if resp.status_code >= 500:
+                    if attempt < max_retries - 1:
+                        logger.warning(
+                            f"🔄 Senado instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
+                        )
+                        await asyncio.sleep(1)
+                        continue
+                    else:
+                        raise ApiServerError(f"Erro no servidor do Senado: {resp.status_code}", resp.status_code)
 
                 if resp.status_code != 404:
                     resp.raise_for_status()
@@ -65,28 +79,29 @@ class SenadoAdapter:
                     logger.warning(
                         f"🔌 Erro de conexão com Senado ({type(e).__name__}). Possível Cold Start ou DNS lento. Tentando reconectar ({attempt + 1}/{max_retries})..."
                     )
-                    await asyncio.sleep(
-                        2
-                    )  # Aumentado para dar tempo ao sistema operacional
+                    await asyncio.sleep(2)
                 else:
-                    raise
-            except httpx.TimeoutException:
+                    raise ApiConnectionError(f"Falha de conexão com o Senado: {type(e).__name__}") from e
+            except httpx.TimeoutException as e:
                 if attempt < max_retries - 1:
                     logger.warning(
                         f"🕒 Timeout no Senado. Tentando novamente ({attempt + 1}/{max_retries})..."
                     )
                     await asyncio.sleep(1)
                 else:
-                    raise
+                    raise ApiTimeoutError("Timeout na API do Senado") from e
             except Exception as e:
+                if isinstance(e, ApiException):
+                    raise e
                 if attempt < max_retries - 1:
                     logger.warning(
                         f"🔄 Falha inesperada no Senado: {type(e).__name__}. Retentando..."
                     )
                     await asyncio.sleep(1)
                 else:
-                    raise
-        raise httpx.RequestError("Senado indisponível após múltiplas tentativas")
+                    raise ApiConnectionError(f"Falha inesperada no Senado: {type(e).__name__}") from e
+        raise ApiConnectionError("Senado indisponível após múltiplas tentativas")
+
 
     async def buscar_por_id(
         self, id_materia: int, client: httpx.AsyncClient | None = None
@@ -337,6 +352,8 @@ class SenadoAdapter:
                 )
                 return None
             except Exception as e:
+                if isinstance(e, ApiException):
+                    raise e
                 logger.error(
                     f"Erro inesperado ao processar dados do Senado para ID {id_materia}: {e}"
                 )

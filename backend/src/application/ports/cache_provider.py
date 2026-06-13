@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any, Protocol
 
 
@@ -22,3 +23,19 @@ class CacheProvider(Protocol):
     def invalidate(self, prefix: str) -> None:
         """Invalida todas as chaves que começam com o prefixo fornecido."""
         ...
+
+    def set_nx(self, key: str, value: Any, ttl_seconds: int) -> bool:
+        """Salva no cache apenas se a chave não existir. Retorna True se criada."""
+        ...
+
+    def eval_lua(self, script: str, keys: list[str], args: list[Any]) -> Any:
+        """Executa um script Lua atômico no provedor de cache."""
+        ...
+
+    def obter_e_atualizar_multichaves_seguro(
+        self, keys: list[str], update_fn: Callable[[list[Any]], dict[str, Any] | None]
+    ) -> bool:
+        """Executa uma atualização transacional segura (Optimistic Locking) em múltiplas chaves."""
+        ...
+
+
