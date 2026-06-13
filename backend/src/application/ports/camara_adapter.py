@@ -11,7 +11,7 @@ class CamaraAdapterPort(Protocol):
     """
 
     async def buscar_por_id(
-        self, id_proposicao: int, client: httpx.AsyncClient | None = None
+        self, id_proposicao: int, client: httpx.AsyncClient | None = None, cache=None
     ) -> Proposicao | None:
         """Busca detalhes de uma proposição pelo seu ID."""
         ...
