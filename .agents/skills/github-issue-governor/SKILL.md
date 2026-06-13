@@ -75,5 +75,7 @@ Crie issue apenas se:
   - Em Pull Requests direcionados para a branch `develop`, **não** use palavras-chave de fechamento automático do GitHub (ex: `Closes`, `Fixes`, `Resolves`) na descrição principal do PR. Em vez disso, use `Ref #XYZ` ou `Related #XYZ`.
   - Isso garante que a issue não seja fechada acidentalmente pelo GitHub antes da integração final em produção.
 - **Transições de Status**:
-  - **Ao mergear na `develop`**: As issues correspondentes devem passar do status atual (ex: `status:in_progress`/`status:todo`) para `status:done` e **permanecer abertas**.
+  - **Com Pull Request Aberto**: As issues candidatas a serem resolvidas por um PR ativo devem ser associadas a ele e ter suas status labels alteradas para `status:review`.
+  - **Ao mergear na `develop`**: As issues correspondentes devem passar do status atual (ex: `status:review`/`status:in_progress`) para `status:done` e **permanecer abertas**.
   - **Ao mergear na `main`**: Apenas após a branch `develop` (ou o PR de release) ser mesclado na branch `main`, as issues associadas devem ser finalizadas e **fechadas (Closed)** definitivamente.
+
