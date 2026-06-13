@@ -280,15 +280,14 @@ class CamaraAdapter:
 
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
-            try:
-                resp = await self._get_with_retry(_client, url, params=params)
-                dados = resp.json()["dados"]
-                return [d["id"] for d in dados]
-            except Exception as e:
-                logger.error(
-                    f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}, num={numero}): {e}"
-                )
-                return []
+            resp = await self._get_with_retry(_client, url, params=params)
+            dados = resp.json()["dados"]
+            return [d["id"] for d in dados]
+        except Exception as e:
+            logger.error(
+                f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}, num={numero}): {e}"
+            )
+            raise e
         finally:
             if client is None:
                 await _client.aclose()
