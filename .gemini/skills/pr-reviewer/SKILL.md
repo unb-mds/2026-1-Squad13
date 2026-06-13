@@ -117,4 +117,4 @@ approve / comment / request-changes
 - Leia sempre os arquivos `.gemini/pr-validation.json` e `.gemini/pr-validation.log` se disponÃ­veis, para enriquecer a seÃ§Ã£o de ValidaÃ§Ã£o Local no parecer.
 - **Associação de Issues e Ciclo de Vida**:
   - Toda PR deve estar explicitamente vinculada a pelo menos uma issue aberta no backlog. O revisor deve certificar-se de que a PR faz referência às issues de forma correta (ex: usando `Ref #XYZ` para manter o rastreamento sem disparar fechamento automático se a branch de destino for a `develop`).
-  - Verifique se as issues candidatas a serem resolvidas terão seus status modificados para `status:merged-develop` no merge da `develop` e serão fechadas apenas quando houver o merge final de release na branch `main`.
+  - Verifique se as issues candidatas a serem resolvidas terão seus status modificados para `status:done` no merge da `develop` e serão fechadas apenas quando houver o merge final de release na branch `main`.
