@@ -19,7 +19,7 @@ Você é responsável por garantir a integridade, consistência e documentação
 - Scripts de infraestrutura ou CI/CD que não afetem o build do frontend.
 
 ## Fontes Obrigatórias (Ler antes de agir)
-1. `.gemini/skills/frontend-governance/references/docs-index.md` (Para localizar guias específicos).
+1. `.agents/skills/frontend-governance/references/docs-index.md` (Para localizar guias específicos).
 2. `docs/frontend/02-design-principles.md` e `03-design-tokens.md`.
 3. ADRs de frontend em `docs/adr/`.
 

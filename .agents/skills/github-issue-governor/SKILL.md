@@ -12,7 +12,7 @@ Criar issues somente quando forem realmente necessárias, com título, body e la
 
 ## Fontes obrigatórias
 Antes de criar qualquer issue:
-1. Leia `references/issue-guide.md`.
+1. Leia `.agents/skills/github-issue-governor/references/issue-guide.md`.
 2. Se houver análise arquitetural, PR, diff ou pedido do usuário, use isso como contexto principal.
 3. Se possível, verifique issues abertas para evitar duplicidade. Você pode ler e buscar localmente nos arquivos `issue_mapping.json` ou `issues_all.json` presentes no workspace para encontrar itens similares.
 
@@ -59,8 +59,8 @@ Crie issue apenas se:
 
 7. Criação:
 - Gere o conteúdo COMPLETO do body baseando-se no template escolhido, substituindo todos os placeholders por informações reais do contexto.
-- Salve esse conteúdo gerado em um arquivo temporário interno ao workspace (ex: `.gemini/scratch/new_issue_body.md`). **Nunca grave arquivos fora do limite do workspace (como na pasta `/tmp`).**
-- Use `scripts/create-issue.sh` passando o título, o caminho do arquivo temporário no workspace e as labels completas **em uma única string separada por vírgulas** (ex: `"type:bug,prio:high,status:todo,release:R2,feat:f6"`).
+- Salve esse conteúdo gerado em um arquivo temporário interno ao workspace (ex: `.agents/scratch/new_issue_body.md`). **Nunca grave arquivos fora do limite do workspace (como na pasta `/tmp`).**
+- Use `.agents/skills/github-issue-governor/scripts/create-issue.sh` passando o título, o caminho do arquivo temporário no workspace e as labels completas **em uma única string separada por vírgulas** (ex: `"type:bug,prio:high,status:todo,release:R2,feat:f6"`).
 - O script validará as labels e alertará caso detecte potenciais duplicados. Se houver alertas, analise-os antes de prosseguir.
 - Retorne a URL da issue criada.
 - Remova o arquivo temporário do workspace após a criação.
@@ -69,3 +69,11 @@ Crie issue apenas se:
 - Nunca criar issue sem a label `feat:f*`.
 - Nunca criar issue sem justificar prioridade.
 - Se a issue for grande demais, propor divisão em 2 ou mais issues.
+
+## Ciclo de Vida de Status e Integração Git
+- **Uso de Keywords em PRs**:
+  - Em Pull Requests direcionados para a branch `develop`, **não** use palavras-chave de fechamento automático do GitHub (ex: `Closes`, `Fixes`, `Resolves`) na descrição principal do PR. Em vez disso, use `Ref #XYZ` ou `Related #XYZ`.
+  - Isso garante que a issue não seja fechada acidentalmente pelo GitHub antes da integração final em produção.
+- **Transições de Status**:
+  - **Ao mergear na `develop`**: As issues correspondentes devem passar do status atual (ex: `status:in_progress`/`status:todo`) para `status:done` e **permanecer abertas**.
+  - **Ao mergear na `main`**: Apenas após a branch `develop` (ou o PR de release) ser mesclado na branch `main`, as issues associadas devem ser finalizadas e **fechadas (Closed)** definitivamente.
