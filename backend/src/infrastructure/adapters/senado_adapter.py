@@ -480,30 +480,29 @@ class SenadoAdapter:
         headers = {"Accept": "application/json"}
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
-            try:
-                resp = await self._get_with_retry(
-                    _client, url, params=params, headers=headers
-                )
-                resp.raise_for_status()
-                dados = resp.json()
+            resp = await self._get_with_retry(
+                _client, url, params=params, headers=headers
+            )
+            resp.raise_for_status()
+            dados = resp.json()
 
-                if not isinstance(dados, list):
-                    dados = [dados] if dados else []
+            if not isinstance(dados, list):
+                dados = [dados] if dados else []
 
-                ids = []
-                for m in dados:
-                    if "codigoMateria" in m:
-                        ids.append(int(m["codigoMateria"]))
-                    elif "id" in m:
-                        ids.append(int(m["id"]))
+            ids = []
+            for m in dados:
+                if "codigoMateria" in m:
+                    ids.append(int(m["codigoMateria"]))
+                elif "id" in m:
+                    ids.append(int(m["id"]))
 
-                # Aplica paginação simulada na lista completa
-                start_offset = (pagina - 1) * quantidade
-                end_offset = start_offset + quantidade
-                return ids[start_offset:end_offset]
-            except Exception as e:
-                logger.error(f"Erro ao listar recentes do Senado: {e}")
-                return []
+            # Aplica paginação simulada na lista completa
+            start_offset = (pagina - 1) * quantidade
+            end_offset = start_offset + quantidade
+            return ids[start_offset:end_offset]
+        except Exception as e:
+            logger.error(f"Erro ao listar recentes do Senado: {e}")
+            raise e
         finally:
             if client is None:
                 await _client.aclose()

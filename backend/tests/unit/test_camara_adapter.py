@@ -162,10 +162,9 @@ async def test_camara_adapter_listar_proposicoes_id_erro(adapter):
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_get.side_effect = Exception("Erro")
 
-        # Act
-        ids = await adapter.listar_recentes("PL", 2024)
-
-        assert ids == []
+        # Act & Assert
+        with pytest.raises(Exception, match="Erro"):
+            await adapter.listar_recentes("PL", 2024)
 
 
 @pytest.mark.asyncio
