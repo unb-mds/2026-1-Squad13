@@ -171,7 +171,7 @@ class CamaraAdapter:
                 tema_economico = classificar_tema_economico(ementa_texto)
 
                 return Proposicao(
-                    id=str(id_proposicao),
+                    id=f"camara:{id_proposicao}",
                     tipo=dados.get("siglaTipo", ""),
                     numero=str(dados.get("numero", 0)),
                     ano=dados.get("ano", 0),
