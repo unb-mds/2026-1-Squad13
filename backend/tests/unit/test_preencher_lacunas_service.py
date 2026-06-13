@@ -192,7 +192,9 @@ async def test_rate_limiter_temporal_com_lock_monotonic():
 
 
 @pytest.mark.asyncio
-async def test_pruning_anos_consolidados(service, repo_mock, camara_mock, senado_mock, cache_mock):
+async def test_pruning_anos_consolidados(
+    service, repo_mock, camara_mock, senado_mock, cache_mock
+):
     """Ano consolidado não dispara COUNT(*) nem totalização externa."""
     ano_atual = datetime.now(UTC).year
     ano_anterior = ano_atual - 1
@@ -207,13 +209,13 @@ async def test_pruning_anos_consolidados(service, repo_mock, camara_mock, senado
     print("LACUNAS:", lacunas)
     print("-------------------------------------------\n")
 
-
     # Verifica se buscou ano atual da Câmara
     assert any(lac["fonte"] == "camara" and lac["ano"] == ano_atual for lac in lacunas)
 
     # Garante que o ano anterior (consolidado) não está listado como lacuna ativa
-    assert not any(lac["fonte"] == "camara" and lac["ano"] == ano_anterior for lac in lacunas)
-
+    assert not any(
+        lac["fonte"] == "camara" and lac["ano"] == ano_anterior for lac in lacunas
+    )
 
 
 @pytest.mark.asyncio
@@ -239,7 +241,6 @@ async def test_concorrencia_adaptativa_lote_slow_reduz(service, cache_mock):
         "timeout_count": 0,
         "erros_criticos_lote": 0,
     }
-
 
     service._ajustar_concorrencia_lote("camara", cfg)
     assert cfg["concorrencia"] == 5
@@ -415,7 +416,9 @@ async def test_batch_size_calibration_backlog_baixo(service, camara_mock, cache_
         }
     }
 
-    with patch.object(service, "_executar_request_com_retry_after", new_callable=AsyncMock):
+    with patch.object(
+        service, "_executar_request_com_retry_after", new_callable=AsyncMock
+    ):
         await service._preencher_lacuna(lacuna, config, backlog_size=50)
 
         # Verifica se o batch_size usado no listar_recentes foi capped em 20
@@ -443,7 +446,9 @@ async def test_batch_size_calibration_backlog_medio(service, camara_mock, cache_
         }
     }
 
-    with patch.object(service, "_executar_request_com_retry_after", new_callable=AsyncMock):
+    with patch.object(
+        service, "_executar_request_com_retry_after", new_callable=AsyncMock
+    ):
         await service._preencher_lacuna(lacuna, config, backlog_size=500)
 
         # Verifica se o batch_size usado no listar_recentes foi capped em 150
@@ -471,7 +476,9 @@ async def test_batch_size_calibration_backlog_alto(service, camara_mock, cache_m
         }
     }
 
-    with patch.object(service, "_executar_request_com_retry_after", new_callable=AsyncMock):
+    with patch.object(
+        service, "_executar_request_com_retry_after", new_callable=AsyncMock
+    ):
         await service._preencher_lacuna(lacuna, config, backlog_size=1500)
 
         # Verifica se o batch_size usado no listar_recentes foi capped em 300
@@ -479,7 +486,9 @@ async def test_batch_size_calibration_backlog_alto(service, camara_mock, cache_m
 
 
 @pytest.mark.asyncio
-async def test_executar_fluxo_completo_sucesso(service, repo_mock, camara_mock, senado_mock, cache_mock):
+async def test_executar_fluxo_completo_sucesso(
+    service, repo_mock, camara_mock, senado_mock, cache_mock
+):
     """Executa o fluxo completo do service com sucesso para ambas as fontes."""
     with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
         mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
@@ -495,7 +504,9 @@ async def test_executar_fluxo_completo_sucesso(service, repo_mock, camara_mock, 
 
 
 @pytest.mark.asyncio
-async def test_executar_sem_lacunas_manutencao(service, repo_mock, camara_mock, senado_mock, cache_mock):
+async def test_executar_sem_lacunas_manutencao(
+    service, repo_mock, camara_mock, senado_mock, cache_mock
+):
     """Executa em modo manutenção caso a cobertura local de todos os anos seja >= 95%."""
     repo_mock.contar.return_value = 100
 
@@ -510,7 +521,9 @@ async def test_executar_sem_lacunas_manutencao(service, repo_mock, camara_mock, 
 
 
 @pytest.mark.asyncio
-async def test_executar_cb_aberto(service, repo_mock, camara_mock, senado_mock, cache_mock):
+async def test_executar_cb_aberto(
+    service, repo_mock, camara_mock, senado_mock, cache_mock
+):
     """Pula o orgao se o Circuit Breaker estiver OPEN e o tempo de bloqueio for no futuro."""
     bloqueado_ate = (datetime.now(UTC) + timedelta(minutes=15)).isoformat()
     cache_mock.set("seeding:circuit_breaker:camara:estado", "OPEN")
@@ -529,7 +542,9 @@ async def test_executar_cb_aberto(service, repo_mock, camara_mock, senado_mock, 
 
 
 @pytest.mark.asyncio
-async def test_executar_erro_no_preenchimento(service, repo_mock, camara_mock, senado_mock, cache_mock):
+async def test_executar_erro_no_preenchimento(
+    service, repo_mock, camara_mock, senado_mock, cache_mock
+):
     """Registra falhas e calibra CB/Throughput caso ocorra um erro durante a requisição de lote."""
     camara_mock.listar_recentes.side_effect = Exception("API offline temporariamente")
 
@@ -547,9 +562,13 @@ async def test_executar_erro_no_preenchimento(service, repo_mock, camara_mock, s
 
 
 @pytest.mark.asyncio
-async def test_executar_pruning_e_consolidacao_cobertura_alta(service, repo_mock, camara_mock, senado_mock, cache_mock):
+async def test_executar_pruning_e_consolidacao_cobertura_alta(
+    service, repo_mock, camara_mock, senado_mock, cache_mock
+):
     """Consolida anos históricos se a cobertura for >= 99.5%."""
-    repo_mock.contar.side_effect = lambda tipo, ano, orgao_origem: 99.6 if orgao_origem == "Câmara dos Deputados" else 50
+    repo_mock.contar.side_effect = lambda tipo, ano, orgao_origem: (
+        99.6 if orgao_origem == "Câmara dos Deputados" else 50
+    )
 
     with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
         mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
@@ -561,3 +580,18 @@ async def test_executar_pruning_e_consolidacao_cobertura_alta(service, repo_mock
         assert cache_mock.get("seeding:consolidado:camara:2025:PEC") == "1"
 
 
+@pytest.mark.asyncio
+async def test_executar_passa_cache_para_adapter(
+    service, repo_mock, camara_mock, senado_mock, cache_mock
+):
+    """Garante que o PreencherLacunasService passa o cache para o adapter ao buscar proposição."""
+    with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
+        mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
+        mock_date.fromisoformat.side_effect = datetime.fromisoformat
+
+        await service.executar()
+
+        # Verifica se o camara_mock.buscar_por_id foi chamado passando o cache_mock
+        camara_mock.buscar_por_id.assert_called()
+        _, kwargs = camara_mock.buscar_por_id.call_args
+        assert kwargs.get("cache") == cache_mock

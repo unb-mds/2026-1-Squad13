@@ -37,9 +37,10 @@ class SenadoAdapter:
         params=None,
         headers=None,
         timeout=None,
+        max_retries=3,
+        backoff_type="exponential",
     ) -> httpx.Response:
         """Helper para realizar requisições com retry rápido em caso de erro."""
-        max_retries = 3
         # Usa o timeout customizado ou o padrão granular
         timeout_config = timeout or self.default_timeout
 
@@ -52,7 +53,7 @@ class SenadoAdapter:
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
                     if attempt < max_retries - 1:
-                        wait_time = 3 * (attempt + 1)
+                        wait_time = 1 if backoff_type == "flat" else (3 * (attempt + 1))
                         logger.warning(
                             f"⏳ Senado aplicando Rate Limit. Aguardando {wait_time}s..."
                         )
@@ -66,7 +67,8 @@ class SenadoAdapter:
                         logger.warning(
                             f"🔄 Senado instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
                         )
-                        await asyncio.sleep(1)
+                        delay = 1 if backoff_type == "flat" else (attempt + 1)
+                        await asyncio.sleep(delay)
                         continue
                     else:
                         raise ApiServerError(f"Erro no servidor do Senado: {resp.status_code}", resp.status_code)
@@ -79,7 +81,8 @@ class SenadoAdapter:
                     logger.warning(
                         f"🔌 Erro de conexão com Senado ({type(e).__name__}). Possível Cold Start ou DNS lento. Tentando reconectar ({attempt + 1}/{max_retries})..."
                     )
-                    await asyncio.sleep(2)
+                    delay = 1 if backoff_type == "flat" else 2
+                    await asyncio.sleep(delay)
                 else:
                     raise ApiConnectionError(f"Falha de conexão com o Senado: {type(e).__name__}") from e
             except httpx.TimeoutException as e:
@@ -87,7 +90,8 @@ class SenadoAdapter:
                     logger.warning(
                         f"🕒 Timeout no Senado. Tentando novamente ({attempt + 1}/{max_retries})..."
                     )
-                    await asyncio.sleep(1)
+                    delay = 1 if backoff_type == "flat" else 1
+                    await asyncio.sleep(delay)
                 else:
                     raise ApiTimeoutError("Timeout na API do Senado") from e
             except Exception as e:
@@ -97,14 +101,14 @@ class SenadoAdapter:
                     logger.warning(
                         f"🔄 Falha inesperada no Senado: {type(e).__name__}. Retentando..."
                     )
-                    await asyncio.sleep(1)
+                    delay = 1 if backoff_type == "flat" else 1
+                    await asyncio.sleep(delay)
                 else:
                     raise ApiConnectionError(f"Falha inesperada no Senado: {type(e).__name__}") from e
         raise ApiConnectionError("Senado indisponível após múltiplas tentativas")
 
-
     async def buscar_por_id(
-        self, id_materia: int, client: httpx.AsyncClient | None = None
+        self, id_materia: int, client: httpx.AsyncClient | None = None, cache=None
     ) -> Proposicao | None:
         """
         Busca detalhes de uma matéria legislativa no Senado.
@@ -118,11 +122,41 @@ class SenadoAdapter:
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
             try:
+                # Verifica a degradação seletiva de emendas
+                emendas_degradadas = False
+                if cache is not None:
+                    try:
+                        if cache.get("seeding:degradacao:senado:emendas") is not None:
+                            emendas_degradadas = True
+                    except Exception as e:
+                        logger.error(f"Erro ao verificar chave de degradação: {e}")
+
                 # Dispara requisições da matéria principal e emendas em paralelo
-                task_materia = self._get_with_retry(_client, url, headers=headers)
-                task_emendas = self._get_with_retry(
-                    _client, url_emendas, headers=headers
+                task_materia = self._get_with_retry(
+                    _client,
+                    url,
+                    headers=headers,
+                    timeout=httpx.Timeout(12.0, connect=3.0),
+                    max_retries=3,
+                    backoff_type="exponential",
                 )
+
+                if emendas_degradadas:
+                    logger.warning(
+                        f"⚠️ [DEGRADACAO_ATIVA] Senado com API de emendas degradada. Ignorando endpoint para ID {id_materia}."
+                    )
+                    async def mock_emendas():
+                        return httpx.Response(404, request=httpx.Request("GET", url_emendas))
+                    task_emendas = mock_emendas()
+                else:
+                    task_emendas = self._get_with_retry(
+                        _client,
+                        url_emendas,
+                        headers=headers,
+                        timeout=httpx.Timeout(6.0, connect=3.0),
+                        max_retries=2,
+                        backoff_type="flat",
+                    )
 
                 res_materia, res_emendas = await asyncio.gather(
                     task_materia, task_emendas, return_exceptions=True
@@ -136,7 +170,12 @@ class SenadoAdapter:
                     ):
                         url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
                         resp = await self._get_with_retry(
-                            _client, url_proc, headers=headers
+                            _client,
+                            url_proc,
+                            headers=headers,
+                            timeout=httpx.Timeout(15.0, connect=3.0),
+                            max_retries=2,
+                            backoff_type="linear",
                         )
                     else:
                         raise res_materia
@@ -145,7 +184,12 @@ class SenadoAdapter:
                     if resp.status_code == 404:
                         url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
                         resp = await self._get_with_retry(
-                            _client, url_proc, headers=headers
+                            _client,
+                            url_proc,
+                            headers=headers,
+                            timeout=httpx.Timeout(15.0, connect=3.0),
+                            max_retries=2,
+                            backoff_type="linear",
                         )
 
                 resp.raise_for_status()
@@ -163,6 +207,23 @@ class SenadoAdapter:
                         logger.warning(
                             f"Não foi possível buscar emendas para proposição {id_materia} no Senado: {res_emendas}"
                         )
+                        # Ativa degradação seletiva por 15 minutos se falhou por timeout ou 429
+                        if cache is not None:
+                            try:
+                                err_str = str(res_emendas)
+                                is_transient = (
+                                    isinstance(res_emendas, (ApiTimeoutError, ApiRateLimitError))
+                                    or "timeout" in err_str.lower()
+                                    or "429" in err_str
+                                )
+                                if is_transient:
+                                    logger.warning(
+                                        f"⚠️ [DEGRADACAO_INICIADA] Falha transitória em emendas ({type(res_emendas).__name__}). Ativando degradação por 15m."
+                                    )
+                                    cache.set("seeding:degradacao:senado:emendas", "1", ttl_seconds=900)
+                            except Exception as ce:
+                                logger.error(f"Erro ao setar chave de degradação: {ce}")
+                        numero_emendas = 0
                 else:
                     if res_emendas.status_code == 200:
                         data_emendas = res_emendas.json()

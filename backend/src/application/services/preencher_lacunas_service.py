@@ -296,8 +296,8 @@ class PreencherLacunasService:
         # Telemetria Resumo consolidada
         logger.info(
             f"[TELEMETRIA RESUMO] Status da Run: {resumo['modo']}\n"
-            f" - Câmara: [Estado CB: {config['camara']['cb_estado']}] [Throughput: {config['camara']['taxa']}] [Concorrência: {config['camara']['concorrencia']}] [Falhas Run: 429={config['camara']['429_count']}, 5xx={config['camara']['5xx_count']}, timeouts={config['camara']['timeout_count']}] [RTT P95: {self._calc_p95(config['camara']['rtts'])}ms]\n"
-            f" - Senado: [Estado CB: {config['senado']['cb_estado']}] [Throughput: {config['senado']['taxa']}] [Concorrência: {config['senado']['concorrencia']}] [Falhas Run: 429={config['senado']['429_count']}, 5xx={config['senado']['5xx_count']}, timeouts={config['senado']['timeout_count']}] [RTT P95: {self._calc_p95(config['senado']['rtts'])}ms]"
+            f" - Câmara: [Estado CB: {config['camara']['cb_estado']}] [Throughput Alvo: {config['camara']['taxa']} itens/lote] [Concorrência: {config['camara']['concorrencia']}] [Falhas Run: 429={config['camara']['429_count']}, 5xx={config['camara']['5xx_count']}, timeouts={config['camara']['timeout_count']}] [RTT P95: {self._calc_p95(config['camara']['rtts'])}ms]\n"
+            f" - Senado: [Estado CB: {config['senado']['cb_estado']}] [Throughput Alvo: {config['senado']['taxa']} itens/lote] [Concorrência: {config['senado']['concorrencia']}] [Falhas Run: 429={config['senado']['429_count']}, 5xx={config['senado']['5xx_count']}, timeouts={config['senado']['timeout_count']}] [RTT P95: {self._calc_p95(config['senado']['rtts'])}ms]"
         )
 
     async def _preencher_lacuna(
@@ -398,10 +398,12 @@ class PreencherLacunasService:
                                 cfg["erros_criticos_429_lote"] += 1
                             raise e
 
+                start_lote = time.perf_counter()
                 results = await asyncio.gather(
                     *[fetch_com_medicao(id_p) for id_p in ids_unicos],
                     return_exceptions=True
                 )
+                duration_lote = time.perf_counter() - start_lote
                 proposicoes = [r for r in results if isinstance(r, Proposicao)]
 
                 exceptions = [r for r in results if isinstance(r, Exception)]
@@ -425,10 +427,12 @@ class PreencherLacunasService:
 
                 # Telemetria Batch consolidada
                 rtt_p95 = self._calc_p95(cfg["rtts"])
+                req_s = len(ids_unicos) / duration_lote if duration_lote > 0 else 0.0
                 logger.info(
                     f"[TELEMETRIA BATCH] Fonte: {fonte} | Lacuna: {lacuna['ano']}:{lacuna['tipo']} | "
                     f"Processados: {len(proposicoes)}/{len(ids_unicos)} | RTT P95: {rtt_p95}ms | "
-                    f"Limite Semáforo: {cfg['concorrencia']} | Throughput Atual: {batch_size} | "
+                    f"Frequência Real: {req_s:.2f} req/s | "
+                    f"Limite Semáforo: {cfg['concorrencia']} | Throughput Atual: {batch_size} itens/lote | "
                     f"Erros: [429_count: {cfg['429_count']}] [5xx_count: {cfg['5xx_count']}] [timeout_count: {cfg['timeout_count']}] | "
                     f"Max Retry-After: {cfg['retry_after_max']}s | Cursor: {cursor_anterior} -> {cursor_novo}"
                 )
@@ -455,7 +459,7 @@ class PreencherLacunasService:
         max_attempts = 3
         for attempt in range(max_attempts):
             try:
-                p = await adapter.buscar_por_id(id_p, client=client)
+                p = await adapter.buscar_por_id(id_p, client=client, cache=self.cache)
                 return p
             except Exception as e:
                 # Trata erros específicos de domínio do adapter

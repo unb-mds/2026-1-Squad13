@@ -89,7 +89,7 @@ class CamaraAdapter:
 
 
     async def buscar_por_id(
-        self, id_proposicao: int, client: httpx.AsyncClient | None = None
+        self, id_proposicao: int, client: httpx.AsyncClient | None = None, cache=None
     ) -> Proposicao | None:
         url_proposicao = f"{self.base_url}/proposicoes/{id_proposicao}"
         url_autores = f"{url_proposicao}/autores"
