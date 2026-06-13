@@ -477,3 +477,87 @@ async def test_batch_size_calibration_backlog_alto(service, camara_mock, cache_m
         # Verifica se o batch_size usado no listar_recentes foi capped em 300
         assert camara_mock.listar_recentes.call_args[1]["quantidade"] == 300
 
+
+@pytest.mark.asyncio
+async def test_executar_fluxo_completo_sucesso(service, repo_mock, camara_mock, senado_mock, cache_mock):
+    """Executa o fluxo completo do service com sucesso para ambas as fontes."""
+    with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
+        mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
+        mock_date.fromisoformat.side_effect = datetime.fromisoformat
+
+        resumo = await service.executar()
+
+        assert resumo["modo"] == "catch_up"
+        assert "camara:2026:PL" in resumo["processados"]
+        assert "senado:2026:PL" in resumo["processados"]
+        assert resumo["processados"]["camara:2026:PL"] == 3
+        assert resumo["processados"]["senado:2026:PL"] == 2
+
+
+@pytest.mark.asyncio
+async def test_executar_sem_lacunas_manutencao(service, repo_mock, camara_mock, senado_mock, cache_mock):
+    """Executa em modo manutenção caso a cobertura local de todos os anos seja >= 95%."""
+    repo_mock.contar.return_value = 100
+
+    with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
+        mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
+        mock_date.fromisoformat.side_effect = datetime.fromisoformat
+
+        resumo = await service.executar()
+
+        assert resumo["modo"] == "manutencao"
+        assert resumo["processados"] == 0
+
+
+@pytest.mark.asyncio
+async def test_executar_cb_aberto(service, repo_mock, camara_mock, senado_mock, cache_mock):
+    """Pula o orgao se o Circuit Breaker estiver OPEN e o tempo de bloqueio for no futuro."""
+    bloqueado_ate = (datetime.now(UTC) + timedelta(minutes=15)).isoformat()
+    cache_mock.set("seeding:circuit_breaker:camara:estado", "OPEN")
+    cache_mock.set("seeding:circuit_breaker:camara:bloqueado_ate", bloqueado_ate)
+
+    with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
+        mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
+        mock_date.fromisoformat.side_effect = datetime.fromisoformat
+
+        resumo = await service.executar()
+
+        assert resumo["modo"] == "catch_up"
+        assert resumo["circuit_breakers"].get("camara") == "OPEN"
+        assert "senado:2026:PL" in resumo["processados"]
+        assert "camara:2026:PL" not in resumo["processados"]
+
+
+@pytest.mark.asyncio
+async def test_executar_erro_no_preenchimento(service, repo_mock, camara_mock, senado_mock, cache_mock):
+    """Registra falhas e calibra CB/Throughput caso ocorra um erro durante a requisição de lote."""
+    camara_mock.listar_recentes.side_effect = Exception("API offline temporariamente")
+
+    with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
+        mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
+        mock_date.fromisoformat.side_effect = datetime.fromisoformat
+
+        resumo = await service.executar()
+
+        assert "senado:2026:PL" in resumo["processados"]
+        assert "camara:2026:PL" not in resumo["processados"]
+
+        cb_falhas = cache_mock.get("seeding:circuit_breaker:camara:falhas")
+        assert cb_falhas == "1"
+
+
+@pytest.mark.asyncio
+async def test_executar_pruning_e_consolidacao_cobertura_alta(service, repo_mock, camara_mock, senado_mock, cache_mock):
+    """Consolida anos históricos se a cobertura for >= 99.5%."""
+    repo_mock.contar.side_effect = lambda tipo, ano, orgao_origem: 99.6 if orgao_origem == "Câmara dos Deputados" else 50
+
+    with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
+        mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
+        mock_date.fromisoformat.side_effect = datetime.fromisoformat
+
+        await service.executar()
+
+        assert cache_mock.get("seeding:consolidado:camara:2025:PL") == "1"
+        assert cache_mock.get("seeding:consolidado:camara:2025:PEC") == "1"
+
+

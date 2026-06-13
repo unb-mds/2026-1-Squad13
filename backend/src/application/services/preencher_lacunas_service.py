@@ -248,6 +248,7 @@ class PreencherLacunasService:
                 "timeout_count": 0,
                 "retry_after_max": 0,
                 "erros_criticos_lote": 0,
+                "erros_criticos_429_lote": 0,
                 "total_solicitados_lote": 0,
             }
         return config
