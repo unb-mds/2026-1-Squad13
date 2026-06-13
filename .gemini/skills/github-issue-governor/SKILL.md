@@ -69,3 +69,11 @@ Crie issue apenas se:
 - Nunca criar issue sem justificar prioridade.
 - Se houver ambiguidade sobre a feature correta, pergunte antes de criar.
 - Se a issue for grande demais, propor divisão em 2 ou mais issues.
+
+## Ciclo de Vida de Status e Integração Git
+- **Uso de Keywords em PRs**:
+  - Em Pull Requests direcionados para a branch `develop`, **não** use palavras-chave de fechamento automático do GitHub (ex: `Closes`, `Fixes`, `Resolves`) na descrição principal do PR. Em vez disso, use `Ref #XYZ` ou `Related #XYZ`.
+  - Isso garante que a issue não seja fechada acidentalmente pelo GitHub antes da integração final em produção.
+- **Transições de Status**:
+  - **Ao mergear na `develop`**: As issues correspondentes devem passar do status atual (`status:doing`/`status:todo`) para `status:merged-develop` (ou similar) e **permanecer abertas**.
+  - **Ao mergear na `main`**: Apenas após a branch `develop` (ou o PR de release) ser mesclado na branch `main`, as issues associadas devem ser finalizadas e **fechadas (Closed)** definitivamente.
