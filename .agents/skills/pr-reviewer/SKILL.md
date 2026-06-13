@@ -117,5 +117,7 @@ approve / comment / request-changes
 - Se a PR mexe em `squad-dashboard` ou CI/CD, lembre que labels e workflows alimentam o Squad Dashboard; trate isso com prioridade.
 - Leia sempre os arquivos `.gemini/pr-validation.json` e `.gemini/pr-validation.log` se disponíveis, para enriquecer a seção de Validação Local no parecer.
 - **Associação de Issues e Ciclo de Vida**:
-  - Toda PR deve estar explicitamente vinculada a pelo menos uma issue aberta no backlog. O revisor deve certificar-se de que a PR faz referência às issues de forma correta (ex: usando `Ref #XYZ` para manter o rastreamento sem disparar fechamento automático se a branch de destino for a `develop`).
-  - Verifique se as issues candidatas a serem resolvidas terão seus status modificados para `status:done` no merge da `develop` e serão fechadas apenas quando houver o merge final de release na branch `main`.
+  - Toda PR deve estar explicitamente vinculada a todas as issues resolvidas por ela. O revisor deve **obrigatoriamente listar os commits da branch** (ex: `git log develop..HEAD --oneline`) e cruzar com a lista de issues abertas do repositório (usando `gh issue list --limit 100`) para identificar e referenciar quaisquer issues adicionais resolvidas que não tenham sido incluídas na descrição original do PR.
+  - Certifique-se de que a descrição do PR faça referência às issues de forma correta (ex: usando `Ref #XYZ` para manter o rastreamento sem disparar fechamento automático se a branch de destino for a `develop`).
+  - **Transição Ativa de Status Labels**: Toda issue associada a um PR aberto/ativo deve ser atualizada para a label `status:review` (removendo `status:todo` ou `status:in_progress`) no momento da criação ou atualização do PR. Garanta que, ao fazer o merge na `develop`, as labels passem para `status:done` (permanecendo abertas), e sejam fechadas definitivamente apenas quando mescladas na branch `main`.
+
