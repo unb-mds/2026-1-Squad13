@@ -41,7 +41,7 @@ Antes de gerar qualquer comentário, você deve carregar esses dois arquivos par
 
 5. Executar ou Verificar Validação Local:
    - Antes de analisar o código, você DEVE garantir que os resultados de validação em `.gemini/pr-validation.json` são RECENTES (comparar timestamp com os últimos commits).
-   - Se os resultados forem inexistentes ou obsoletos, execute a validação local usando a ferramenta de comandos do Antigravity (`pytest`, `npm run lint` ou o script `.gemini/skills/pr-reviewer/scripts/review-pr.sh <num>`).
+   - Se os resultados forem inexistentes ou obsoletos, execute a validação local usando a ferramenta de comandos do Antigravity (`pytest`, `npm run lint` ou o script `.agents/skills/pr-reviewer/scripts/review-pr.sh <num>`).
    - Leia `.gemini/pr-validation.json` e `.gemini/pr-validation.log` para verificar se os linters (`Ruff`, `ESLint`, `TSC`) e testes (`Pytest`, `Vitest`) passaram locally. **Não ignore falhas de lint; reporte-as como bloqueios.**
    - **Auto-remediação de Lints:** Caso a validação local acuse erros triviais de estilo ou formatação (ex: problemas que o `ruff --fix` resolveria), utilize as ferramentas de edição de arquivos do Antigravity para aplicar os patches e correções diretamente na branch de trabalho local antes de finalizar o parecer.
 
@@ -116,3 +116,6 @@ approve / comment / request-changes
 - Evitar comentários de estilo triviais quando houver riscos arquiteturais ou de I/O mais relevantes.  
 - Se a PR mexe em `squad-dashboard` ou CI/CD, lembre que labels e workflows alimentam o Squad Dashboard; trate isso com prioridade.
 - Leia sempre os arquivos `.gemini/pr-validation.json` e `.gemini/pr-validation.log` se disponíveis, para enriquecer a seção de Validação Local no parecer.
+- **Associação de Issues e Ciclo de Vida**:
+  - Toda PR deve estar explicitamente vinculada a pelo menos uma issue aberta no backlog. O revisor deve certificar-se de que a PR faz referência às issues de forma correta (ex: usando `Ref #XYZ` para manter o rastreamento sem disparar fechamento automático se a branch de destino for a `develop`).
+  - Verifique se as issues candidatas a serem resolvidas terão seus status modificados para `status:done` no merge da `develop` e serão fechadas apenas quando houver o merge final de release na branch `main`.
