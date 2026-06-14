@@ -266,8 +266,11 @@ class SenadoAdapter:
                         num = ident.get("NumeroMateria")
                         ano_on = ident.get("AnoMateria")
                         if sigla and num and ano_on:
-                            # Formato canônico: "PL 2681/1996"
-                            tags.append(f"{sigla} {int(num)}/{ano_on}")
+                            try:
+                                num_str = str(int(num))
+                            except ValueError:
+                                num_str = str(num)
+                            tags.append(f"{sigla} {num_str}/{ano_on}")
 
                     id_processo = identificacao_obj.get("IdentificacaoProcesso")
                     if id_processo:

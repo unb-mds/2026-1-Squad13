@@ -140,7 +140,13 @@ class ColetarEmLoteService:
                     self.listar_movimentacoes_service.executar(prop.id, client=client)
                 )
 
-            await asyncio.gather(*tasks, return_exceptions=True)
+            resultados = await asyncio.gather(*tasks, return_exceptions=True)
+            for idx, res in enumerate(resultados):
+                if isinstance(res, Exception):
+                    logger.error(
+                        f"Erro ao processar movimentações para a proposição {batch[idx].id}: {res}",
+                        exc_info=res
+                    )
             logger.info(
                 f"Processados eventos para {min(i + batch_size, len(proposicoes))}/{len(proposicoes)} proposições."
             )
