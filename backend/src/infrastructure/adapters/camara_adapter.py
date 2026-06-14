@@ -61,7 +61,7 @@ class CamaraAdapter:
                 orgao_atual = f"Apensada ao {orgao_atual}"
 
             return Proposicao(
-                id=str(id_proposicao),
+                id=f"camara:{id_proposicao}",
                 tipo=dados.get("siglaTipo", ""),
                 numero=str(dados.get("numero", 0)),
                 ano=dados.get("ano", 0),
