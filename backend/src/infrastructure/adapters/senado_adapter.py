@@ -126,7 +126,7 @@ class SenadoAdapter:
                 data_ultima_movimentacao = data_apresentacao
 
             return Proposicao(
-                id=str(id_materia),
+                id=f"senado:{id_materia}",
                 tipo=tipo,
                 numero=str(numero),
                 ano=ano,
@@ -306,7 +306,7 @@ class SenadoAdapter:
             data_ultima_movimentacao = data_apresentacao
 
         return Proposicao(
-            id=id_materia,
+            id=f"senado:{id_materia}",
             tipo=tipo,
             numero=str(numero),
             ano=ano,
