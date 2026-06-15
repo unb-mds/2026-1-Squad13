@@ -77,3 +77,59 @@ def lista_proposicoes(proposicao_exemplo):
             tags=[],
         ),
     ]
+
+
+@pytest.fixture
+def camara_api_proposicao_json():
+    return {
+        "dados": {
+            "id": 2368289,
+            "siglaTipo": "PL",
+            "numero": 2981,
+            "ano": 2023,
+            "ementa": "Altera a Lei nº...",
+            "dataApresentacao": "2023-06-05T14:32:00",
+            "statusProposicao": {
+                "dataHora": "2023-06-20T10:00:00",
+                "siglaOrgao": "CCJC",
+                "despacho": "Aguardando Parecer",
+                "descricaoSituacao": "Pronta para Pauta",
+            },
+        }
+    }
+
+
+@pytest.fixture
+def camara_api_autores_json():
+    return {"dados": [{"nome": "João das Couves", "siglaUf": "SP"}]}
+
+
+@pytest.fixture
+def senado_api_materia_json():
+    return {
+        "DetalheMateria": {
+            "Materia": {
+                "IdentificacaoMateria": {
+                    "DescricaoIdentificacaoMateria": "PL 1234/2023",
+                    "IdentificacaoProcesso": "1234567",
+                },
+                "DadosBasicosMateria": {
+                    "EmentaMateria": "Ementa de teste Senado",
+                    "DataApresentacao": "2023-01-01",
+                    "Autor": "Senador Fulano",
+                },
+                "SituacaoAtual": {
+                    "Autuacoes": {
+                        "Autuacao": [
+                            {
+                                "Situacao": {
+                                    "DescricaoSituacao": "Aguardando Relator",
+                                    "DataSituacao": "2023-02-01",
+                                }
+                            }
+                        ]
+                    }
+                },
+            }
+        }
+    }

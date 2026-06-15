@@ -8,6 +8,7 @@ from infrastructure.adapters.senado_adapter import SenadoAdapter
 @pytest.mark.asyncio
 async def test_senado_adapter_buscar_por_id_valido():
     """Verifica se o adaptador consegue buscar e converter uma matéria real do Senado."""
+
     adapter = SenadoAdapter()
     # ID usado no exemplo original
     id_valido = 8147067
@@ -16,7 +17,7 @@ async def test_senado_adapter_buscar_por_id_valido():
 
     assert proposicao is not None
     assert isinstance(proposicao, Proposicao)
-    assert proposicao.id == str(id_valido)
+    assert proposicao.id == f"senado:{id_valido}"
     assert proposicao.ementa is not None
     assert "Senado Federal" in proposicao.orgao_atual
     assert "senado.leg.br" in proposicao.link_oficial
