@@ -8,6 +8,12 @@ from domain.classificacao_preditiva import (
     identificar_autor_executivo,
 )
 from domain.entities.proposicao import Proposicao
+from domain.exceptions import (
+    ApiConnectionError,
+    ApiRateLimitError,
+    ApiServerError,
+    ApiTimeoutError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,42 +40,68 @@ class CamaraAdapter:
         max_retries = 3
 
         for attempt in range(max_retries):
+            # Escala connect de 3.0s até 6.0s (3.0 -> 4.5 -> 6.0)
+            connect_timeout = min(3.0 + (attempt * 1.5), 6.0)
+            timeout_dinamico = httpx.Timeout(8.0, connect=connect_timeout)
             try:
                 resp = await client.get(
                     url,
                     params=params,
                     headers=self.headers,
-                    timeout=self.default_timeout,
+                    timeout=timeout_dinamico,
                 )
                 if resp.status_code == 429:
-                    wait_time = 2 * (attempt + 1)
-                    logger.warning(
-                        f"⏳ Câmara aplicando Rate Limit. Aguardando {wait_time}s..."
-                    )
-                    await asyncio.sleep(wait_time)
-                    continue
+                    retry_after = resp.headers.get("Retry-After")
+                    if attempt < max_retries - 1:
+                        wait_time = 2 * (attempt + 1)
+                        logger.warning(
+                            f"⏳ Câmara aplicando Rate Limit. Aguardando {wait_time}s..."
+                        )
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        raise ApiRateLimitError(
+                            "Câmara com limite de requisições excedido",
+                            retry_after=retry_after,
+                        )
 
-                if resp.status_code >= 500 and attempt < max_retries - 1:
-                    logger.warning(
-                        f"🔄 Câmara instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
-                    )
-                    await asyncio.sleep(1)
-                    continue
+                if resp.status_code >= 500:
+                    if attempt < max_retries - 1:
+                        logger.warning(
+                            f"🔄 Câmara instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
+                        )
+                        await asyncio.sleep(1)
+                        continue
+                    else:
+                        raise ApiServerError(
+                            f"Erro no servidor da Câmara: {resp.status_code}",
+                            resp.status_code,
+                        )
 
                 resp.raise_for_status()
                 return resp
-            except httpx.RequestError as e:
+            except httpx.TimeoutException as e:
                 if attempt < max_retries - 1:
                     logger.warning(
-                        f"🔌 Falha de rede na Câmara ({type(e).__name__}). Retentando..."
+                        f"🕒 Timeout na Câmara (connect={connect_timeout}s). Tentando novamente ({attempt + 1}/{max_retries})..."
                     )
                     await asyncio.sleep(1)
                 else:
-                    raise
-        raise httpx.RequestError("Câmara indisponível")
+                    raise ApiTimeoutError("Timeout na API da Câmara") from e
+            except httpx.RequestError as e:
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        f"🔌 Falha de conexão/rede na Câmara ({type(e).__name__}, connect={connect_timeout}s). Retentando..."
+                    )
+                    await asyncio.sleep(1)
+                else:
+                    raise ApiConnectionError(
+                        f"Falha de conexão com a Câmara: {type(e).__name__}"
+                    ) from e
+        raise ApiConnectionError("Câmara indisponível")
 
     async def buscar_por_id(
-        self, id_proposicao: int, client: httpx.AsyncClient | None = None
+        self, id_proposicao: int, client: httpx.AsyncClient | None = None, cache=None
     ) -> Proposicao | None:
         url_proposicao = f"{self.base_url}/proposicoes/{id_proposicao}"
         url_autores = f"{url_proposicao}/autores"
@@ -260,15 +292,14 @@ class CamaraAdapter:
 
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
-            try:
-                resp = await self._get_with_retry(_client, url, params=params)
-                dados = resp.json()["dados"]
-                return [d["id"] for d in dados]
-            except Exception as e:
-                logger.error(
-                    f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}, num={numero}): {e}"
-                )
-                return []
+            resp = await self._get_with_retry(_client, url, params=params)
+            dados = resp.json()["dados"]
+            return [d["id"] for d in dados]
+        except Exception as e:
+            logger.error(
+                f"Erro ao listar proposições na Câmara (tipo={tipo}, ano={ano}, num={numero}): {e}"
+            )
+            raise e
         finally:
             if client is None:
                 await _client.aclose()

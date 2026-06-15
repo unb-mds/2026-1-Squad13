@@ -33,7 +33,8 @@ Define a posição inicial no Kanban/Dashboard.
 
 ### D. Release
 Define a versão de entrega.
-- `release:R1` (MVP), `release:R2` (Produto Completo).
+- `release:R2` (MVP Final).
+- `release:R1` (MVP Intermediário - Concluída / Depreciada).
 
 ### E. Mapeamento de Feature (CRÍTICO)
 Este campo alimenta os gráficos de progresso por Épico no dashboard. Escolha a label `feat:fX` que melhor se adapta:

@@ -45,6 +45,11 @@ export interface MovimentacaoTramitacao {
   temAtraso: boolean
 }
 
+export interface TrendInfo {
+  value: string
+  isPositive: boolean
+}
+
 export interface MetricasDashboard {
   tempoMedioTramitacao: number
   totalProposicoes: number
@@ -55,6 +60,10 @@ export interface MetricasDashboard {
   totalAprovadas: number
   totalEmTramitacao: number
   totalRejeitadas: number
+  totalProposicoesTrend?: TrendInfo
+  totalEmTramitacaoTrend?: TrendInfo
+  proposicoesComAtrasoTrend?: TrendInfo;
+  tempoMedioTramitacaoTrend?: TrendInfo;
 }
 
 export interface DadosGraficoTipo {

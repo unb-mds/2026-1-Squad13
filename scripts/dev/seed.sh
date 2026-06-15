@@ -2,6 +2,7 @@
 set -euo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/../common.sh"
+ensure_env_file
 
 SOURCE=""
 LIMIT=""
