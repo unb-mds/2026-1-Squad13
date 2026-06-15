@@ -66,19 +66,19 @@ def test_obter_metricas_gerais(session: Session):
     assert metricas["ieiMedio"] == 0.3  # (0.5 + 0.1) / 2
     assert metricas["percentualAtrasadas"] == 50
     assert metricas["totalProposicoesTrend"] == {
-        "value": "+12% vs mês anterior",
+        "value": "+100% vs mês anterior",
         "isPositive": True,
     }
     assert metricas["totalEmTramitacaoTrend"] == {
-        "value": "+8% vs mês anterior",
+        "value": "+100% vs mês anterior",
         "isPositive": True,
     }
     assert metricas["proposicoesComAtrasoTrend"] == {
-        "value": "-5% vs mês anterior",
-        "isPositive": True,
+        "value": "+100% vs mês anterior",
+        "isPositive": False,
     }
     assert metricas["tempoMedioTramitacaoTrend"] == {
-        "value": "+3 dias vs trimestre",
+        "value": "+150 dias vs mês anterior",
         "isPositive": False,
     }
 
