@@ -9,6 +9,7 @@ from application.services.coletar_em_lote_service import ColetarEmLoteService
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
+from infrastructure.cache.redis_client import RedisClient
 from infrastructure.database import engine
 from infrastructure.repositories.sql_apensamento_repository import (
     SQLApensamentoRepository,
@@ -71,6 +72,26 @@ def task_coletar_proposicoes_diario(self):
                 proposicao_repo=repository,
             )
 
+            from application.services.atualizar_cobertura_service import (
+                AtualizarCoberturaService,
+            )
+            from infrastructure.cache.redis_client import RedisClient
+            from infrastructure.database import init_redis
+            from infrastructure.repositories.sql_cobertura_snapshot_repository import (
+                SQLCoberturaSnapshotRepository,
+            )
+
+            redis_raw = init_redis()
+            cache_provider = RedisClient(redis_raw)
+
+            cobertura_repo = SQLCoberturaSnapshotRepository(session)
+            cobertura_service = AtualizarCoberturaService(
+                cobertura_repo=cobertura_repo,
+                proposicao_repo=repository,
+                camara_adapter=camara_adapter,
+                senado_adapter=senado_adapter,
+            )
+
             service = ColetarEmLoteService(
                 repository=repository,
                 evento_repo=evento_repo,
@@ -81,6 +102,8 @@ def task_coletar_proposicoes_diario(self):
                 camara_adapter=camara_adapter,
                 senado_adapter=senado_adapter,
                 reconstruir_service=reconstruir_service,
+                cobertura_service=cobertura_service,
+                cache_provider=cache_provider,
             )
 
             try:
@@ -123,6 +146,20 @@ def task_coletar_proposicoes_diario(self):
             )
             raise self.retry(exc=Exception("Coleta falhou totalmente"), countdown=delay)
 
+        # Invalida o cache do dashboard após nova ingestão com sucesso
+        try:
+            from infrastructure.cache.redis_client import RedisClient
+            from infrastructure.database import init_redis
+
+            redis_raw = init_redis()
+            cache_provider = RedisClient(redis_raw)
+            cache_provider.invalidate("dashboard:")
+            logger.info("⚡ Cache do dashboard invalidado após coleta diária.")
+        except Exception as cache_err:
+            logger.error(
+                f"Falha ao invalidar cache do dashboard na coleta diária: {cache_err}"
+            )
+
         logger.info(f"Worker finalizado. Resumo: {resumo}")
         return resumo
     except Exception as exc:
@@ -154,5 +191,88 @@ def task_backfill_emendas():
             return await service.executar()
 
     resumo = asyncio.run(_run())
+
+    # Invalida o cache do dashboard após backfill de emendas
+    try:
+        from infrastructure.cache.redis_client import RedisClient
+        from infrastructure.database import init_redis
+
+        redis_raw = init_redis()
+        cache_provider = RedisClient(redis_raw)
+        cache_provider.invalidate("dashboard:")
+        logger.info("⚡ Cache do dashboard invalidado após backfill de emendas.")
+    except Exception as cache_err:
+        logger.error(
+            f"Falha ao invalidar cache do dashboard no backfill de emendas: {cache_err}"
+        )
+
     logger.info(f"Worker finalizado. Resumo: {resumo}")
     return resumo
+
+
+@shared_task(bind=True, name="preencher_lacunas_cobertura", max_retries=2)
+def task_preencher_lacunas(self):
+    """
+    Task periódica do Celery para preencher lacunas de cobertura adaptativamente.
+    Implementa proteção contra overlap de tasks periódicas.
+    """
+    import uuid
+
+    from application.services.preencher_lacunas_service import PreencherLacunasService
+    from infrastructure.database import get_redis_client
+
+    job_id = self.request.id or "lacunas-manual"
+    logger.info(f"Iniciando worker: task_preencher_lacunas (job_id: {job_id})")
+
+    redis_conn = get_redis_client()
+    cache = RedisClient(redis_conn)
+
+    # Proteção contra overlap de tasks com token único
+    token = str(uuid.uuid4())
+    chave_lock = "seeding:lock:task_executando"
+
+    # Tenta adquirir lock por 30 minutos (1800 segundos)
+    if not cache.set_nx(chave_lock, token, ttl_seconds=1800):
+        logger.warning(
+            "⚠️ Instância anterior da task preencher_lacunas ainda em andamento. Abortando execução atual."
+        )
+        return {"modo": "overlap_bloqueado", "processados": 0}
+
+    async def _run():
+        with Session(engine) as session:
+            repo = SQLProposicaoRepository(session)
+            camara = CamaraAdapter()
+            senado = SenadoAdapter()
+
+            service = PreencherLacunasService(
+                proposicao_repo=repo,
+                camara_adapter=camara,
+                senado_adapter=senado,
+                cache=cache,
+            )
+            return await service.executar()
+
+    try:
+        resumo = asyncio.run(_run())
+        logger.info(f"Gap-filler finalizado. Resumo: {resumo}")
+        return resumo
+    except Exception as exc:
+        delay = 120 * (2**self.request.retries)
+        try:
+            raise self.retry(exc=exc, countdown=delay)
+        except MaxRetriesExceededError:
+            logger.exception("Limite de retries excedido para gap-filler.")
+            raise exc from None
+    finally:
+        # Liberação segura do lock global por token único
+        lua_release = """
+        if redis.call('get', KEYS[1]) == ARGV[1] then
+            return redis.call('del', KEYS[1])
+        else
+            return 0
+        end
+        """
+        try:
+            cache.eval_lua(lua_release, [chave_lock], [token])
+        except Exception as e:
+            logger.error(f"Erro ao liberar o lock da task Celery: {e}")

@@ -20,7 +20,7 @@ mkdir -p "$GEMINI_DIR"
 
 echo "📦 Coletando contexto da PR #$PR_NUMBER..."
 gh pr view "$PR_NUMBER" \
-  --json number,title,body,files,comments,reviews,reviewDecision,changedFiles,url,baseRefName,headRefName \
+  --json number,title,body,files,comments,reviews,reviewDecision,changedFiles,url,baseRefName,headRefName,mergeable \
   > "$GEMINI_DIR/pr-context.json"
 
 echo "📄 Listando arquivos alterados..."

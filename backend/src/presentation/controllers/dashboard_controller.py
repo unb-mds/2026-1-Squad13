@@ -13,6 +13,16 @@ from presentation.dashboard_dependencies import (
 router = APIRouter(tags=["Dashboard"])
 
 
+class TrendInfoResponse(BaseModel):
+    value: str
+    isPositive: bool = Field(alias="isPositive")
+
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True,
+    }
+
+
 class DashboardMetricasResponse(BaseModel):
     tempoMedioTramitacao: int
     totalProposicoes: int
@@ -25,6 +35,22 @@ class DashboardMetricasResponse(BaseModel):
     iarMedio: float
     ieiMedio: float
     percentualAtrasadas: int
+    totalProposicoesTrend: TrendInfoResponse | None = Field(
+        default=None, alias="totalProposicoesTrend"
+    )
+    totalEmTramitacaoTrend: TrendInfoResponse | None = Field(
+        default=None, alias="totalEmTramitacaoTrend"
+    )
+    proposicoesComAtrasoTrend: TrendInfoResponse | None = Field(
+        default=None, alias="proposicoesComAtrasoTrend"
+    )
+    tempoMedioTramitacaoTrend: TrendInfoResponse | None = Field(
+        default=None, alias="tempoMedioTramitacaoTrend"
+    )
+
+    model_config = {
+        "populate_by_name": True,
+    }
 
 
 class DadosGraficoTipoResponse(BaseModel):
@@ -115,6 +141,7 @@ class DashboardHandoffResponse(BaseModel):
 class CoberturaMetricaResponse(BaseModel):
     ano: int
     tipoProposicao: str = Field(validation_alias="tipo_proposicao")
+    fonte: str = Field(default="")  # "camara" | "senado"
     totalLocal: int = Field(validation_alias="total_local")
     totalApiOficial: int = Field(validation_alias="total_api_oficial")
     percentualCobertura: float = Field(validation_alias="percentual_cobertura")

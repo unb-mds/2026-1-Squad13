@@ -8,6 +8,13 @@ from domain.classificacao_preditiva import (
     identificar_autor_executivo,
 )
 from domain.entities.proposicao import Proposicao
+from domain.exceptions import (
+    ApiConnectionError,
+    ApiException,
+    ApiRateLimitError,
+    ApiServerError,
+    ApiTimeoutError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,32 +37,52 @@ class SenadoAdapter:
         params=None,
         headers=None,
         timeout=None,
+        max_retries=3,
+        backoff_type="exponential",
     ) -> httpx.Response:
         """Helper para realizar requisições com retry rápido em caso de erro."""
-        max_retries = 3
-        # Usa o timeout customizado ou o padrão granular
-        timeout_config = timeout or self.default_timeout
-
         for attempt in range(max_retries):
+            # Escala connect de 3.0s até 6.0s se timeout não for passado
+            if timeout is None:
+                connect_timeout = min(3.0 + (attempt * 1.5), 6.0)
+                timeout_config = httpx.Timeout(8.0, connect=connect_timeout)
+            else:
+                timeout_config = timeout
+                connect_timeout = getattr(timeout_config, "connect", 3.0)
+
             try:
                 resp = await client.get(
                     url, params=params, headers=headers, timeout=timeout_config
                 )
 
                 if resp.status_code == 429:
-                    wait_time = 3 * (attempt + 1)
-                    logger.warning(
-                        f"⏳ Senado aplicando Rate Limit. Aguardando {wait_time}s..."
-                    )
-                    await asyncio.sleep(wait_time)
-                    continue
+                    retry_after = resp.headers.get("Retry-After")
+                    if attempt < max_retries - 1:
+                        wait_time = 1 if backoff_type == "flat" else (3 * (attempt + 1))
+                        logger.warning(
+                            f"⏳ Senado aplicando Rate Limit. Aguardando {wait_time}s..."
+                        )
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        raise ApiRateLimitError(
+                            "Senado com limite de requisições excedido",
+                            retry_after=retry_after,
+                        )
 
-                if resp.status_code >= 500 and attempt < max_retries - 1:
-                    logger.warning(
-                        f"🔄 Senado instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
-                    )
-                    await asyncio.sleep(1)
-                    continue
+                if resp.status_code >= 500:
+                    if attempt < max_retries - 1:
+                        logger.warning(
+                            f"🔄 Senado instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
+                        )
+                        delay = 1 if backoff_type == "flat" else (attempt + 1)
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        raise ApiServerError(
+                            f"Erro no servidor do Senado: {resp.status_code}",
+                            resp.status_code,
+                        )
 
                 if resp.status_code != 404:
                     resp.raise_for_status()
@@ -63,33 +90,41 @@ class SenadoAdapter:
             except (httpx.ConnectTimeout, httpx.ConnectError) as e:
                 if attempt < max_retries - 1:
                     logger.warning(
-                        f"🔌 Erro de conexão com Senado ({type(e).__name__}). Possível Cold Start ou DNS lento. Tentando reconectar ({attempt + 1}/{max_retries})..."
+                        f"🔌 Erro de conexão com Senado ({type(e).__name__}). Possível Cold Start ou DNS lento. "
+                        f"Tentando reconectar ({attempt + 1}/{max_retries}) com connect={connect_timeout}s..."
                     )
-                    await asyncio.sleep(
-                        2
-                    )  # Aumentado para dar tempo ao sistema operacional
+                    delay = 1 if backoff_type == "flat" else 2
+                    await asyncio.sleep(delay)
                 else:
-                    raise
-            except httpx.TimeoutException:
+                    raise ApiConnectionError(
+                        f"Falha de conexão com o Senado: {type(e).__name__}"
+                    ) from e
+            except httpx.TimeoutException as e:
                 if attempt < max_retries - 1:
                     logger.warning(
-                        f"🕒 Timeout no Senado. Tentando novamente ({attempt + 1}/{max_retries})..."
+                        f"🕒 Timeout no Senado (connect={connect_timeout}s). Tentando novamente ({attempt + 1}/{max_retries})..."
                     )
-                    await asyncio.sleep(1)
+                    delay = 1 if backoff_type == "flat" else 1
+                    await asyncio.sleep(delay)
                 else:
-                    raise
+                    raise ApiTimeoutError("Timeout na API do Senado") from e
             except Exception as e:
+                if isinstance(e, ApiException):
+                    raise e
                 if attempt < max_retries - 1:
                     logger.warning(
                         f"🔄 Falha inesperada no Senado: {type(e).__name__}. Retentando..."
                     )
-                    await asyncio.sleep(1)
+                    delay = 1 if backoff_type == "flat" else 1
+                    await asyncio.sleep(delay)
                 else:
-                    raise
-        raise httpx.RequestError("Senado indisponível após múltiplas tentativas")
+                    raise ApiConnectionError(
+                        f"Falha inesperada no Senado: {type(e).__name__}"
+                    ) from e
+        raise ApiConnectionError("Senado indisponível após múltiplas tentativas")
 
     async def buscar_por_id(
-        self, id_materia: int, client: httpx.AsyncClient | None = None
+        self, id_materia: int, client: httpx.AsyncClient | None = None, cache=None
     ) -> Proposicao | None:
         """
         Busca detalhes de uma matéria legislativa no Senado.
@@ -103,11 +138,45 @@ class SenadoAdapter:
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
             try:
+                # Verifica a degradação seletiva de emendas
+                emendas_degradadas = False
+                if cache is not None:
+                    try:
+                        if cache.get("seeding:degradacao:senado:emendas") is not None:
+                            emendas_degradadas = True
+                    except Exception as e:
+                        logger.error(f"Erro ao verificar chave de degradação: {e}")
+
                 # Dispara requisições da matéria principal e emendas em paralelo
-                task_materia = self._get_with_retry(_client, url, headers=headers)
-                task_emendas = self._get_with_retry(
-                    _client, url_emendas, headers=headers
+                task_materia = self._get_with_retry(
+                    _client,
+                    url,
+                    headers=headers,
+                    timeout=httpx.Timeout(12.0, connect=3.0),
+                    max_retries=3,
+                    backoff_type="exponential",
                 )
+
+                if emendas_degradadas:
+                    logger.warning(
+                        f"⚠️ [DEGRADACAO_ATIVA] Senado com API de emendas degradada. Ignorando endpoint para ID {id_materia}."
+                    )
+
+                    async def mock_emendas():
+                        return httpx.Response(
+                            404, request=httpx.Request("GET", url_emendas)
+                        )
+
+                    task_emendas = mock_emendas()
+                else:
+                    task_emendas = self._get_with_retry(
+                        _client,
+                        url_emendas,
+                        headers=headers,
+                        timeout=httpx.Timeout(6.0, connect=3.0),
+                        max_retries=2,
+                        backoff_type="flat",
+                    )
 
                 res_materia, res_emendas = await asyncio.gather(
                     task_materia, task_emendas, return_exceptions=True
@@ -121,7 +190,12 @@ class SenadoAdapter:
                     ):
                         url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
                         resp = await self._get_with_retry(
-                            _client, url_proc, headers=headers
+                            _client,
+                            url_proc,
+                            headers=headers,
+                            timeout=httpx.Timeout(15.0, connect=3.0),
+                            max_retries=2,
+                            backoff_type="linear",
                         )
                     else:
                         raise res_materia
@@ -130,7 +204,12 @@ class SenadoAdapter:
                     if resp.status_code == 404:
                         url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
                         resp = await self._get_with_retry(
-                            _client, url_proc, headers=headers
+                            _client,
+                            url_proc,
+                            headers=headers,
+                            timeout=httpx.Timeout(15.0, connect=3.0),
+                            max_retries=2,
+                            backoff_type="linear",
                         )
 
                 resp.raise_for_status()
@@ -148,6 +227,30 @@ class SenadoAdapter:
                         logger.warning(
                             f"Não foi possível buscar emendas para proposição {id_materia} no Senado: {res_emendas}"
                         )
+                        # Ativa degradação seletiva por 15 minutos se falhou por timeout ou 429
+                        if cache is not None:
+                            try:
+                                err_str = str(res_emendas)
+                                is_transient = (
+                                    isinstance(
+                                        res_emendas,
+                                        (ApiTimeoutError, ApiRateLimitError),
+                                    )
+                                    or "timeout" in err_str.lower()
+                                    or "429" in err_str
+                                )
+                                if is_transient:
+                                    logger.warning(
+                                        f"⚠️ [DEGRADACAO_INICIADA] Falha transitória em emendas ({type(res_emendas).__name__}). Ativando degradação por 15m."
+                                    )
+                                    cache.set(
+                                        "seeding:degradacao:senado:emendas",
+                                        "1",
+                                        ttl_seconds=900,
+                                    )
+                            except Exception as ce:
+                                logger.error(f"Erro ao setar chave de degradação: {ce}")
+                        numero_emendas = 0
                 else:
                     if res_emendas.status_code == 200:
                         data_emendas = res_emendas.json()
@@ -190,8 +293,11 @@ class SenadoAdapter:
                         num = ident.get("NumeroMateria")
                         ano_on = ident.get("AnoMateria")
                         if sigla and num and ano_on:
-                            # Formato canônico: "PL 2681/1996"
-                            tags.append(f"{sigla} {int(num)}/{ano_on}")
+                            try:
+                                num_str = str(int(num))
+                            except ValueError:
+                                num_str = str(num)
+                            tags.append(f"{sigla} {num_str}/{ano_on}")
 
                     id_processo = identificacao_obj.get("IdentificacaoProcesso")
                     if id_processo:
@@ -337,6 +443,8 @@ class SenadoAdapter:
                 )
                 return None
             except Exception as e:
+                if isinstance(e, ApiException):
+                    raise e
                 logger.error(
                     f"Erro inesperado ao processar dados do Senado para ID {id_materia}: {e}"
                 )
@@ -402,30 +510,29 @@ class SenadoAdapter:
         headers = {"Accept": "application/json"}
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
-            try:
-                resp = await self._get_with_retry(
-                    _client, url, params=params, headers=headers
-                )
-                resp.raise_for_status()
-                dados = resp.json()
+            resp = await self._get_with_retry(
+                _client, url, params=params, headers=headers
+            )
+            resp.raise_for_status()
+            dados = resp.json()
 
-                if not isinstance(dados, list):
-                    dados = [dados] if dados else []
+            if not isinstance(dados, list):
+                dados = [dados] if dados else []
 
-                ids = []
-                for m in dados:
-                    if "codigoMateria" in m:
-                        ids.append(int(m["codigoMateria"]))
-                    elif "id" in m:
-                        ids.append(int(m["id"]))
+            ids = []
+            for m in dados:
+                if "codigoMateria" in m:
+                    ids.append(int(m["codigoMateria"]))
+                elif "id" in m:
+                    ids.append(int(m["id"]))
 
-                # Aplica paginação simulada na lista completa
-                start_offset = (pagina - 1) * quantidade
-                end_offset = start_offset + quantidade
-                return ids[start_offset:end_offset]
-            except Exception as e:
-                logger.error(f"Erro ao listar recentes do Senado: {e}")
-                return []
+            # Aplica paginação simulada na lista completa
+            start_offset = (pagina - 1) * quantidade
+            end_offset = start_offset + quantidade
+            return ids[start_offset:end_offset]
+        except Exception as e:
+            logger.error(f"Erro ao listar recentes do Senado: {e}")
+            raise e
         finally:
             if client is None:
                 await _client.aclose()

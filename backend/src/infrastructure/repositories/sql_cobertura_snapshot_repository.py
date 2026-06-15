@@ -7,7 +7,11 @@ from infrastructure.database.models.cobertura_snapshot_model import (
 
 
 class SQLCoberturaSnapshotRepository:
-    """Repositório SQL para snapshots de cobertura."""
+    """Repositório SQL para snapshots de cobertura.
+
+    A chave de upsert leva em conta `(ano, tipo_proposicao, fonte)`.
+    Snapshots legados (sem `fonte`) são identificados por `fonte=""`.
+    """
 
     def __init__(self, session: Session):
         self.session = session
@@ -19,7 +23,7 @@ class SQLCoberturaSnapshotRepository:
         return CoberturaSnapshotModel.model_validate(entity.model_dump())
 
     def salvar(self, snapshot: CoberturaSnapshot) -> CoberturaSnapshot:
-        """Salva ou atualiza um snapshot no banco."""
+        """Salva ou atualiza um snapshot no banco (upsert por ano + tipo + fonte)."""
         model = self._to_model(snapshot)
         if model.id:
             existing = self.session.get(CoberturaSnapshotModel, model.id)
@@ -28,9 +32,11 @@ class SQLCoberturaSnapshotRepository:
                     setattr(existing, key, value)
                 model = existing
         else:
+            # Upsert por (ano, tipo_proposicao, fonte) — chave natural de negócio
             statement = select(CoberturaSnapshotModel).where(
                 CoberturaSnapshotModel.ano == model.ano,
                 CoberturaSnapshotModel.tipo_proposicao == model.tipo_proposicao,
+                CoberturaSnapshotModel.fonte == model.fonte,
             )
             existing = self.session.exec(statement).first()
             if existing:
@@ -43,13 +49,33 @@ class SQLCoberturaSnapshotRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
-    def buscar_por_ano_e_tipo(
-        self, ano: int, tipo_proposicao: str
+    def buscar_por_ano_tipo_e_fonte(
+        self, ano: int, tipo_proposicao: str, fonte: str
     ) -> CoberturaSnapshot | None:
-        """Busca o snapshot de cobertura correspondente ao ano e tipo."""
+        """Busca o snapshot de cobertura pelo par (ano, tipo, fonte)."""
         statement = select(CoberturaSnapshotModel).where(
             CoberturaSnapshotModel.ano == ano,
             CoberturaSnapshotModel.tipo_proposicao == tipo_proposicao,
+            CoberturaSnapshotModel.fonte == fonte,
+        )
+        model = self.session.exec(statement).first()
+        return self._to_entity(model) if model else None
+
+    def buscar_por_ano_e_tipo(
+        self, ano: int, tipo_proposicao: str
+    ) -> CoberturaSnapshot | None:
+        """Busca o snapshot mais recente pelo ano e tipo (sem distinção de fonte).
+
+        Mantido para retrocompatibilidade com chamadas legadas.
+        Prefira `buscar_por_ano_tipo_e_fonte` em código novo.
+        """
+        statement = (
+            select(CoberturaSnapshotModel)
+            .where(
+                CoberturaSnapshotModel.ano == ano,
+                CoberturaSnapshotModel.tipo_proposicao == tipo_proposicao,
+            )
+            .order_by(CoberturaSnapshotModel.data_atualizacao.desc())
         )
         model = self.session.exec(statement).first()
         return self._to_entity(model) if model else None

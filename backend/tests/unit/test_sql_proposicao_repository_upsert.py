@@ -120,3 +120,111 @@ def test_upsert_em_lote_case_insensitivity(session):
     saved = repo.buscar_por_codigo("pL", "200", 2024)
     assert saved.autor == "Novo Autor"
     assert len(session.exec(select(ProposicaoModel)).all()) == 1
+
+
+def test_upsert_em_lote_diferentes_casas_preserva_origem(session):
+    repo = SQLProposicaoRepository(session)
+
+    # 1. Insere proposição iniciada na Câmara pós-2019
+    prop_camara = Proposicao(
+        id="camara:50",
+        tipo="PL",
+        numero="50",
+        ano=2020,
+        autor="Deputado Iniciador",
+        ementa="Ementa da Câmara",
+        data_apresentacao="2020-05-10",
+        orgao_origem="Câmara dos Deputados",
+        status="Em Tramitação",
+        orgao_atual="Câmara dos Deputados",
+        link_oficial="link-camara",
+        data_ultima_movimentacao="2020-05-10",
+    )
+    repo.upsert_em_lote_por_numero_canonico([prop_camara])
+
+    # 2. Insere proposição do Senado com mesma chave canônica (PL 50/2020)
+    # Simula a coleta do Senado que é a casa revisora
+    prop_senado = Proposicao(
+        id="senado:888",
+        tipo="PL",
+        numero="50",
+        ano=2020,
+        autor="Senador Relator",
+        ementa="Ementa do Senado que revisa a matéria",
+        data_apresentacao="2020-08-15",
+        orgao_origem="Senado Federal",
+        status="Aprovada",
+        orgao_atual="Senado Federal",
+        link_oficial="link-senado",
+        data_ultima_movimentacao="2020-08-15",
+    )
+    repo.upsert_em_lote_por_numero_canonico([prop_senado])
+
+    session.expire_all()
+    saved = repo.buscar_por_codigo("PL", "50", 2020)
+
+    assert saved is not None
+    # ID e metadados de origem da casa iniciadora devem ser preservados
+    assert saved.id == "camara:50"
+    assert saved.orgao_origem == "Câmara dos Deputados"
+    assert saved.autor == "Deputado Iniciador"
+    assert saved.data_apresentacao == "2020-05-10"
+
+    # Metadados mutáveis de andamento atual devem ser atualizados
+    assert saved.orgao_atual == "Senado Federal"
+    assert saved.status == "Aprovada"
+    assert saved.data_ultima_movimentacao == "2020-08-15"
+    assert len(session.exec(select(ProposicaoModel)).all()) == 1
+
+
+def test_upsert_em_lote_pre_2019_nao_colide(session):
+    repo = SQLProposicaoRepository(session)
+
+    # Inserção de duas matérias com mesma sigla/número/ano anteriores a 2019
+    # que nasceram em casas diferentes (Devem ser salvas como registros distintos)
+    prop1 = Proposicao(
+        id="camara:100",
+        tipo="PL",
+        numero="100",
+        ano=2015,
+        autor="Deputado Antigo",
+        ementa="Ementa da Câmara de 2015",
+        data_apresentacao="2015-01-01",
+        orgao_origem="Câmara dos Deputados",
+        status="Arquivada",
+        orgao_atual="Câmara dos Deputados",
+        link_oficial="link-camara",
+        data_ultima_movimentacao="2015-01-01",
+    )
+    prop2 = Proposicao(
+        id="senado:200",
+        tipo="PL",
+        numero="100",
+        ano=2015,
+        autor="Senador Antigo",
+        ementa="Ementa do Senado de 2015",
+        data_apresentacao="2015-02-02",
+        orgao_origem="Senado Federal",
+        status="Arquivada",
+        orgao_atual="Senado Federal",
+        link_oficial="link-senado",
+        data_ultima_movimentacao="2015-02-02",
+    )
+
+    repo.upsert_em_lote_por_numero_canonico([prop1, prop2])
+
+    session.expire_all()
+    props_no_banco = session.exec(select(ProposicaoModel)).all()
+
+    # Devem coexistir duas linhas físicas no banco de dados
+    assert len(props_no_banco) == 2
+
+    # Busca por código direta em ano anterior a 2019 pode colidir se a assinatura do método busca sem órgão de origem.
+    # Mas no banco as duas devem coexistir. Vamos validar por ID.
+    p1 = repo.buscar_por_id("camara:100")
+    p2 = repo.buscar_por_id("senado:200")
+
+    assert p1 is not None
+    assert p2 is not None
+    assert p1.autor == "Deputado Antigo"
+    assert p2.autor == "Senador Antigo"

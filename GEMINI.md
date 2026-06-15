@@ -34,6 +34,8 @@ Monitoramento de Tempo de Tramitação de Leis (PL/PEC). Busca, acompanhamento e
 - **Commits**: Conventional Commits com **tipo em inglês** (`feat`, `fix`, `chore`, `refactor`) e **descrição em português no IMPERATIVO** (`adiciona`, `corrige`, `estabiliza`).
 - **CI Verde**: não fazer merge sem CI aprovada.
 - **Issues**: toda nova necessidade → issue aprovada → implementação.
+  - No merge de PRs na branch `develop`, as issues associadas devem ter seu status atualizado para a label `status:done` e permanecer abertas.
+  - O fechamento definitivo (Close) das issues só deve ocorrer quando as modificações forem integradas (mergeadas) na branch `main`.
 
 ## Estado Atual
 

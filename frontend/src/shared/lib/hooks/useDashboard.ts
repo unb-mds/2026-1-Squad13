@@ -191,7 +191,18 @@ export function useDashboard(filtros: FiltrosProposicao) {
         }
 
         // Fases
-        const mappedFase = defaultBottleneckData.porFase;
+        let mappedFase = defaultBottleneckData.porFase;
+        if (tempoFaseRes.status === "fulfilled" && tempoFaseRes.value && tempoFaseRes.value.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          mappedFase = [...(tempoFaseRes.value as any[])]
+            .sort((a, b) => b.tempoMedioDias - a.tempoMedioDias)
+            .map((f, idx) => ({
+              nome: f.fase,
+              proposicoes: f.quantidadeProposicoes,
+              tempoMediano: f.tempoMedioDias,
+              rank: idx + 1
+            })).slice(0, 5);
+        }
 
         setBottleneckData({
           porOrgao: mappedOrgao,

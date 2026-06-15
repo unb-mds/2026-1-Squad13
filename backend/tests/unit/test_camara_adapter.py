@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from domain.entities.proposicao import Proposicao
+from domain.exceptions import ApiConnectionError
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 
 
@@ -66,10 +67,10 @@ async def test_camara_adapter_erro_rede(adapter):
     ):
         mock_get.side_effect = httpx.RequestError("Erro de conexão")
 
-        # Act
-        proposicao = await adapter.buscar_por_id(12345)
+        # Act & Assert
+        with pytest.raises(ApiConnectionError):
+            await adapter.buscar_por_id(12345)
 
-        assert proposicao is None
         # Verifica se houve retentativas (3 tentativas para cada uma das 3 requisições em paralelo)
         assert mock_get.call_count == 9
         assert mock_sleep.call_count == 6
@@ -161,10 +162,9 @@ async def test_camara_adapter_listar_proposicoes_id_erro(adapter):
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_get.side_effect = Exception("Erro")
 
-        # Act
-        ids = await adapter.listar_recentes("PL", 2024)
-
-        assert ids == []
+        # Act & Assert
+        with pytest.raises(Exception, match="Erro"):
+            await adapter.listar_recentes("PL", 2024)
 
 
 @pytest.mark.asyncio

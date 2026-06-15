@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FileText,
-  Activity,
-  Clock,
-  TrendingUp,
   Download,
   Calendar,
   Search,
@@ -12,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { KPICard } from "@/shared/components/KPICard";
+import { KPI_CARDS_CONFIG } from "@/shared/constants/kpi-config";
 import { PipelineStage } from "@/features/proposicoes/components/PipelineStage";
 import { HouseTransitions } from "@/features/proposicoes/components/HouseTransitions";
 import { BottleneckAnalytics } from "@/features/proposicoes/components/BottleneckAnalytics";
@@ -355,35 +352,45 @@ export function DashboardPage() {
 
       {/* KPIs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
-          title="Total de Proposições"
-          value={metricas?.totalProposicoes ?? "2.847"}
-          subtitle="Registradas no painel"
-          icon={FileText}
-          trend={{ value: "+12% vs mês anterior", isPositive: true }}
-        />
-        <KPICard
-          title="Em Tramitação Ativa"
-          value={metricas?.totalEmTramitacao ?? "1.423"}
-          subtitle="Câmara e Senado"
-          icon={Activity}
-          trend={{ value: "+8% vs mês anterior", isPositive: true }}
-        />
-        <KPICard
-          title="Com Atraso Crítico"
-          value={metricas?.proposicoesComAtraso ?? "234"}
-          subtitle=">15 dias acima da mediana"
-          icon={Clock}
-          trend={{ value: "-5% vs mês anterior", isPositive: true }}
-          isAlarm
-        />
-        <KPICard
-          title="Tempo Mediano Global"
-          value={metricas?.tempoMedioTramitacao ? `${metricas.tempoMedioTramitacao} dias` : "54 dias"}
-          subtitle="Por fase de tramitação"
-          icon={TrendingUp}
-          trend={{ value: "+3 dias vs trimestre", isPositive: false }}
-        />
+        {Object.values(KPI_CARDS_CONFIG).map((config) => {
+          let displayValue = config.fallbackValue;
+          let activeTrend = config.fallbackTrend;
+
+          if (metricas) {
+            const rawVal = metricas[config.key as keyof typeof metricas];
+            if (rawVal !== undefined && rawVal !== null) {
+              if (typeof rawVal === "number") {
+                displayValue = config.key === "tempoMedioTramitacao"
+                  ? `${rawVal.toLocaleString("pt-BR")} dias`
+                  : rawVal.toLocaleString("pt-BR");
+              } else {
+                displayValue = String(rawVal);
+              }
+            }
+
+            const rawTrend = metricas[config.trendKey as keyof typeof metricas] as { value: string; isPositive: boolean } | undefined;
+            if (rawTrend) {
+              activeTrend = rawTrend;
+            }
+          }
+
+          return (
+            <KPICard
+              key={config.key}
+              title={config.title}
+              value={displayValue}
+              subtitle={config.subtitle}
+              icon={config.icon}
+              trend={activeTrend}
+              isAlarm={config.isAlarm}
+              metadata={{
+                definition: config.definition,
+                source: config.source,
+                rule: config.rule,
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* Estoque de Proposições por Fase */}

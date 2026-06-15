@@ -42,6 +42,23 @@ def task_recalcular_baselines_diario() -> dict:
                 baseline_repo=baseline_repo,
             )
             resumo = service.executar()
+
+            # Invalida o cache do dashboard após recalcular baselines
+            try:
+                from infrastructure.cache.redis_client import RedisClient
+                from infrastructure.database import init_redis
+
+                redis_raw = init_redis()
+                cache_provider = RedisClient(redis_raw)
+                cache_provider.invalidate("dashboard:")
+                logger.info(
+                    "⚡ Cache do dashboard invalidado após recalcular baselines."
+                )
+            except Exception as cache_err:
+                logger.error(
+                    f"Falha ao invalidar cache após recalcular baselines: {cache_err}"
+                )
+
             logger.info(f"Task finalizada. Resumo: {resumo}")
             return resumo
     except Exception as e:
@@ -71,6 +88,23 @@ def task_processar_metricas_todas_ativas() -> dict:
                 baseline_repo=baseline_repo,
             )
             resumo = service.executar()
+
+            # Invalida o cache do dashboard após processar métricas
+            try:
+                from infrastructure.cache.redis_client import RedisClient
+                from infrastructure.database import init_redis
+
+                redis_raw = init_redis()
+                cache_provider = RedisClient(redis_raw)
+                cache_provider.invalidate("dashboard:")
+                logger.info(
+                    "⚡ Cache do dashboard invalidado após recalcular métricas."
+                )
+            except Exception as cache_err:
+                logger.error(
+                    f"Falha ao invalidar cache após recalcular métricas: {cache_err}"
+                )
+
             logger.info(f"Task finalizada. Resumo: {resumo}")
             return resumo
     except Exception as e:
