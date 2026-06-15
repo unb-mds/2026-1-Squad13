@@ -123,6 +123,17 @@ def task_coletar_proposicoes_diario(self):
             )
             raise self.retry(exc=Exception("Coleta falhou totalmente"), countdown=delay)
 
+        # Invalida o cache do dashboard após nova ingestão com sucesso
+        try:
+            from infrastructure.cache.redis_client import RedisClient
+            from infrastructure.database import init_redis
+            redis_raw = init_redis()
+            cache_provider = RedisClient(redis_raw)
+            cache_provider.invalidate("dashboard:")
+            logger.info("⚡ Cache do dashboard invalidado após coleta diária.")
+        except Exception as cache_err:
+            logger.error(f"Falha ao invalidar cache do dashboard na coleta diária: {cache_err}")
+
         logger.info(f"Worker finalizado. Resumo: {resumo}")
         return resumo
     except Exception as exc:
@@ -154,5 +165,17 @@ def task_backfill_emendas():
             return await service.executar()
 
     resumo = asyncio.run(_run())
+
+    # Invalida o cache do dashboard após backfill de emendas
+    try:
+        from infrastructure.cache.redis_client import RedisClient
+        from infrastructure.database import init_redis
+        redis_raw = init_redis()
+        cache_provider = RedisClient(redis_raw)
+        cache_provider.invalidate("dashboard:")
+        logger.info("⚡ Cache do dashboard invalidado após backfill de emendas.")
+    except Exception as cache_err:
+        logger.error(f"Falha ao invalidar cache do dashboard no backfill de emendas: {cache_err}")
+
     logger.info(f"Worker finalizado. Resumo: {resumo}")
     return resumo
