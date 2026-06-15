@@ -86,6 +86,8 @@ class SQLProposicaoRepository:
                     if value is not None:
                         setattr(existing, key, value)
                 self.session.add(existing)
+                # Propaga o ID persistido de volta para a entidade de domínio em memória
+                prop.id = existing.id
             else:
                 # Caso não exista, é um insert
                 self.session.add(model_novo)
