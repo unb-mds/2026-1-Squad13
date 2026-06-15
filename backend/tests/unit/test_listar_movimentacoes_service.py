@@ -328,3 +328,15 @@ async def test_listar_modo_resumido_com_cache_hit_retorna_periodos_de_fase():
 
     # Assert — 3. busca proposicao para montar prop_resumo (proposicao=None no cache hit)
     proposicao_repo.buscar_por_id.assert_called_once_with("123")
+
+
+def test_extrair_id_numerico(service):
+    assert service._extrair_id_numerico("123") == 123
+    assert service._extrair_id_numerico("camara:104333") == 104333
+    assert service._extrair_id_numerico("senado:5678") == 5678
+    assert service._extrair_id_numerico(12345) == 12345
+    assert service._extrair_id_numerico(None) == 0
+    assert service._extrair_id_numerico("") == 0
+    assert service._extrair_id_numerico("camara:invalido") == 0
+    assert service._extrair_id_numerico("texto_puro") == 0
+
