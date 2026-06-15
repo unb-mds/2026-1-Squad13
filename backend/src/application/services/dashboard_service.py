@@ -551,7 +551,10 @@ class DashboardService:
         if not fases:
             return []
 
-        mapa_fases = {f.id: {"codigo": f.codigo, "nome": f.nome, "ordem": f.ordem_logica} for f in fases}
+        mapa_fases = {
+            f.id: {"codigo": f.codigo, "nome": f.nome, "ordem": f.ordem_logica}
+            for f in fases
+        }
 
         todas = self.repository.filtrar()
         if not todas:
@@ -579,11 +582,16 @@ class DashboardService:
                     if fase_atual is not None and data_entrada is not None:
                         try:
                             entrada = datetime.fromisoformat(data_entrada[:10]).date()
-                            saida = datetime.fromisoformat(evento.data_evento[:10]).date()
+                            saida = datetime.fromisoformat(
+                                evento.data_evento[:10]
+                            ).date()
                             dias = (saida - entrada).days
                             if dias >= 0:
                                 if fase_atual not in acumulador:
-                                    acumulador[fase_atual] = {"dias": [], "proposicoes": set()}
+                                    acumulador[fase_atual] = {
+                                        "dias": [],
+                                        "proposicoes": set(),
+                                    }
                                 acumulador[fase_atual]["dias"].append(dias)
                                 acumulador[fase_atual]["proposicoes"].add(str(prop.id))
                         except (ValueError, AttributeError):
@@ -611,13 +619,17 @@ class DashboardService:
             info = mapa_fases.get(fase_id)
             if info is None:
                 continue
-            tempo_medio = sum(dados["dias"]) / len(dados["dias"]) if dados["dias"] else 0
-            resultado.append({
-                "fase": info["nome"],
-                "codigoFase": info["codigo"],
-                "ordemLogica": info["ordem"],
-                "tempoMedioDias": int(tempo_medio),
-                "quantidadeProposicoes": len(dados["proposicoes"]),
-            })
+            tempo_medio = (
+                sum(dados["dias"]) / len(dados["dias"]) if dados["dias"] else 0
+            )
+            resultado.append(
+                {
+                    "fase": info["nome"],
+                    "codigoFase": info["codigo"],
+                    "ordemLogica": info["ordem"],
+                    "tempoMedioDias": int(tempo_medio),
+                    "quantidadeProposicoes": len(dados["proposicoes"]),
+                }
+            )
 
         return sorted(resultado, key=lambda x: x["ordemLogica"])
