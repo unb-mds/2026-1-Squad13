@@ -270,6 +270,65 @@ async def test_listar_modo_resumido_retorna_periodos_de_fase():
 
 
 @pytest.mark.asyncio
+@patch("application.services.listar_movimentacoes_service.NormalizarTramitacaoService")
+async def test_executar_com_id_numerico_resolve_para_id_prefixado_camara(
+    MockNormalizar, service, mocks
+):
+    """
+    Garante que IDs numéricos legados (ex: "104333") são resolvidos para o
+    formato prefixado ("camara:104333") antes de normalizar e salvar eventos,
+    eliminando o ForeignKeyViolation pós-migração do PR #269.
+    """
+    # Arrange
+    mocks["evento_repo"].buscar_por_proposicao.return_value = []
+    mocks["evento_repo"].existe_algum_evento.return_value = False
+
+    prop_prefixada = Mock()
+    prop_prefixada.id = "camara:104333"
+    prop_prefixada.orgao_origem = "Câmara dos Deputados"
+    prop_prefixada.tipo = "PDL"
+    prop_prefixada.data_encerramento = None
+
+    def buscar_por_id_side_effect(id_arg):
+        if id_arg == "camara:104333":
+            return prop_prefixada
+        return None
+
+    mocks["proposicao_repo"].buscar_por_id.side_effect = buscar_por_id_side_effect
+
+    dados_brutos = [{"descricao": "Publicação Mesa"}]
+    mocks["camara_adapter"].buscar_tramitacoes_brutas.return_value = dados_brutos
+
+    evento_salvo = EventoTramitacao(
+        proposicao_id="camara:104333",
+        data_evento="2024-01-01",
+        sequencia=1,
+        sigla_orgao="PLEN",
+        descricao_original="Publicação Mesa",
+        tipo_evento=TipoEvento.DESPACHO.value,
+        deliberativo=False,
+        mudou_fase=False,
+        mudou_orgao=False,
+    )
+    MockNormalizar.return_value.normalizar.return_value = [evento_salvo]
+
+    # Act
+    resultado = await service.executar("104333", modo=ModoMovimentacao.COMPLETO)
+
+    # Assert: normalizar recebeu o id prefixado, não o numérico puro
+    MockNormalizar.return_value.normalizar.assert_called_once_with(
+        "camara:104333", dados_brutos
+    )
+    # Assert: o evento retornado tem proposicao_id prefixado
+    assert resultado[0].proposicao_id == "camara:104333"
+    mocks["evento_repo"].salvar_lote.assert_called_once_with([evento_salvo])
+    # Assert: adapter foi chamado com o id numérico puro (como exige a API da Câmara)
+    mocks["camara_adapter"].buscar_tramitacoes_brutas.assert_called_once_with(
+        104333, client=None
+    )
+
+
+@pytest.mark.asyncio
 async def test_listar_modo_resumido_com_cache_hit_retorna_periodos_de_fase():
     # fase_repo configurado ANTES de instanciar o service (AgregarPorFaseService.__init__
     # chama buscar_todas imediatamente)
