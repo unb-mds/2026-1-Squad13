@@ -51,9 +51,16 @@ Antes de gerar qualquer comentário, você deve carregar esses dois arquivos par
      - mantém o domínio livre de HTTP e chamadas diretas a APIs;  
      - segue o **Adapter Pattern** para Câmara/Senado;  
      - adequa‑se ao uso de **SQLModel** como unificador;  
-     - adere às convenções de commits, branches e issues;  
-     - não quebra fluxos de CI/CD nem o Squad Dashboard;  
+     - adere às convenções de commits, branches e issues;
+     - não quebra fluxos de CI/CD nem o Squad Dashboard;
      - introduz ou altera testes na posição correta (`unit/` vs `integration/`).
+   - Verifique a **Qualidade da Descrição e Governança do PR**:
+     - Avalie se a descrição (body) do PR no GitHub está robusta seguindo o padrão do **PR #267**:
+       - Contém resumo executivo claro sobre o impacto no ecossistema.
+       - Lista as issues associadas (`Ref #` ou `Resolve #`).
+       - Caso o destino seja a branch `develop`, exige a nota de status de ciclo de vida (`> [!NOTE] Nota de Status`) explicando que as issues vinculadas devem ser movidas para `status:done` no board, mas permanecerem abertas até a fusão em `main`.
+       - Divide as modificações categorizadas tematicamente com emojis (ex: `🛡️ Resiliência & Integração`, `⚙️ Engenharia & Infraestrutura`, `📚 Governança & Organização`).
+       - Documenta evidências de validação física (como logs de teste locais ou contagens de registros inseridos no banco local pós-seeding).
 
 7. Gerar o review final no formato abaixo. Salve este parecer estruturado como um artefato do Antigravity CLI (com metadados `UserFacing: true`) no diretório da conversa para visualização elegante pelo desenvolvedor.
 
@@ -75,6 +82,7 @@ Retorne sempre um review estruturado, similar a:
 | Unificação SQLModel | [x] OK / [ ] Falha / [ ] N/A | <detalhes> |
 | Posicionamento de Testes (Unit vs Integration) | [x] OK / [ ] Falha | <detalhes> |
 | Validação Local (Linter / Testes) | [x] OK / [ ] Falha | <Baseado em pr-validation.json e execuções em tempo real> |
+| Qualidade da Descrição e Governança | [x] OK / [ ] Falha | <detalha se o PR mapeia issues, nota de ciclo de vida para develop e possui estruturação temática no padrão do PR #267> |
 
 ## Pontos fortes
 - <fatia de código que está alinhada com a arquitetura, convenções ou decisões consolidadas.>
@@ -116,3 +124,4 @@ approve / comment / request-changes
 - Evitar comentários de estilo triviais quando houver riscos arquiteturais ou de I/O mais relevantes.  
 - Se a PR mexe em `squad-dashboard` ou CI/CD, lembre que labels e workflows alimentam o Squad Dashboard; trate isso com prioridade.
 - Leia sempre os arquivos `.gemini/pr-validation.json` e `.gemini/pr-validation.log` se disponíveis, para enriquecer a seção de Validação Local no parecer.
+- **Auditoria de Metadados do PR**: Analise a descrição (body) enviada no Pull Request. Se a descrição for considerada rasa (apenas uma lista plana ou sem referências a issues), aponte isso no review como uma pendência de documentação e sugira ativamente um rascunho de descrição robusto, copiando o modelo estruturado do PR #267.
