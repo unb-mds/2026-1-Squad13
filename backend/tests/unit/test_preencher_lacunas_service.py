@@ -669,3 +669,60 @@ async def test_selecao_lacuna_ponderada_pl_pec(
     # A proporção deve estar próxima de 2.0 (permitindo desvio estatístico no intervalo [1.1, 4.0])
     proporcao = contagem_pl / contagem_pec
     assert 1.1 <= proporcao <= 4.0
+
+
+@pytest.mark.asyncio
+async def test_selecao_lacuna_ponderada_ano(
+    repo_mock, camara_mock, senado_mock, cache_mock
+):
+    """Garante que a seleção ponderada de lacunas respeita a proporção estatística de 2 anos históricos para 1 ano atual."""
+    service_real = PreencherLacunasService(
+        repo_mock, camara_mock, senado_mock, cache_mock
+    )
+
+    ano_atual = datetime.now(UTC).year
+
+    # Retorna uma lacuna de ano atual e uma de ano histórico (ambos tipo PL para isolar do tipo)
+    lacunas_mock = [
+        {
+            "fonte": "camara",
+            "ano": ano_atual,
+            "tipo": "PL",
+            "local": 0,
+            "api_total": 10,
+            "coverage": 0.0,
+        },
+        {
+            "fonte": "camara",
+            "ano": ano_atual - 1,
+            "tipo": "PL",
+            "local": 0,
+            "api_total": 10,
+            "coverage": 0.0,
+        },
+    ]
+    service_real._detectar_lacunas = AsyncMock(return_value=lacunas_mock)
+
+    anos_processados = []
+
+    async def mock_preencher(lacuna, config, backlog_size):
+        anos_processados.append(lacuna["ano"])
+        return 1
+
+    service_real._preencher_lacuna = mock_preencher
+
+    # Simula 300 execuções do serviço para obter uma amostragem estatística razoável
+    for _ in range(300):
+        await service_real.executar()
+
+    contagem_atual = anos_processados.count(ano_atual)
+    contagem_historico = anos_processados.count(ano_atual - 1)
+
+    assert contagem_atual > 0
+    assert contagem_historico > 0
+    # Histórico deve ser mais escolhido que Atual (peso 2 vs 1)
+    assert contagem_historico > contagem_atual
+
+    # A proporção deve estar próxima de 2.0 (permitindo desvio estatístico no intervalo [1.1, 4.0])
+    proporcao = contagem_historico / contagem_atual
+    assert 1.1 <= proporcao <= 4.0
