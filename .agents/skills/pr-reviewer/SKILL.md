@@ -41,7 +41,7 @@ Antes de gerar qualquer comentário, você deve carregar esses dois arquivos par
 
 5. Executar ou Verificar Validação Local:
    - Antes de analisar o código, você DEVE garantir que os resultados de validação em `.gemini/pr-validation.json` são RECENTES (comparar timestamp com os últimos commits).
-   - Se os resultados forem inexistentes ou obsoletos, execute a validação local usando a ferramenta de comandos do Antigravity (`pytest`, `npm run lint` ou o script `.gemini/skills/pr-reviewer/scripts/review-pr.sh <num>`).
+   - Se os resultados forem inexistentes ou obsoletos, execute a validação local usando a ferramenta de comandos do Antigravity (`pytest`, `npm run lint` ou o script `.agents/skills/pr-reviewer/scripts/review-pr.sh <num>`).
    - Leia `.gemini/pr-validation.json` e `.gemini/pr-validation.log` para verificar se os linters (`Ruff`, `ESLint`, `TSC`) e testes (`Pytest`, `Vitest`) passaram locally. **Não ignore falhas de lint; reporte-as como bloqueios.**
    - **Auto-remediação de Lints:** Caso a validação local acuse erros triviais de estilo ou formatação (ex: problemas que o `ruff --fix` resolveria), utilize as ferramentas de edição de arquivos do Antigravity para aplicar os patches e correções diretamente na branch de trabalho local antes de finalizar o parecer.
 
@@ -124,4 +124,12 @@ approve / comment / request-changes
 - Evitar comentários de estilo triviais quando houver riscos arquiteturais ou de I/O mais relevantes.  
 - Se a PR mexe em `squad-dashboard` ou CI/CD, lembre que labels e workflows alimentam o Squad Dashboard; trate isso com prioridade.
 - Leia sempre os arquivos `.gemini/pr-validation.json` e `.gemini/pr-validation.log` se disponíveis, para enriquecer a seção de Validação Local no parecer.
+<<<<<<< HEAD
 - **Auditoria de Metadados do PR**: Analise a descrição (body) enviada no Pull Request. Se a descrição for considerada rasa (apenas uma lista plana ou sem referências a issues), aponte isso no review como uma pendência de documentação e sugira ativamente um rascunho de descrição robusto, copiando o modelo estruturado do PR #267.
+=======
+- **Associação de Issues e Ciclo de Vida**:
+  - Toda PR deve estar explicitamente vinculada a todas as issues resolvidas por ela. O revisor deve **obrigatoriamente listar os commits da branch** (ex: `git log develop..HEAD --oneline`) e cruzar com a lista de issues abertas do repositório (usando `gh issue list --limit 100`) para identificar e referenciar quaisquer issues adicionais resolvidas que não tenham sido incluídas na descrição original do PR.
+  - Certifique-se de que a descrição do PR faça referência às issues de forma correta (ex: usando `Ref #XYZ` para manter o rastreamento sem disparar fechamento automático se a branch de destino for a `develop`).
+  - **Transição Ativa de Status Labels**: Toda issue associada a um PR aberto/ativo deve ser atualizada para a label `status:review` (removendo `status:todo` ou `status:in_progress`) no momento da criação ou atualização do PR. Garanta que, ao fazer o merge na `develop`, as labels passem para `status:done` (permanecendo abertas), e sejam fechadas definitivamente apenas quando mescladas na branch `main`.
+
+>>>>>>> feat/coleta-e-seed-resiliencia

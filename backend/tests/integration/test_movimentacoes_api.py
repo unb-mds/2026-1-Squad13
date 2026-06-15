@@ -65,6 +65,11 @@ def test_listar_movimentacoes_camara_retorna200(http_client: TestClient):
             return_value=[tram_bruta],
         ),
         patch(
+            "infrastructure.adapters.senado_adapter.SenadoAdapter.buscar_id_por_identificacao",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
             "infrastructure.repositories.sql_evento_tramitacao_repository.SQLEventoTramitacaoRepository.salvar_lote"
         ),
     ):

@@ -4,6 +4,7 @@ import logging
 import httpx
 
 from application.ports.apensamento_repository import ApensamentoRepositoryPort
+from application.ports.cache_provider import CacheProvider
 from application.ports.camara_adapter import CamaraAdapterPort
 from application.ports.evento_tramitacao_repository import (
     EventoTramitacaoRepositoryPort,
@@ -21,6 +22,7 @@ from application.services.listar_movimentacoes_service import ListarMovimentacoe
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from application.services.atualizar_cobertura_service import AtualizarCoberturaService
 from domain.entities.proposicao import Proposicao
+from domain.exceptions import ApiException
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +43,8 @@ class ColetarEmLoteService:
         log_repo: LogColetaRepositoryPort,
         camara_adapter: CamaraAdapterPort,
         senado_adapter: SenadoAdapterPort,
-        reconstruir_service: ReconstruirPeriodosService | None = None,
         cobertura_service: AtualizarCoberturaService | None = None,
+        cache_provider: CacheProvider | None = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
@@ -54,6 +56,7 @@ class ColetarEmLoteService:
         self.senado_adapter = senado_adapter
         self.reconstruir_service = reconstruir_service
         self.cobertura_service = cobertura_service
+        self.cache_provider = cache_provider
 
         self.listar_movimentacoes_service = ListarMovimentacoesService(
             evento_repo=self.evento_repo,
@@ -64,6 +67,7 @@ class ColetarEmLoteService:
             senado_adapter=self.senado_adapter,
             apensamento_repo=self.apensamento_repo,
             reconstruir_service=self.reconstruir_service,
+            cache_provider=self.cache_provider,
         )
 
     async def executar_coleta_diaria(self) -> dict:
@@ -260,12 +264,19 @@ class ColetarEmLoteService:
                 )
 
             resultados = await asyncio.gather(*tasks, return_exceptions=True)
-            for r in resultados:
-                if isinstance(r, Exception):
-                    logger.warning(
-                        f"Falha ao coletar movimentações para uma proposição do lote: {r}",
-                        exc_info=r,
-                    )
+            for idx, res in enumerate(resultados):
+                if isinstance(res, Exception):
+                    if isinstance(
+                        res, (ApiException, httpx.TimeoutException, httpx.RequestError)
+                    ):
+                        logger.warning(
+                            f"⚠️ Falha de comunicação externa ao processar movimentações para a proposição {batch[idx].id}: {res}"
+                        )
+                    else:
+                        logger.error(
+                            f"Erro inesperado ao processar movimentações para a proposição {batch[idx].id}: {res}",
+                            exc_info=res,
+                        )
             logger.info(
                 f"Processados eventos para {min(i + batch_size, len(proposicoes))}/{len(proposicoes)} proposições."
             )

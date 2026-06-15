@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from domain.entities.proposicao import Proposicao
+from domain.exceptions import ApiConnectionError
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 
 
@@ -102,13 +103,12 @@ async def test_senado_adapter_erro_rede(adapter):
     ):
         mock_get.side_effect = httpx.RequestError("Erro de conexão")
 
-        # Act
-        proposicao = await adapter.buscar_por_id(54321)
+        # Act & Assert
+        with pytest.raises(ApiConnectionError):
+            await adapter.buscar_por_id(54321)
 
-        # Assert
-        assert proposicao is None
-        assert mock_get.call_count == 6
-        assert mock_sleep.call_count == 4
+        assert mock_get.call_count == 5
+        assert mock_sleep.call_count == 3
 
 
 @pytest.mark.asyncio
@@ -291,3 +291,69 @@ async def test_senado_adapter_coletar_em_lote_sucesso(adapter):
             # Assert
             assert len(proposicoes) == 2
             mock_get.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_degradacao_senado_emendas_graceful(adapter):
+    class SimpleCache:
+        def __init__(self):
+            self.store = {}
+
+        def get(self, key):
+            return self.store.get(key)
+
+        def set(self, key, value, ttl_seconds=None):
+            self.store[key] = value
+
+    cache = SimpleCache()
+
+    mock_materia_dados = {
+        "identificacao": "PL 456/2023",
+        "autoriaIniciativa": [{"autor": "Senador Exemplo"}],
+        "documento": {
+            "ementa": "Ementa de teste Senado",
+            "dataApresentacao": "2023-01-01",
+        },
+        "autuacoes": [
+            {"situacoes": [{"descricao": "Em tramitação", "inicio": "2023-01-01"}]}
+        ],
+    }
+
+    async def mock_get_fn(url, *args, **kwargs):
+        resp = MagicMock()
+        if "/materia/emendas/" in url:
+            raise httpx.TimeoutException("Timeout simulado")
+        elif "/materia/" in url:
+            resp.status_code = 200
+            resp.json.return_value = mock_materia_dados
+            resp.raise_for_status.return_value = None
+            return resp
+        resp.status_code = 404
+        return resp
+
+    with patch("httpx.AsyncClient.get", side_effect=mock_get_fn):
+        # Chamada 1: Emendas falham por timeout, deve ativar degradação e retornar proposição com 0 emendas
+        proposicao = await adapter.buscar_por_id(54321, cache=cache)
+        assert proposicao is not None
+        assert proposicao.numero_emendas == 0
+        assert cache.get("seeding:degradacao:senado:emendas") == "1"
+
+    # Agora com a degradação ativa, uma nova chamada não deve chamar o endpoint de emendas.
+    async def mock_get_fn_active(url, *args, **kwargs):
+        resp = MagicMock()
+        if "/materia/emendas/" in url:
+            pytest.fail(
+                "O endpoint de emendas não deveria ser chamado com degradação ativa!"
+            )
+        elif "/materia/" in url:
+            resp.status_code = 200
+            resp.json.return_value = mock_materia_dados
+            resp.raise_for_status.return_value = None
+            return resp
+        resp.status_code = 404
+        return resp
+
+    with patch("httpx.AsyncClient.get", side_effect=mock_get_fn_active):
+        proposicao2 = await adapter.buscar_por_id(54321, cache=cache)
+        assert proposicao2 is not None
+        assert proposicao2.numero_emendas == 0
