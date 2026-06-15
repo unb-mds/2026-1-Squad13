@@ -190,10 +190,22 @@ class SQLDashboardRepository:
             "percentualAtrasadas": int((row.com_atraso or 0) / row.total * 100)
             if row.total > 0
             else 0,
-            "totalProposicoesTrend": {"value": "+12% vs mês anterior", "isPositive": True},
-            "totalEmTramitacaoTrend": {"value": "+8% vs mês anterior", "isPositive": True},
-            "proposicoesComAtrasoTrend": {"value": "-5% vs mês anterior", "isPositive": True},
-            "tempoMedioTramitacaoTrend": {"value": "+3 dias vs trimestre", "isPositive": False},
+            "totalProposicoesTrend": {
+                "value": "+12% vs mês anterior",
+                "isPositive": True,
+            },
+            "totalEmTramitacaoTrend": {
+                "value": "+8% vs mês anterior",
+                "isPositive": True,
+            },
+            "proposicoesComAtrasoTrend": {
+                "value": "-5% vs mês anterior",
+                "isPositive": True,
+            },
+            "tempoMedioTramitacaoTrend": {
+                "value": "+3 dias vs trimestre",
+                "isPositive": False,
+            },
         }
 
     def obter_dados_tipo(self, filtros: dict | None) -> list[dict]:

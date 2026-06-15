@@ -9,8 +9,8 @@ from application.services.coletar_em_lote_service import ColetarEmLoteService
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import engine, init_redis
 from infrastructure.cache.redis_client import RedisClient
+from infrastructure.database import engine, init_redis
 from infrastructure.repositories.sql_apensamento_repository import (
     SQLApensamentoRepository,
 )
@@ -187,7 +187,9 @@ def task_preencher_lacunas(self):
 
     # Tenta adquirir lock por 30 minutos (1800 segundos)
     if not cache.set_nx(chave_lock, token, ttl_seconds=1800):
-        logger.warning("⚠️ Instância anterior da task preencher_lacunas ainda em andamento. Abortando execução atual.")
+        logger.warning(
+            "⚠️ Instância anterior da task preencher_lacunas ainda em andamento. Abortando execução atual."
+        )
         return {"modo": "overlap_bloqueado", "processados": 0}
 
     async def _run():
@@ -209,7 +211,7 @@ def task_preencher_lacunas(self):
         logger.info(f"Gap-filler finalizado. Resumo: {resumo}")
         return resumo
     except Exception as exc:
-        delay = 120 * (2 ** self.request.retries)
+        delay = 120 * (2**self.request.retries)
         try:
             raise self.retry(exc=exc, countdown=delay)
         except MaxRetriesExceededError:
@@ -228,4 +230,3 @@ def task_preencher_lacunas(self):
             cache.eval_lua(lua_release, [chave_lock], [token])
         except Exception as e:
             logger.error(f"Erro ao liberar o lock da task Celery: {e}")
-

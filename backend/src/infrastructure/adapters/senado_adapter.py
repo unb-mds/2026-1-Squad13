@@ -65,7 +65,10 @@ class SenadoAdapter:
                         await asyncio.sleep(wait_time)
                         continue
                     else:
-                        raise ApiRateLimitError("Senado com limite de requisições excedido", retry_after=retry_after)
+                        raise ApiRateLimitError(
+                            "Senado com limite de requisições excedido",
+                            retry_after=retry_after,
+                        )
 
                 if resp.status_code >= 500:
                     if attempt < max_retries - 1:
@@ -76,7 +79,10 @@ class SenadoAdapter:
                         await asyncio.sleep(delay)
                         continue
                     else:
-                        raise ApiServerError(f"Erro no servidor do Senado: {resp.status_code}", resp.status_code)
+                        raise ApiServerError(
+                            f"Erro no servidor do Senado: {resp.status_code}",
+                            resp.status_code,
+                        )
 
                 if resp.status_code != 404:
                     resp.raise_for_status()
@@ -90,7 +96,9 @@ class SenadoAdapter:
                     delay = 1 if backoff_type == "flat" else 2
                     await asyncio.sleep(delay)
                 else:
-                    raise ApiConnectionError(f"Falha de conexão com o Senado: {type(e).__name__}") from e
+                    raise ApiConnectionError(
+                        f"Falha de conexão com o Senado: {type(e).__name__}"
+                    ) from e
             except httpx.TimeoutException as e:
                 if attempt < max_retries - 1:
                     logger.warning(
@@ -110,7 +118,9 @@ class SenadoAdapter:
                     delay = 1 if backoff_type == "flat" else 1
                     await asyncio.sleep(delay)
                 else:
-                    raise ApiConnectionError(f"Falha inesperada no Senado: {type(e).__name__}") from e
+                    raise ApiConnectionError(
+                        f"Falha inesperada no Senado: {type(e).__name__}"
+                    ) from e
         raise ApiConnectionError("Senado indisponível após múltiplas tentativas")
 
     async def buscar_por_id(
@@ -151,8 +161,12 @@ class SenadoAdapter:
                     logger.warning(
                         f"⚠️ [DEGRADACAO_ATIVA] Senado com API de emendas degradada. Ignorando endpoint para ID {id_materia}."
                     )
+
                     async def mock_emendas():
-                        return httpx.Response(404, request=httpx.Request("GET", url_emendas))
+                        return httpx.Response(
+                            404, request=httpx.Request("GET", url_emendas)
+                        )
+
                     task_emendas = mock_emendas()
                 else:
                     task_emendas = self._get_with_retry(
@@ -218,7 +232,10 @@ class SenadoAdapter:
                             try:
                                 err_str = str(res_emendas)
                                 is_transient = (
-                                    isinstance(res_emendas, (ApiTimeoutError, ApiRateLimitError))
+                                    isinstance(
+                                        res_emendas,
+                                        (ApiTimeoutError, ApiRateLimitError),
+                                    )
                                     or "timeout" in err_str.lower()
                                     or "429" in err_str
                                 )
@@ -226,7 +243,11 @@ class SenadoAdapter:
                                     logger.warning(
                                         f"⚠️ [DEGRADACAO_INICIADA] Falha transitória em emendas ({type(res_emendas).__name__}). Ativando degradação por 15m."
                                     )
-                                    cache.set("seeding:degradacao:senado:emendas", "1", ttl_seconds=900)
+                                    cache.set(
+                                        "seeding:degradacao:senado:emendas",
+                                        "1",
+                                        ttl_seconds=900,
+                                    )
                             except Exception as ce:
                                 logger.error(f"Erro ao setar chave de degradação: {ce}")
                         numero_emendas = 0

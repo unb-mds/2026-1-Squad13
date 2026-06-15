@@ -35,10 +35,18 @@ class DashboardMetricasResponse(BaseModel):
     iarMedio: float
     ieiMedio: float
     percentualAtrasadas: int
-    totalProposicoesTrend: TrendInfoResponse | None = Field(default=None, alias="totalProposicoesTrend")
-    totalEmTramitacaoTrend: TrendInfoResponse | None = Field(default=None, alias="totalEmTramitacaoTrend")
-    proposicoesComAtrasoTrend: TrendInfoResponse | None = Field(default=None, alias="proposicoesComAtrasoTrend")
-    tempoMedioTramitacaoTrend: TrendInfoResponse | None = Field(default=None, alias="tempoMedioTramitacaoTrend")
+    totalProposicoesTrend: TrendInfoResponse | None = Field(
+        default=None, alias="totalProposicoesTrend"
+    )
+    totalEmTramitacaoTrend: TrendInfoResponse | None = Field(
+        default=None, alias="totalEmTramitacaoTrend"
+    )
+    proposicoesComAtrasoTrend: TrendInfoResponse | None = Field(
+        default=None, alias="proposicoesComAtrasoTrend"
+    )
+    tempoMedioTramitacaoTrend: TrendInfoResponse | None = Field(
+        default=None, alias="tempoMedioTramitacaoTrend"
+    )
 
     model_config = {
         "populate_by_name": True,
