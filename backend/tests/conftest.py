@@ -128,3 +128,33 @@ def camara_api_autores_json():
             }
         ]
     }
+
+@pytest.fixture
+def senado_api_materia_json():
+    return {
+        "DetalheMateria": {
+            "Materia": {
+                "IdentificacaoMateria": {
+                    "DescricaoIdentificacaoMateria": "PL 1234/2023",
+                    "IdentificacaoProcesso": "1234567"
+                },
+                "DadosBasicosMateria": {
+                    "EmentaMateria": "Ementa de teste Senado",
+                    "DataApresentacao": "2023-01-01",
+                    "Autor": "Senador Fulano"
+                },
+                "SituacaoAtual": {
+                    "Autuacoes": {
+                        "Autuacao": [
+                            {
+                                "Situacao": {
+                                    "DescricaoSituacao": "Aguardando Relator",
+                                    "DataSituacao": "2023-02-01"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
