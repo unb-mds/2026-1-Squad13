@@ -1,6 +1,6 @@
 # Critérios de review para o projeto "Monitoramento de Tempo de Tramitação de Leis"
 
-Este documento é referência para a skill `pr-reviewer` decidir quais pontos considerar sérios e quais são “nice‑to‑have”.
+Este documento é referência para a skill `pr-manager` decidir quais pontos considerar sérios e quais são “nice‑to‑have”.
 
 ## Arquitetura (backend)
 
