@@ -20,6 +20,7 @@ from application.ports.senado_adapter import SenadoAdapterPort
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from domain.entities.proposicao import Proposicao
+from domain.exceptions import ApiException
 
 logger = logging.getLogger(__name__)
 
@@ -143,10 +144,15 @@ class ColetarEmLoteService:
             resultados = await asyncio.gather(*tasks, return_exceptions=True)
             for idx, res in enumerate(resultados):
                 if isinstance(res, Exception):
-                    logger.error(
-                        f"Erro ao processar movimentações para a proposição {batch[idx].id}: {res}",
-                        exc_info=res
-                    )
+                    if isinstance(res, (ApiException, httpx.TimeoutException, httpx.RequestError)):
+                        logger.warning(
+                            f"⚠️ Falha de comunicação externa ao processar movimentações para a proposição {batch[idx].id}: {res}"
+                        )
+                    else:
+                        logger.error(
+                            f"Erro inesperado ao processar movimentações para a proposição {batch[idx].id}: {res}",
+                            exc_info=res
+                        )
             logger.info(
                 f"Processados eventos para {min(i + batch_size, len(proposicoes))}/{len(proposicoes)} proposições."
             )
