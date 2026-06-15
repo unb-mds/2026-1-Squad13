@@ -41,7 +41,7 @@ Guia rápido de comandos e fluxos. Atualize aqui sempre que surgir algo novo.
 ## 3. FastAPI / Backend
 
 - `uv run fastapi dev src/main.py` → rodar backend em modo dev [ADR-003].
-- `uv run python src/seed.py` → popular banco com dados reais das APIs.
+- `./scripts/dev/seed.sh` → envia tarefa de gap-filling para a fila do Celery.
 - `uv run python src/init_db.py` → criar tabelas no banco.
 - Acessar [Swagger em `/docs`](http://localhost:8000/docs) para testar endpoints [ADR-003].
 

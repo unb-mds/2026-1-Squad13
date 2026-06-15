@@ -36,25 +36,43 @@ class SQLProposicaoRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
+    def _obter_chave_busca(
+        self, tipo: str, numero: str, ano: int, orgao_origem: str | None
+    ) -> tuple:
+        """
+        Retorna a chave de busca para controle de unicidade no banco de dados.
+        Proposições bicamerais (PL, PEC) a partir de 2019 (Ato Conjunto 1/2018)
+        são unificadas globalmente. Matérias anteriores a 2019 ou monocamerais
+        possuem chaves isoladas por órgão de origem para evitar colisões.
+        """
+        tipo_l = tipo.lower() if tipo else ""
+        num_s = str(numero) if numero else "0"
+        orgao_l = orgao_origem.lower() if orgao_origem else ""
+
+        tipos_bicamerais = {"pl", "pec"}
+        if ano and ano >= 2019 and tipo_l in tipos_bicamerais:
+            return (tipo_l, num_s, ano, None)
+        return (tipo_l, num_s, ano, orgao_l)
+
     def upsert_em_lote_por_numero_canonico(self, proposicoes: list[Proposicao]) -> None:
         """
         Executa um upsert em lote garantindo idempotência com alta performance.
-        Busca todos os registros existentes em uma única query e processa em memória.
+        Busca todos os registros existentes em uma única query e processa em memória
+        com base nos regimes de tramitação (Ato Conjunto 1/2018).
         """
         if not proposicoes:
             return
 
-        # 1. Extrai chaves canônicas únicas do lote
-        chaves_lote = []
+        # 1. Extrai tuplas básicas de tipo, numero, ano do lote para buscar no banco em lote
+        chaves_basicas = []
         for p in proposicoes:
             if p.tipo and p.numero and p.ano:
-                chaves_lote.append((p.tipo.lower(), str(p.numero), p.ano))
+                chaves_basicas.append((p.tipo.lower(), str(p.numero), p.ano))
 
-        if not chaves_lote:
+        if not chaves_basicas:
             return
 
-        # 2. Busca todos os registros existentes que batem com as chaves do lote em uma única query
-        # Nota: SQLModel/SQLAlchemy lidam com tuplas em IN clauses de forma eficiente no Postgres
+        # 2. Busca todos os registros existentes que batem com tipo, numero e ano do lote
         from sqlalchemy import tuple_
 
         statement = select(ProposicaoModel).where(
@@ -62,32 +80,74 @@ class SQLProposicaoRepository:
                 func.lower(ProposicaoModel.tipo),
                 ProposicaoModel.numero,
                 ProposicaoModel.ano,
-            ).in_(chaves_lote)
+            ).in_(chaves_basicas)
         )
         existentes = self.session.exec(statement).all()
 
-        # 3. Mapeia os existentes em um dicionário para busca O(1)
-        mapa_existentes = {
-            (m.tipo.lower(), str(m.numero), m.ano): m for m in existentes
+        # 3. Mapeia os existentes em um dicionário O(1) usando a chave refinada por regime
+        mapa_existentes = {}
+        for m in existentes:
+            chave = self._obter_chave_busca(m.tipo, m.numero, m.ano, m.orgao_origem)
+            mapa_existentes[chave] = m
+
+        # 4. Processa o upsert com mesclagem inteligente
+        campos_preservar = {
+            "id",
+            "tipo",
+            "numero",
+            "ano",
+            "orgao_origem",
+            "autor",
+            "data_apresentacao",
         }
 
-        # 4. Processa o upsert
         for prop in proposicoes:
-            chave = (prop.tipo.lower(), str(prop.numero), prop.ano)
+            chave = self._obter_chave_busca(
+                prop.tipo, prop.numero, prop.ano, prop.orgao_origem
+            )
             model_novo = self._to_model(prop)
 
             existing = mapa_existentes.get(chave)
 
             if existing:
-                # Atualiza os dados preservando ID e chaves canônicas
-                for key, value in model_novo.model_dump(
-                    exclude={"id", "tipo", "numero", "ano"}
-                ).items():
+                # Verifica se a nova coleta vem de uma casa/origem diferente (cruzamento de fontes)
+                casa_existente = getattr(existing, "orgao_origem", None)
+                casa_nova = getattr(model_novo, "orgao_origem", None)
+
+                mesma_origem = True
+                if casa_existente and casa_nova:
+                    exist_lower = casa_existente.lower()
+                    nova_lower = casa_nova.lower()
+
+                    is_exist_camara = "camara" in exist_lower or "câmara" in exist_lower
+                    is_nova_camara = "camara" in nova_lower or "câmara" in nova_lower
+                    is_exist_senado = "senado" in exist_lower
+                    is_nova_senado = "senado" in nova_lower
+
+                    # Se um é da Câmara e o outro é do Senado (cruzamento bicameral)
+                    if (is_exist_camara and is_nova_senado) or (
+                        is_exist_senado and is_nova_camara
+                    ):
+                        mesma_origem = False
+
+                # Atualiza os dados preservando campos históricos se a origem for diferente
+                for key, value in model_novo.model_dump().items():
+                    # O ID da chave primária física nunca deve ser alterado no banco
+                    if key == "id":
+                        continue
+
+                    if not mesma_origem and key in campos_preservar:
+                        # Se for de origem diferente, não sobrescreve os metadados da casa iniciadora
+                        if getattr(existing, key, None) is not None:
+                            continue
+
                     if value is not None:
                         setattr(existing, key, value)
                 self.session.add(existing)
+                # Propaga o ID persistido de volta para a entidade de domínio em memória
+                prop.id = existing.id
             else:
-                # Caso não exista, é um insert
+                # Caso não exista, realiza o insert
                 self.session.add(model_novo)
 
         self.session.commit()

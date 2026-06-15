@@ -12,7 +12,9 @@ def update_proposicoes_ids():
     engine = create_engine(settings.database_url)
     with engine.begin() as conn:
         # Desabilita temporariamente a verificação de chaves estrangeiras no PostgreSQL
-        logger.info("Desabilitando temporariamente as restrições de chave estrangeira...")
+        logger.info(
+            "Desabilitando temporariamente as restrições de chave estrangeira..."
+        )
         conn.execute(text("SET session_replication_role = 'replica';"))
 
         try:

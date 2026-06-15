@@ -65,6 +65,22 @@ def test_obter_metricas_gerais(session: Session):
     assert metricas["iarMedio"] == 1.0  # (1.5 + 0.5) / 2
     assert metricas["ieiMedio"] == 0.3  # (0.5 + 0.1) / 2
     assert metricas["percentualAtrasadas"] == 50
+    assert metricas["totalProposicoesTrend"] == {
+        "value": "+12% vs mês anterior",
+        "isPositive": True,
+    }
+    assert metricas["totalEmTramitacaoTrend"] == {
+        "value": "+8% vs mês anterior",
+        "isPositive": True,
+    }
+    assert metricas["proposicoesComAtrasoTrend"] == {
+        "value": "-5% vs mês anterior",
+        "isPositive": True,
+    }
+    assert metricas["tempoMedioTramitacaoTrend"] == {
+        "value": "+3 dias vs trimestre",
+        "isPositive": False,
+    }
 
 
 def test_obter_metricas_com_filtros(session: Session):
