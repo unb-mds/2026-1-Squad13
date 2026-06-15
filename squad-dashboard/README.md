@@ -15,7 +15,7 @@ Caso contrário, usa os mocks de `src/mocks/` como fallback automático — sem 
 
 ```
 GitHub Actions (cron a cada 6h ou manual)
-  └→ scripts/generate-github-data.mjs
+  └→ squad-dashboard/scripts/generate-github-data.mjs
        └→ GitHub REST API (commits, PRs, issues, workflows, contributors)
             └→ public/data/github-stats.json  ← commitado no repositório
                  └→ deploy-squad-dashboard.yml reconstrói e publica

@@ -22,7 +22,7 @@ const proposicaoBase: Proposicao = {
   ementaResumida: 'Ementa resumida',
   autor: 'Autor Teste',
   orgaoOrigem: 'Câmara',
-  status: 'Em tramitação',
+  status: 'Em Tramitação',
   orgaoAtual: 'CCJ',
   dataApresentacao: '2024-01-01',
   dataUltimaMovimentacao: '2024-01-01',
@@ -30,6 +30,8 @@ const proposicaoBase: Proposicao = {
   temAtraso: false,
   atrasoCritico: false,
   temPrevisaoIA: false,
+  coberturaDados: 100,
+  confiabilidade: 'alta',
   tags: ['teste'],
 }
 

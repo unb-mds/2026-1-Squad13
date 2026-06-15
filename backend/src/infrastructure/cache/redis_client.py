@@ -1,6 +1,8 @@
-import redis
 import logging
-from typing import Any, Optional
+from typing import Any
+
+import redis
+
 from application.ports.cache_provider import CacheProvider
 
 logger = logging.getLogger(__name__)
@@ -15,7 +17,7 @@ class RedisClient(CacheProvider):
         self.client = redis_client
         self.cache_ttl = 86400  # 24 horas em segundos
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Recupera um valor do cache."""
         try:
             return self.client.get(key)
@@ -23,7 +25,7 @@ class RedisClient(CacheProvider):
             logger.error(f"Erro ao acessar o Redis (GET): {e}")
             return None
 
-    def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: int | None = None) -> None:
         """Salva um valor no cache com um tempo de vida (TTL) opcional."""
         try:
             if ttl_seconds is not None:
@@ -43,12 +45,14 @@ class RedisClient(CacheProvider):
     def invalidate(self, prefix: str) -> None:
         """Invalida todas as chaves que começam com o prefixo fornecido usando SCAN."""
         try:
-            cursor = "0"
-            while cursor != 0:
+            cursor = 0
+            while True:
                 cursor, keys = self.client.scan(
                     cursor=cursor, match=f"{prefix}*", count=100
                 )
                 if keys:
                     self.client.delete(*keys)
+                if cursor == 0:
+                    break
         except redis.RedisError as e:
             logger.error(f"Erro ao acessar o Redis (INVALIDATE): {e}")

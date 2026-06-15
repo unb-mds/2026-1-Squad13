@@ -5,27 +5,23 @@ Transforma dados das APIs (Câmara/Senado) em eventos analíticos estruturados.
 """
 
 import re
-from datetime import datetime, date
-from typing import List, Optional
+from datetime import date, datetime
 
-from domain.entities.evento_tramitacao import EventoTramitacao
-from domain.entities.orgao_legislativo import CasaLegislativa
-from domain.entities.tipo_evento import TipoEvento
+from application.ports.apensamento_repository import ApensamentoRepositoryPort
+from application.ports.fase_analitica_repository import (
+    FaseAnaliticaRepositoryPort,
+)
+from application.ports.orgao_legislativo_repository import (
+    OrgaoLegislativoRepositoryPort,
+)
 from domain.classificar_evento import (
     classificar_tipo_evento,
     determinar_fase_analitica,
 )
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
-from infrastructure.repositories.sql_orgao_legislativo_repository import (
-    SQLOrgaoLegislativoRepository,
-)
-
-
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
-)
+from domain.constants import LIMITE_DIAS_ATRASO
+from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.entities.orgao_legislativo import CasaLegislativa
+from domain.entities.tipo_evento import TipoEvento
 
 
 class NormalizarTramitacaoService:
@@ -35,9 +31,9 @@ class NormalizarTramitacaoService:
 
     def __init__(
         self,
-        fase_repo: SQLFaseAnaliticaRepository,
-        orgao_repo: SQLOrgaoLegislativoRepository,
-        apensamento_repo: Optional[SQLApensamentoRepository] = None,
+        fase_repo: FaseAnaliticaRepositoryPort,
+        orgao_repo: OrgaoLegislativoRepositoryPort,
+        apensamento_repo: ApensamentoRepositoryPort | None = None,
         casa_padrao: CasaLegislativa = CasaLegislativa.CAMARA,
     ):
         self.fase_repo = fase_repo
@@ -50,8 +46,8 @@ class NormalizarTramitacaoService:
         self._fase_id_map = {f.codigo: f.id for f in todas_fases}
 
     def normalizar(
-        self, proposicao_id: str, dados_brutos: List[dict]
-    ) -> List[EventoTramitacao]:
+        self, proposicao_id: str, dados_brutos: list[dict]
+    ) -> list[EventoTramitacao]:
         """
         Recebe a lista cronológica de dicts (data_hora, sequencia, sigla_orgao, descricao, payload_bruto)
         e retorna uma lista de EventoTramitacao normalizados.
@@ -62,7 +58,7 @@ class NormalizarTramitacaoService:
         orgaos_cacheados = set()
 
         for item in dados_brutos:
-            descricao = item.get("descricao", "")
+            descricao = item.get("descricao") or ""
 
             # 1. Classificar o tipo
             tipo_evento = classificar_tipo_evento(descricao)
@@ -93,7 +89,7 @@ class NormalizarTramitacaoService:
                 sigla_orgao != orgao_anterior
             )
 
-            remessa_ou_retorno: Optional[str] = None
+            remessa_ou_retorno: str | None = None
             marca_apensacao = False
             if tipo_evento in {
                 TipoEvento.REMESSA_OUTRA_CASA,
@@ -152,6 +148,8 @@ class NormalizarTramitacaoService:
                 marca_apensacao=marca_apensacao,
                 payload_bruto=item.get("payload_bruto"),
             )
+            # Define relevância antes de adicionar à lista (calculado via @property)
+            evento.relevante = evento.eh_relevante
             eventos.append(evento)
 
             # Atualiza o estado para o próximo evento (apenas se não for NAO_CLASSIFICADO para fase)
@@ -176,7 +174,7 @@ class NormalizarTramitacaoService:
                 dias = (hoje - data_atual).days
 
             atual.dias_na_etapa = max(0, dias)
-            # Regra de negócio: mais de 180 dias sem movimentação é considerado atraso
-            atual.tem_atraso = atual.dias_na_etapa > 180
+            # Regra de negócio: mais de LIMITE_DIAS_ATRASO dias sem movimentação é considerado atraso
+            atual.tem_atraso = atual.dias_na_etapa > LIMITE_DIAS_ATRASO
 
         return eventos

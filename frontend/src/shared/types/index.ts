@@ -1,14 +1,12 @@
 export type TipoProposicao = 'PL' | 'PEC' | 'PDL' | 'MP' | 'PLP'
 
 export type StatusProposicao =
-  | 'Em tramitação'
+  | 'Em Tramitação'
+  | 'Em Pauta'
   | 'Aprovada'
-  | 'Rejeitada'
-  | 'Arquivada'
-  | 'Vetada'
   | 'Sancionada'
-  | 'Aguardando votação'
-  | 'Em análise'
+  | 'Vetada'
+  | 'Arquivada'
 
 export interface Proposicao {
   id: string
@@ -31,6 +29,8 @@ export interface Proposicao {
   atrasoCritico: boolean
   temPrevisaoIA: boolean
   previsaoAprovacaoDias?: number
+  coberturaDados: number
+  confiabilidade: 'alta' | 'media' | 'baixa'
   tags: string[]
 }
 
@@ -48,6 +48,7 @@ export interface MovimentacaoTramitacao {
 export interface MetricasDashboard {
   tempoMedioTramitacao: number
   totalProposicoes: number
+  totalTramitacoes: number
   proposicoesComAtraso: number
   comissaoMaiorTempo: string
   comissaoMaiorTempoMedia: number
@@ -88,18 +89,12 @@ export interface ComparacaoTema {
   velocidade: 'rapido' | 'medio' | 'lento'
 }
 
-export interface User {
-  id: string
-  nome: string
-  email: string
-  perfil: 'analista' | 'gestor' | 'publico'
-}
-
-export interface AuthState {
-  user: User | null
-  token: string | null
-  isAuthenticated: boolean
-  expiresAt: number | null
+export interface TempoPorFase {
+  fase: string
+  codigoFase: string
+  ordemLogica: number
+  tempoMedioDias: number
+  quantidadeProposicoes: number
 }
 
 export interface FiltrosProposicao {
@@ -109,10 +104,44 @@ export interface FiltrosProposicao {
   status: string
   dataInicio: string
   dataFim: string
+  rito?: string
 }
 
 export interface PaginacaoState {
   pagina: number
   itensPorPagina: number
   total: number
+}
+
+export interface EstoqueFaseItem {
+  codigo: string
+  nome: string
+  natureza: string
+  permiteEstoqueAtual: boolean
+  total: number
+}
+
+export interface DashboardEstoqueResponse {
+  ativo: EstoqueFaseItem[]
+  passivo: EstoqueFaseItem[]
+}
+
+export interface DashboardHandoffResponse {
+  totalEmTransito: number
+  medianaDiasTransito: number
+}
+
+export interface CoberturaMetricaResponse {
+  ano: number
+  tipoProposicao: string
+  totalLocal: number
+  totalApiOficial: number
+  percentualCobertura: number
+  dataAtualizacao: string | null
+}
+
+export interface DashboardQualidadeResponse {
+  completudePorcentagem: number
+  totalProposicoes: number
+  camposAnalisados: number
 }

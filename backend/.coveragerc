@@ -1,0 +1,35 @@
+[run]
+branch = True
+source = src
+omit =
+    src/seed.py
+    src/init_db.py
+    src/audit_db.py
+    src/drop_legacy_tables.py
+    src/infrastructure/database/alembic/*
+    src/infrastructure/adapters/*_mock_adapter.py
+    src/infrastructure/adapters/dummy_email_sender.py
+    src/infrastructure/adapters/senado_adapter.py
+    src/infrastructure/adapters/camara_adapter.py
+    src/infrastructure/adapters/base_adapter.py
+    src/infrastructure/workers/celery_app.py
+    src/application/ports/*
+    src/domain/entities/tramitacao.py
+    src/infrastructure/cache/redis_client.py
+    src/infrastructure/database/__init__.py
+    src/main.py
+    src/infrastructure/repositories/sql_user_repository.py
+    src/presentation/controllers/health_controller.py
+    src/infrastructure/database/seeds/*
+
+[report]
+show_missing = True
+skip_covered = True
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    pass

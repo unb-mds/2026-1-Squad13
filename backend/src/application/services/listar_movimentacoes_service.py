@@ -5,30 +5,35 @@ Substitui o antigo ListarTramitacoesService. Orquestra a busca no banco (cache),
 fallback para a API externa via adapter, e normalização de tramitações.
 """
 
-from typing import List, Optional
+import logging
+from typing import Any
 
+import httpx
+
+from application.ports.apensamento_repository import ApensamentoRepositoryPort
+from application.ports.camara_adapter import CamaraAdapterPort
+from application.ports.evento_tramitacao_repository import (
+    EventoTramitacaoRepositoryPort,
+)
+from application.ports.fase_analitica_repository import (
+    FaseAnaliticaRepositoryPort,
+)
+from application.ports.orgao_legislativo_repository import (
+    OrgaoLegislativoRepositoryPort,
+)
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
+from application.ports.senado_adapter import SenadoAdapterPort
+from application.services.agregar_por_fase_service import AgregarPorFaseService
 from application.services.normalizar_tramitacao_service import (
     NormalizarTramitacaoService,
 )
+from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
-from infrastructure.adapters.camara_adapter import CamaraAdapter
-from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
-)
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
-)
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
-from infrastructure.repositories.sql_orgao_legislativo_repository import (
-    SQLOrgaoLegislativoRepository,
-)
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
+from domain.value_objects.modo_movimentacao import ModoMovimentacao
+from domain.value_objects.periodo_fase import PeriodoFase
+
+logger = logging.getLogger(__name__)
 
 
 class ListarMovimentacoesService:
@@ -36,13 +41,14 @@ class ListarMovimentacoesService:
 
     def __init__(
         self,
-        evento_repo: SQLEventoTramitacaoRepository,
-        proposicao_repo: SQLProposicaoRepository,
-        fase_repo: SQLFaseAnaliticaRepository,
-        orgao_repo: SQLOrgaoLegislativoRepository,
-        camara_adapter: CamaraAdapter,
-        senado_adapter: SenadoAdapter,
-        apensamento_repo: Optional[SQLApensamentoRepository] = None,
+        evento_repo: EventoTramitacaoRepositoryPort,
+        proposicao_repo: ProposicaoRepositoryPort,
+        fase_repo: FaseAnaliticaRepositoryPort,
+        orgao_repo: OrgaoLegislativoRepositoryPort,
+        camara_adapter: CamaraAdapterPort,
+        senado_adapter: SenadoAdapterPort,
+        apensamento_repo: ApensamentoRepositoryPort | None = None,
+        reconstruir_service: ReconstruirPeriodosService | None = None,
     ):
         self.evento_repo = evento_repo
         self.proposicao_repo = proposicao_repo
@@ -51,12 +57,20 @@ class ListarMovimentacoesService:
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
         self.apensamento_repo = apensamento_repo
+        self.reconstruir_service = reconstruir_service
+        self._agregar_service = AgregarPorFaseService(fase_repo)
 
-    def executar(self, proposicao_id: str) -> List[EventoTramitacao]:
+    async def executar(
+        self,
+        proposicao_id: str,
+        modo: ModoMovimentacao = ModoMovimentacao.RESUMIDO,
+        client: httpx.AsyncClient | None = None,
+    ) -> list[PeriodoFase] | list[EventoTramitacao]:
         """
         Retorna a lista de eventos normalizados para a proposição solicitada.
         Se não existirem no cache, busca na API, normaliza e salva.
         """
+        proposicao = None
         # 0. Resolução de slug se necessário (PL-1-2024)
         real_id = proposicao_id
         if "-" in proposicao_id:
@@ -72,54 +86,271 @@ class ListarMovimentacoesService:
                     pass
 
         # 1. Tentar cache (banco de dados)
-        eventos = self.evento_repo.buscar_por_proposicao(real_id)
-        if eventos:
-            return eventos
+        somente_relevantes = modo == ModoMovimentacao.RELEVANTE
+        eventos = self.evento_repo.buscar_por_proposicao(
+            real_id, somente_relevantes=somente_relevantes
+        )
 
-        # 2. Se não está no cache, precisa saber a origem
-        proposicao = self.proposicao_repo.buscar_por_id(real_id)
+        # 2. Se não está no cache, busca na API (Fail-fast de 5s para o usuário)
+        # Se eventos está vazio, verificamos se é porque realmente não há nada no banco
+        # ou se é apenas porque não há eventos relevantes (caso modo == RELEVANTE).
+        ja_esta_no_cache = len(eventos) > 0 or (
+            somente_relevantes and self.evento_repo.existe_algum_evento(real_id)
+        )
 
-        # Determina o adapter e a casa padrão com base na proposição ou tenta fallback
-        dados_brutos = []
-        casa_padrao = CasaLegislativa.CAMARA
+        if not ja_esta_no_cache:
+            proposicao = self.proposicao_repo.buscar_por_id(real_id)
 
-        if not proposicao:
-            # Fallback numérico
-            if not real_id.isdigit():
-                return []
+            # Timeout curto para a Web (5s), mas permite maior se for via client (Seed)
+            req_timeout = 5 if client is None else 30
 
-            dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(int(real_id))
-            if not dados_brutos:
-                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
-                    int(real_id)
-                )
-                casa_padrao = CasaLegislativa.SENADO
-        else:
-            if "Câmara" in (proposicao.orgao_origem or ""):
-                dados_brutos = self.camara_adapter.buscar_tramitacoes_brutas(
-                    int(real_id)
+            # Determina o adapter e a casa padrão
+            dados_brutos = []
+
+            # Se for PL ou PEC, tentamos buscar em AMBAS as casas para unificar o histórico
+            tipos_unificaveis = {"PL", "PEC", "PLP", "MPV", "PLC"}
+
+            tipo_prop = proposicao.tipo if proposicao else None
+            numero_prop = proposicao.numero if proposicao else None
+            ano_prop = proposicao.ano if proposicao else None
+
+            if not proposicao and real_id.isdigit():
+                # Tenta descobrir o tipo se não tiver proposicao (fallback para IDs diretos)
+                # Neste caso mantemos a lógica sequencial original
+                dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(
+                    int(real_id), client=client
                 )
                 casa_padrao = CasaLegislativa.CAMARA
-            else:
-                dados_brutos = self.senado_adapter.buscar_tramitacoes_brutas(
-                    int(real_id)
+                if not dados_brutos:
+                    dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
+                        int(real_id), client=client, timeout=req_timeout
+                    )
+                    casa_padrao = CasaLegislativa.SENADO
+            elif proposicao and tipo_prop in tipos_unificaveis:
+                # LÓGICA DE UNIFICAÇÃO (CROSSOVER)
+                logger.info(
+                    f"Iniciando busca unificada para {proposicao.nome_canonico}"
                 )
-                casa_padrao = CasaLegislativa.SENADO
 
-        if not dados_brutos:
-            return []
+                # 1. Buscar IDs em ambas as casas
+                id_camara = None
+                id_senado = None
 
-        # 3. Normalizar
-        normalizer = NormalizarTramitacaoService(
-            fase_repo=self.fase_repo,
-            orgao_repo=self.orgao_repo,
-            apensamento_repo=self.apensamento_repo,
-            casa_padrao=casa_padrao,
-        )
-        eventos_novos = normalizer.normalizar(real_id, dados_brutos)
+                if "Câmara" in (proposicao.orgao_origem or ""):
+                    id_camara = int(proposicao.id)
+                    # Tenta achar o correspondente no Senado
+                    id_senado = await self.senado_adapter.buscar_id_por_identificacao(
+                        tipo_prop, numero_prop, ano_prop, client=client
+                    )
+                    # Fallback para PLC se for PL da Câmara (comum em proposições antigas)
+                    if not id_senado and tipo_prop == "PL":
+                        id_senado = (
+                            await self.senado_adapter.buscar_id_por_identificacao(
+                                "PLC", numero_prop, ano_prop, client=client
+                            )
+                        )
 
-        # 4. Salvar no cache
-        if eventos_novos:
-            self.evento_repo.salvar_lote(eventos_novos)
+                    # Verificação de integridade: garante que o Senado refere-se à mesma proposição
+                    if id_senado:
+                        p_sen = await self.senado_adapter.buscar_por_id(
+                            id_senado, client=client
+                        )
+                        if p_sen:
+                            # Se o Senado diz que veio da Câmara com o mesmo nome canônico, ou se o nome é idêntico
+                            match = (proposicao.nome_canonico in p_sen.tags) or (
+                                p_sen.nome_canonico == proposicao.nome_canonico
+                            )
+                            if not match:
+                                logger.warning(
+                                    f"Crossover ignorado: {p_sen.nome_canonico} no Senado não é {proposicao.nome_canonico}"
+                                )
+                                id_senado = None
+                else:
+                    id_senado = int(proposicao.id)
+                    # Tenta achar o correspondente na Câmara
+                    id_camara = None
+                    # Primeiro tenta via tags de origem (ex: "PL 2681/1996")
+                    for tag in proposicao.tags or []:
+                        if " " in tag and "/" in tag:
+                            try:
+                                t_orig, rest = tag.split(" ", 1)
+                                n_orig, a_orig = rest.split("/", 1)
+                                id_camara = await self.camara_adapter.buscar_id_por_identificacao(
+                                    t_orig, n_orig, int(a_orig), client=client
+                                )
+                                if id_camara:
+                                    logger.info(
+                                        f"Origem na Câmara encontrada via tags: {tag} (ID {id_camara})"
+                                    )
+                                    break
+                            except Exception:
+                                continue
 
-        return eventos_novos
+                    # Fallback: busca direta pelo mesmo nome
+                    if not id_camara:
+                        id_camara = (
+                            await self.camara_adapter.buscar_id_por_identificacao(
+                                tipo_prop, numero_prop, ano_prop, client=client
+                            )
+                        )
+
+                # 2. Coletar tramitações de onde encontramos ID
+                tramitacoes_camara = []
+                tramitacoes_senado = []
+
+                if id_camara:
+                    tramitacoes_camara = (
+                        await self.camara_adapter.buscar_tramitacoes_brutas(
+                            id_camara, client=client
+                        )
+                    )
+                if id_senado:
+                    tramitacoes_senado = (
+                        await self.senado_adapter.buscar_tramitacoes_brutas(
+                            id_senado, client=client, timeout=req_timeout
+                        )
+                    )
+
+                # 3. Normalizar separadamente (pois cada uma tem sua casa_padrao)
+                eventos_unificados = []
+
+                if tramitacoes_camara:
+                    norm_c = NormalizarTramitacaoService(
+                        self.fase_repo,
+                        self.orgao_repo,
+                        self.apensamento_repo,
+                        CasaLegislativa.CAMARA,
+                    )
+                    eventos_unificados.extend(
+                        norm_c.normalizar(real_id, tramitacoes_camara)
+                    )
+
+                if tramitacoes_senado:
+                    norm_s = NormalizarTramitacaoService(
+                        self.fase_repo,
+                        self.orgao_repo,
+                        self.apensamento_repo,
+                        CasaLegislativa.SENADO,
+                    )
+                    eventos_unificados.extend(
+                        norm_s.normalizar(real_id, tramitacoes_senado)
+                    )
+
+                # 4. Ordenar e deduplicar
+                # Ordena por data e depois por sequencia
+                eventos_unificados.sort(key=lambda e: (e.data_evento, e.sequencia))
+
+                # Deduplicação por data e descrição (caso as casas repitam o mesmo evento de trânsito)
+                vistos = set()
+                eventos_finais = []
+                for e in eventos_unificados:
+                    chave = (e.data_evento[:16], e.descricao_original[:50].lower())
+                    if chave not in vistos:
+                        vistos.add(chave)
+                        eventos_finais.append(e)
+
+                eventos = eventos_finais
+                # Forçamos a sequencia correta após unificar
+                for i, e in enumerate(eventos):
+                    e.sequencia = i + 1
+
+                # Sincroniza a proposição
+                if eventos:
+                    self.evento_repo.salvar_lote(eventos)
+                    self._sincronizar_proposicao(proposicao, eventos)
+                    self.proposicao_repo.salvar(proposicao)
+
+                    # Reconstrói os períodos para persistência e uso no dashboard (estoque)
+                    if self.reconstruir_service:
+                        self.reconstruir_service.reconstruir_para_proposicao(real_id)
+            else:
+                # Fallback para tipos não unificáveis (ou sem proposição)
+                if proposicao and "Câmara" in (proposicao.orgao_origem or ""):
+                    dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(
+                        int(real_id), client=client
+                    )
+                    casa_padrao = CasaLegislativa.CAMARA
+                else:
+                    dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
+                        int(real_id), client=client, timeout=req_timeout
+                    )
+                    casa_padrao = CasaLegislativa.SENADO
+
+            if not eventos and dados_brutos:
+                # Normalizar e salvar (lógica original)
+                normalizer = NormalizarTramitacaoService(
+                    fase_repo=self.fase_repo,
+                    orgao_repo=self.orgao_repo,
+                    apensamento_repo=self.apensamento_repo,
+                    casa_padrao=casa_padrao,
+                )
+                eventos = normalizer.normalizar(real_id, dados_brutos)
+                if eventos:
+                    self.evento_repo.salvar_lote(eventos)
+                    if proposicao:
+                        self._sincronizar_proposicao(proposicao, eventos)
+                        self.proposicao_repo.salvar(proposicao)
+
+        # 5. Aplica a lógica do modo
+        if modo == ModoMovimentacao.RESUMIDO:
+            # Se já temos a proposição carregada, usamos ela; caso contrário buscamos
+            prop_resumo = proposicao or self.proposicao_repo.buscar_por_id(real_id)
+
+            data_encerramento_obj = None
+            if prop_resumo and prop_resumo.data_encerramento:
+                try:
+                    from datetime import datetime
+
+                    data_encerramento_obj = datetime.fromisoformat(
+                        prop_resumo.data_encerramento[:10]
+                    ).date()
+                except (ValueError, TypeError):
+                    pass
+
+            return self._agregar_service.executar(
+                eventos,
+                proposicao_encerrada=data_encerramento_obj is not None,
+                data_encerramento=data_encerramento_obj,
+            )
+
+        if modo == ModoMovimentacao.RELEVANTE:
+            return [e for e in eventos if e.relevante]
+
+        return eventos
+
+    def _sincronizar_proposicao(self, proposicao: Any, eventos: list[EventoTramitacao]):
+        """Atualiza campos da proposição baseando-se no histórico de eventos."""
+        if not eventos:
+            return
+
+        # 1. Determinar Encerramento
+        ultimo_evento_terminal = None
+        for e in reversed(eventos):
+            if e.eh_evento_terminal:
+                ultimo_evento_terminal = e
+                break
+
+        if ultimo_evento_terminal:
+            proposicao.data_encerramento = ultimo_evento_terminal.data_evento[:10]
+            # Se terminou, o status deve refletir isso
+            proposicao.status = ultimo_evento_terminal.descricao_original
+            proposicao.status_original = ultimo_evento_terminal.descricao_original
+        else:
+            proposicao.data_encerramento = None
+            # Se não terminou, pega o último status relevante ou o último de todos
+            for e in reversed(eventos):
+                if e.relevante or e.deliberativo:
+                    proposicao.status = e.descricao_original
+                    proposicao.status_original = e.descricao_original
+                    break
+
+        # 2. Atualizar órgão atual
+        if eventos[-1].sigla_orgao:
+            proposicao.orgao_atual = eventos[-1].sigla_orgao
+
+        # 3. Normalizar e recalcular
+
+        # Garante que temos os métodos de domínio se for um model
+        if hasattr(proposicao, "normalizar_campo_status"):
+            proposicao.normalizar_campo_status()
+            proposicao.atualizar_metricas()

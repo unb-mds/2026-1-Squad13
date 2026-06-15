@@ -73,7 +73,7 @@ Sempre que uma nova decisão persistente for adicionada, o registro deve seguir 
 **Impacto:** Novos Adapters de rede ou Repositórios de banco exigem testes na pasta `integration`. Lógicas de cálculo ou formatação devem ir para `unit`.
 
 ### [2026-05] Validação Blindada e Automação de Ambiente
-**Evidência:** Scripts `start_dev.sh`, `test_all.sh` e configuração do Ruff/Vitest.
+**Evidência:** Scripts em `scripts/dev/`, `scripts/ci/test.sh` e configuração do Ruff/Vitest.
 **Decisão:** Uso de scripts de entrada única para subir o ambiente e validar todo o monorepo. Adoção do Ruff (backend) e Vitest (frontend) como padrões de qualidade.
 **Justificativa:** Reduzir o atrito no onboarding e garantir que nenhum commit quebre a integridade do monorepo.
 **Impacto:** O CI bloqueia merges sem a "Validação Blindada" (lint + tipos + testes) aprovada em ambos os subprojetos.

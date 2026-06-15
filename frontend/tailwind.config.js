@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
@@ -41,6 +42,50 @@ export default {
           400: '#fb7185',
           500: '#f43f5e',
         },
+        // Mapeamento de variáveis CSS do protótipo
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+          foreground: 'var(--destructive-foreground)',
+        },
+        warning: {
+          DEFAULT: 'var(--warning)',
+          foreground: 'var(--warning-foreground)',
+        },
+        info: {
+          DEFAULT: 'var(--info)',
+          foreground: 'var(--info-foreground)',
+        },
+        border: 'var(--border)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
+        'input-background': 'var(--input-background)',
+        'switch-background': 'var(--switch-background)',
+        'status-em-curso': 'var(--status-em-curso)',
+        'status-em-atraso': 'var(--status-em-atraso)',
+        'status-concluida': 'var(--status-concluida)',
+        'status-aguardando': 'var(--status-aguardando)',
       },
       animation: {
         'fade-in': 'fadeIn 0.4s ease-out',
@@ -57,3 +102,4 @@ export default {
   },
   plugins: [],
 }
+

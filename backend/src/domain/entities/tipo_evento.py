@@ -9,10 +9,10 @@ proposição. Isso permite medir a taxa de cobertura do classificador
 sem contaminar métricas de tempo por fase.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 
-class TipoEvento(str, Enum):
+class TipoEvento(StrEnum):
     """
     20 tipos normalizados de evento de tramitação.
 

@@ -1,0 +1,215 @@
+import type { Proposicao } from '../types';
+import type { Proposition } from '@/features/proposicoes/components/PropositionsTable';
+import type { PhaseEntry } from '@/features/proposicoes/components/PhaseTimeline';
+import type { TimelineEvent } from '@/features/proposicoes/components/EventTimeline';
+import type { TransitStep } from '@/features/proposicoes/components/HouseTransitDiagram';
+
+// Converte data ISO ou string em formato DD/MM/AAAA
+export function formatarDataBr(dataStr?: string): string {
+  if (!dataStr) return '';
+  try {
+    const data = new Date(dataStr);
+    if (isNaN(data.getTime())) {
+      // Tenta fazer split simples se for yyyy-mm-dd
+      const parts = dataStr.split('T')[0].split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dataStr;
+    }
+    return data.toLocaleDateString('pt-BR');
+  } catch {
+    return dataStr || '';
+  }
+}
+
+export function mapProposicaoToProposition(p: Proposicao): Proposition {
+  // Calcula os dias na etapa atual a partir da data de última movimentação
+  let diasNaEtapa = 0;
+  if (p.dataUltimaMovimentacao) {
+    const diffTime = Math.abs(Date.now() - new Date(p.dataUltimaMovimentacao).getTime());
+    diasNaEtapa = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  // Determina a casa atual
+  let casaAtual: "Câmara" | "Senado" | "Sanção" = "Câmara";
+  if (p.status === "Sancionada" || p.status === "Vetada") {
+    casaAtual = "Sanção";
+  } else if (p.orgaoOrigem?.toLowerCase().includes("senado") || p.orgaoAtual?.toLowerCase().includes("sf") || p.orgaoAtual?.toLowerCase().includes("senado")) {
+    casaAtual = "Senado";
+  }
+
+  // Determina o status de tramitação para a UI (categorização por cores)
+  let statusTramitacao: Proposition["statusTramitacao"] = "em-tramitacao";
+  
+  if (p.temAtraso) {
+    statusTramitacao = "em-atraso";
+  } else {
+    const statusLower = p.status.toLowerCase();
+    
+    if (
+      statusLower.includes("aprovada") || 
+      statusLower.includes("sancionada") || 
+      statusLower.includes("concluída")
+    ) {
+      statusTramitacao = "aprovada";
+    } else if (
+      statusLower.includes("rejeitada") || 
+      statusLower.includes("arquivada") || 
+      statusLower.includes("vetada")
+    ) {
+      statusTramitacao = "arquivada";
+    } else if (
+      statusLower.includes("aguardando") || 
+      statusLower.includes("pauta")
+    ) {
+      statusTramitacao = "aguardando";
+    }
+  }
+
+  return {
+    id: p.codigoNormalizado || p.id,
+    numero: `${p.numero}/${p.ano}`,
+    tipo: p.tipo,
+    ementa: p.ementaResumida || p.ementa,
+    casaAtual,
+    faseAtual: p.orgaoAtual || "Protocolo",
+    diasNaEtapa: diasNaEtapa || 0,
+    diasTotais: p.tempoTotalDias || 0,
+    ultimoEventoRelevante: p.status || "Movimentação registrada",
+    dataUltimoEvento: formatarDataBr(p.dataUltimaMovimentacao),
+    autor: p.autor,
+    atraso: p.temAtraso ? Math.max(0, p.tempoTotalDias - 180) : 0,
+    coberturaDados: p.coberturaDados,
+    confiabilidade: p.confiabilidade,
+    statusTramitacao,
+    statusLabel: p.temAtraso ? "Em atraso" : p.status,
+    transitouEntreCasas: p.orgaoOrigem?.toLowerCase().includes("senado") && p.orgaoAtual?.toLowerCase().includes("camara") || p.orgaoOrigem?.toLowerCase().includes("camara") && p.orgaoAtual?.toLowerCase().includes("senado"),
+  };
+}
+
+// Converte PeriodoFaseResponse do backend para PhaseEntry do protótipo
+export function mapPeriodoFaseToPhaseEntry(p: { 
+  faseNome?: string; 
+  faseCodigo?: string; 
+  ocorrencia?: number; 
+  dataEntrada?: string; 
+  dataSaida?: string; 
+  diasCorridos: number;
+  motivoTravamento?: string | null;
+  numeroTurno?: number | null;
+  subtipoFase?: string | null;
+}, index: number, isLast: boolean): PhaseEntry {
+  return {
+    id: String(index + 1),
+    fase: p.faseNome || p.faseCodigo || "N/A",
+    ocorrencia: p.ocorrencia || 1,
+    dataEntrada: formatarDataBr(p.dataEntrada),
+    dataSaida: p.dataSaida ? formatarDataBr(p.dataSaida) : undefined,
+    duracaoDias: p.diasCorridos || 0,
+    atrasoDias: p.diasCorridos > 45 ? p.diasCorridos - 45 : 0, // Mediana estimada em 45 dias
+    isRecorrente: (p.ocorrencia || 1) > 1,
+    isCurrent: isLast,
+    motivoTravamento: p.motivoTravamento || undefined,
+    numeroTurno: p.numeroTurno !== null ? p.numeroTurno : undefined,
+    subtipoFase: p.subtipoFase || undefined,
+  };
+}
+
+// Converte EventoResponse do backend para TimelineEvent do protótipo
+export function mapEventoTramitacaoToTimelineEvent(e: {
+  sequencia?: number;
+  dataEvento?: string;
+  siglaOrgao?: string;
+  tipoEvento?: string;
+  descricaoOriginal?: string;
+  relevante?: boolean;
+  mudouFase?: boolean;
+  temAtraso?: boolean;
+  remessaOuRetorno?: boolean;
+}): TimelineEvent {
+  let tipoEvento: TimelineEvent["tipoEvento"] = "outro";
+  const backendTipo = e.tipoEvento?.toLowerCase() || "";
+
+  if (backendTipo.includes("apresentacao")) tipoEvento = "mudanca-fase";
+  else if (backendTipo.includes("votacao") || backendTipo.includes("deliberacao") || backendTipo.includes("aprovacao") || backendTipo.includes("rejeicao")) tipoEvento = "deliberacao";
+  else if (backendTipo.includes("apensamento") || backendTipo.includes("apensacao")) tipoEvento = "apensamento";
+  else if (backendTipo.includes("remessa") || backendTipo.includes("recebimento")) tipoEvento = "transicao-casa";
+  else if (backendTipo.includes("despacho")) tipoEvento = "despacho";
+  else if (backendTipo.includes("parecer")) tipoEvento = "parecer";
+  else if (backendTipo.includes("emenda")) tipoEvento = "emenda";
+
+  return {
+    id: String(e.sequencia || Math.random()),
+    data: formatarDataBr(e.dataEvento),
+    hora: e.dataEvento?.includes("T") ? e.dataEvento.split("T")[1].substring(0, 5) : undefined,
+    orgao: e.siglaOrgao || "N/A",
+    tipoEvento,
+    titulo: e.descricaoOriginal ? (e.descricaoOriginal.length > 50 ? e.descricaoOriginal.substring(0, 47) + "..." : e.descricaoOriginal) : "Movimentação registrada",
+    descricao: e.descricaoOriginal || "",
+    isRelevante: e.relevante || false,
+    flags: {
+      mudancaFase: e.mudouFase || false,
+      atraso: e.temAtraso || false,
+      transitoCasas: !!e.remessaOuRetorno,
+      apensamento: e.descricaoOriginal?.toLowerCase().includes("apensado") || false,
+    },
+  };
+}
+
+export function mapMovimentacoesToTransitSteps(movs: {
+  siglaOrgao?: string;
+  orgao?: string;
+  dataEvento?: string;
+  data?: string;
+}[]): TransitStep[] {
+  // Agrupa os eventos por casa
+  const steps: TransitStep[] = [];
+  
+  if (movs.length === 0) {
+    return [
+      { casa: "Câmara", tipo: "origem", dataEntrada: "Apresentação" }
+    ];
+  }
+
+  // Ordena cronologicamente
+  const sortedMovs = [...movs].sort((a, b) => new Date(a.dataEvento || a.data || "").getTime() - new Date(b.dataEvento || b.data || "").getTime());
+  
+  let currentCasa: "Câmara" | "Senado" = sortedMovs[0].siglaOrgao?.toLowerCase().includes("sf") || sortedMovs[0].orgao?.toLowerCase().includes("sf") ? "Senado" : "Câmara";
+  steps.push({
+    casa: currentCasa,
+    tipo: "origem",
+    dataEntrada: formatarDataBr(sortedMovs[0].dataEvento || sortedMovs[0].data),
+    duracaoDias: 0
+  });
+
+  for (let i = 1; i < sortedMovs.length; i++) {
+    const m = sortedMovs[i];
+    const mCasa: "Câmara" | "Senado" = m.siglaOrgao?.toLowerCase().includes("sf") || m.orgao?.toLowerCase().includes("sf") ? "Senado" : "Câmara";
+    
+    if (mCasa !== currentCasa) {
+      // Transição de casa detectada
+      steps[steps.length - 1].dataSaida = formatarDataBr(m.dataEvento || m.data);
+      
+      // Estima a duração na casa anterior
+      const start = new Date(sortedMovs[i-1].dataEvento || sortedMovs[i-1].data || "").getTime();
+      const end = new Date(m.dataEvento || m.data || "").getTime();
+      steps[steps.length - 1].duracaoDias = Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
+
+      currentCasa = mCasa;
+      steps.push({
+        casa: currentCasa,
+        tipo: steps.length === 1 ? "revisora" : "retorno",
+        dataEntrada: formatarDataBr(m.dataEvento || m.data),
+        duracaoDias: 0
+      });
+    }
+  }
+
+  // Estima os dias na última etapa
+  const lastIndex = sortedMovs.length - 1;
+  const start = new Date(sortedMovs[lastIndex].dataEvento || sortedMovs[lastIndex].data || "").getTime();
+  steps[steps.length - 1].duracaoDias = Math.max(1, Math.floor((Date.now() - start) / (1000 * 60 * 60 * 24)));
+
+  return steps;
+}

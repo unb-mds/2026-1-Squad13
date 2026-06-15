@@ -1,5 +1,5 @@
-from typing import Protocol, List
-from infrastructure.config import settings
+from typing import Protocol
+
 from src.domain.services.estimativa_aprovacao_service import (
     EstimativaAprovacaoService,
     ResultadoEstimativa,
@@ -12,7 +12,7 @@ class ProposicaoRepositoryInterface(Protocol):
     Seguindo a inversão de dependência, a Aplicação define o que precisa.
     """
 
-    def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> List[int]:
+    def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> list[int]:
         """Busca apenas os dias de tramitação de proposições similares já concluídas."""
         ...
 
@@ -23,10 +23,12 @@ class GerarEstimativaUseCase:
     Responsável por buscar dados via infraestrutura e processar via domínio.
     """
 
-    def __init__(self, repository: ProposicaoRepositoryInterface):
+    def __init__(
+        self, repository: ProposicaoRepositoryInterface, threshold_minimo_amostra: int
+    ):
         self.repository = repository
         self.domain_service = EstimativaAprovacaoService(
-            threshold_minimo_amostra=settings.THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA
+            threshold_minimo_amostra=threshold_minimo_amostra
         )
 
     def executar(self, tipo: str, tema: str) -> ResultadoEstimativa:

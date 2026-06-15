@@ -1,0 +1,31 @@
+name: CD — Deploy Homologação GCP
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'docker-compose.yml'
+      - '.env.example'
+      - 'migrate.sh'
+      - '.github/workflows/cd-homologacao.yml'
+
+jobs:
+  deploy:
+    name: Deploy na VM GCP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_HOST }}
+          username: ${{ secrets.GCP_USER }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          script: |
+            cd ${{ secrets.GCP_PROJECT_PATH }}
+            git pull origin develop
+            bash migrate.sh
+            docker compose up -d --build

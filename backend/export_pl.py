@@ -1,14 +1,15 @@
 import json
-import sys
 import os
+import sys
+
 from sqlmodel import Session, select
 
 # Adiciona o diretório src ao path
 sys.path.append(os.path.join(os.getcwd(), "src"))
 
 from infrastructure.database import engine
-from infrastructure.database.models.proposicao_model import ProposicaoModel
 from infrastructure.database.models.evento_tramitacao_model import EventoTramitacaoModel
+from infrastructure.database.models.proposicao_model import ProposicaoModel
 
 
 def export_to_json(numero, ano, output_file=None):

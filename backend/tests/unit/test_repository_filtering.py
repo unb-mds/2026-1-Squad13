@@ -1,5 +1,7 @@
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
+
+from domain.constants import LIMITE_DIAS_ATRASO
 from domain.entities.proposicao import Proposicao
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
@@ -75,6 +77,7 @@ def test_filtrar_por_busca_case_insensitive(session: Session):
 
 def test_atraso_critico_property(session: Session):
     p = Proposicao(
+        id="1",
         tipo="PL",
         numero="1",
         ano=2024,
@@ -84,11 +87,11 @@ def test_atraso_critico_property(session: Session):
         ementa="E",
         data_apresentacao="D",
         data_ultima_movimentacao="D",
-        tempo_total_dias=200,
+        tempo_total_dias=LIMITE_DIAS_ATRASO + 20,
     )
     assert p.atraso_critico is True
 
-    p.tempo_total_dias = 180
+    p.tempo_total_dias = LIMITE_DIAS_ATRASO
     assert p.atraso_critico is False
 
 
