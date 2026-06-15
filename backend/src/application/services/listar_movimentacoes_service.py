@@ -139,6 +139,15 @@ class ListarMovimentacoesService:
             real_id_limpo = real_id.split(":")[-1]
             real_id_num = int(real_id_limpo) if real_id_limpo.isdigit() else None
 
+            if not proposicao and real_id.isdigit():
+                # IDs numéricos legados podem ter sido migrados para o formato prefixado.
+                # Resolve antes de ir para a API para evitar FK violation ao salvar eventos.
+                proposicao = self.proposicao_repo.buscar_por_id(
+                    f"camara:{real_id}"
+                ) or self.proposicao_repo.buscar_por_id(f"senado:{real_id}")
+                if proposicao:
+                    real_id = proposicao.id
+
             if not proposicao and real_id_num is not None:
                 # Tenta descobrir o tipo se não tiver proposicao (fallback para IDs diretos)
                 # Neste caso mantemos a lógica sequencial original
