@@ -236,14 +236,14 @@ async def test_concorrencia_adaptativa_lote_p95_sucesso(service, cache_mock):
 async def test_concorrencia_adaptativa_lote_slow_reduz(service, cache_mock):
     """P95 alto reduz concorrência pela metade."""
     cfg = {
-        "concorrencia": 10,
+        "concorrencia": 40,
         "rtts": [1.5, 1.5, 1.5],  # RTT P95 = 1500ms
         "timeout_count": 0,
         "erros_criticos_lote": 0,
     }
 
     service._ajustar_concorrencia_lote("camara", cfg)
-    assert cfg["concorrencia"] == 5
+    assert cfg["concorrencia"] == 20
 
 
 @pytest.mark.asyncio
