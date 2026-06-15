@@ -100,27 +100,35 @@ class ColetarEmLoteService:
                             if fonte == "camara"
                             else "Senado Federal"
                         )
-                        adapter = self.camara_adapter if fonte == "camara" else self.senado_adapter
+                        adapter = (
+                            self.camara_adapter
+                            if fonte == "camara"
+                            else self.senado_adapter
+                        )
 
                         try:
                             local_count = self.repository.contar(
                                 tipo=tipo, ano=ano, orgao_origem=orgao_nome
                             )
-                            api_total = await adapter.obter_total(tipo, ano, client=client)
+                            api_total = await adapter.obter_total(
+                                tipo, ano, client=client
+                            )
 
                             # Tratamento de resiliência caso API retorne 0 por instabilidade
                             if api_total == 0 and local_count > 0:
                                 continue
 
                             if api_total > local_count:
-                                gaps.append({
-                                    "fonte": fonte,
-                                    "ano": ano,
-                                    "tipo": tipo,
-                                    "local_count": local_count,
-                                    "api_total": api_total,
-                                    "missing": api_total - local_count
-                                })
+                                gaps.append(
+                                    {
+                                        "fonte": fonte,
+                                        "ano": ano,
+                                        "tipo": tipo,
+                                        "local_count": local_count,
+                                        "api_total": api_total,
+                                        "missing": api_total - local_count,
+                                    }
+                                )
                         except Exception as e:
                             logger.warning(
                                 f"Falha ao analisar gaps para {fonte.upper()} {tipo} {ano}: {e}"
@@ -130,7 +138,9 @@ class ColetarEmLoteService:
 
             # Se não houver gaps, encerra mais cedo sem desperdiçar recursos, mas registra logs
             if not gaps:
-                logger.info("🎉 Cobertura de dados em 100% nos anos recentes. Nenhuma coleta de gaps necessária.")
+                logger.info(
+                    "🎉 Cobertura de dados em 100% nos anos recentes. Nenhuma coleta de gaps necessária."
+                )
                 for fonte in fontes:
                     status = resumo[fonte]["status"]
                     itens = resumo[fonte]["itens_coletados"]
@@ -173,7 +183,9 @@ class ColetarEmLoteService:
                 tipo = tarefa["tipo"]
                 limit = tarefa["limit"]
                 local_offset = tarefa["local_count"]
-                adapter = self.camara_adapter if fonte == "camara" else self.senado_adapter
+                adapter = (
+                    self.camara_adapter if fonte == "camara" else self.senado_adapter
+                )
 
                 try:
                     logger.info(
@@ -201,7 +213,9 @@ class ColetarEmLoteService:
                         ids = ids_raw[local_offset : local_offset + limit]
 
                     if not ids:
-                        logger.warning(f"Nenhum ID retornado para {fonte.upper()} {tipo} {ano}")
+                        logger.warning(
+                            f"Nenhum ID retornado para {fonte.upper()} {tipo} {ano}"
+                        )
                         continue
 
                     # Deduplica IDs antes de buscar detalhes externos
@@ -217,12 +231,18 @@ class ColetarEmLoteService:
                                 if p:
                                     return p
                             except Exception as e:
-                                logger.warning(f"Erro ao buscar proposição {id_p} na {f.upper()}: {e}")
+                                logger.warning(
+                                    f"Erro ao buscar proposição {id_p} na {f.upper()}: {e}"
+                                )
                             return None
 
                     tasks_props = [fetch_prop(id_p) for id_p in ids_unicos]
-                    results_props = await asyncio.gather(*tasks_props, return_exceptions=True)
-                    proposicoes_coletadas = [r for r in results_props if isinstance(r, Proposicao)]
+                    results_props = await asyncio.gather(
+                        *tasks_props, return_exceptions=True
+                    )
+                    proposicoes_coletadas = [
+                        r for r in results_props if isinstance(r, Proposicao)
+                    ]
 
                     if proposicoes_coletadas:
                         # Processa e persiste no banco
@@ -235,13 +255,21 @@ class ColetarEmLoteService:
                         # Atualiza os snapshots de cobertura no banco de dados para sincronizar com o dashboard
                         if self.cobertura_service:
                             try:
-                                await self.cobertura_service.atualizar_snapshot(ano, tipo, fonte)
-                                logger.info(f"✅ Cobertura de snapshot atualizada para {fonte.upper()} {tipo} {ano}.")
+                                await self.cobertura_service.atualizar_snapshot(
+                                    ano, tipo, fonte
+                                )
+                                logger.info(
+                                    f"✅ Cobertura de snapshot atualizada para {fonte.upper()} {tipo} {ano}."
+                                )
                             except Exception as e:
-                                logger.warning(f"Falha ao atualizar snapshot de cobertura: {e}")
+                                logger.warning(
+                                    f"Falha ao atualizar snapshot de cobertura: {e}"
+                                )
 
                 except Exception as e:
-                    logger.exception(f"Erro ao executar tarefa de gap para {fonte.upper()} {tipo} {ano}.")
+                    logger.exception(
+                        f"Erro ao executar tarefa de gap para {fonte.upper()} {tipo} {ano}."
+                    )
                     resumo[fonte]["status"] = "parcial"
                     resumo[fonte]["erro"] = str(e)
 

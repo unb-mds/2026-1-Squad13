@@ -36,7 +36,9 @@ class SQLProposicaoRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
-    def _obter_chave_busca(self, tipo: str, numero: str, ano: int, orgao_origem: str | None) -> tuple:
+    def _obter_chave_busca(
+        self, tipo: str, numero: str, ano: int, orgao_origem: str | None
+    ) -> tuple:
         """
         Retorna a chave de busca para controle de unicidade no banco de dados.
         Proposições bicamerais (PL, PEC) a partir de 2019 (Ato Conjunto 1/2018)
@@ -89,10 +91,20 @@ class SQLProposicaoRepository:
             mapa_existentes[chave] = m
 
         # 4. Processa o upsert com mesclagem inteligente
-        campos_preservar = {"id", "tipo", "numero", "ano", "orgao_origem", "autor", "data_apresentacao"}
+        campos_preservar = {
+            "id",
+            "tipo",
+            "numero",
+            "ano",
+            "orgao_origem",
+            "autor",
+            "data_apresentacao",
+        }
 
         for prop in proposicoes:
-            chave = self._obter_chave_busca(prop.tipo, prop.numero, prop.ano, prop.orgao_origem)
+            chave = self._obter_chave_busca(
+                prop.tipo, prop.numero, prop.ano, prop.orgao_origem
+            )
             model_novo = self._to_model(prop)
 
             existing = mapa_existentes.get(chave)
@@ -113,11 +125,17 @@ class SQLProposicaoRepository:
                     is_nova_senado = "senado" in nova_lower
 
                     # Se um é da Câmara e o outro é do Senado (cruzamento bicameral)
-                    if (is_exist_camara and is_nova_senado) or (is_exist_senado and is_nova_camara):
+                    if (is_exist_camara and is_nova_senado) or (
+                        is_exist_senado and is_nova_camara
+                    ):
                         mesma_origem = False
 
                 # Atualiza os dados preservando campos históricos se a origem for diferente
                 for key, value in model_novo.model_dump().items():
+                    # O ID da chave primária física nunca deve ser alterado no banco
+                    if key == "id":
+                        continue
+
                     if not mesma_origem and key in campos_preservar:
                         # Se for de origem diferente, não sobrescreve os metadados da casa iniciadora
                         if getattr(existing, key, None) is not None:

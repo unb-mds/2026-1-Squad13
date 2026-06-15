@@ -24,9 +24,9 @@ Antes de gerar qualquer comentário, você deve carregar esses dois arquivos par
    - Ler `/docs/ai/project-context.md` (visão geral, stack, layered architecture, frontend, CI/CD, convenções de desenvolvimento).  
    - Ler `/docs/ai/project-memory.md` (decisões arquiteturais já consolidadas).
 
-2. Coletar metadados da PR:
+2. Coletar metadados da PR (e status de mergeability/conflitos):
    - Usar `gh pr view <num> --json ...` (ou o resultado já passado ao agente) para extrair:
-     - número, título, description, arquivos, comentários, decisões de review, `changedFiles`, base, head, etc.
+     - número, título, descrição, arquivos, comentários, decisões de review, `changedFiles`, base, head, `mergeable` (para detectar conflitos com a branch de destino), etc.
 
 3. Identificar arquivos alterados:
    - Para otimizar a velocidade e economizar requisições de rede da API do GitHub, prefira listar os arquivos modificados usando o comando git local: `git diff origin/main...HEAD --name-only`. 
@@ -83,6 +83,7 @@ Retorne sempre um review estruturado, similar a:
 | Posicionamento de Testes (Unit vs Integration) | [x] OK / [ ] Falha | <detalhes> |
 | Validação Local (Linter / Testes) | [x] OK / [ ] Falha | <Baseado em pr-validation.json e execuções em tempo real> |
 | Qualidade da Descrição e Governança | [x] OK / [ ] Falha | <detalha se o PR mapeia issues, nota de ciclo de vida para develop e possui estruturação temática no padrão do PR #267> |
+| Status de Conflito (Mergeable) | [x] Sem Conflitos / [ ] Com Conflitos | <detalha se a branch do PR pode ser mergeada na branch de destino de forma limpa, baseado na chave `mergeable` do pr-context.json> |
 
 ## Pontos fortes
 - <fatia de código que está alinhada com a arquitetura, convenções ou decisões consolidadas.>
