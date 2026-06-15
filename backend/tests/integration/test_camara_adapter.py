@@ -4,11 +4,24 @@ from domain.entities.proposicao import Proposicao
 
 
 @pytest.mark.integration
-def test_camara_adapter_buscar_por_id_valido():
+def test_camara_adapter_buscar_por_id_valido(monkeypatch, camara_api_proposicao_json, camara_api_autores_json):
     """Verifica se o adaptador consegue buscar e converter uma proposição real da Câmara."""
+    from unittest.mock import Mock
+
     adapter = CamaraAdapter()
     # ID 2368289 -> PL 2981/2023
     id_valido = 2368289
+
+    def mock_get(url, *args, **kwargs):
+        mock_resp = Mock()
+        mock_resp.raise_for_status = Mock()
+        if url.endswith("/autores"):
+            mock_resp.json.return_value = camara_api_autores_json
+        else:
+            mock_resp.json.return_value = camara_api_proposicao_json
+        return mock_resp
+
+    monkeypatch.setattr(adapter.session, 'get', mock_get)
 
     proposicao = adapter.buscar_por_id(id_valido)
 
