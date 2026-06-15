@@ -140,7 +140,13 @@ class ColetarEmLoteService:
                     self.listar_movimentacoes_service.executar(prop.id, client=client)
                 )
 
-            await asyncio.gather(*tasks, return_exceptions=True)
+            resultados = await asyncio.gather(*tasks, return_exceptions=True)
+            for r in resultados:
+                if isinstance(r, Exception):
+                    logger.warning(
+                        f"Falha ao coletar movimentações para uma proposição do lote: {r}",
+                        exc_info=r,
+                    )
             logger.info(
                 f"Processados eventos para {min(i + batch_size, len(proposicoes))}/{len(proposicoes)} proposições."
             )
