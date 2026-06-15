@@ -112,8 +112,24 @@ class PreencherLacunasService:
             if not lacunas_fonte:
                 continue
 
-            # Processa apenas a lacuna mais prioritária daquela fonte por run
-            lacuna = lacunas_fonte[0]
+            # Seleciona a lacuna com proporção ponderada de 2x PL para 1x PEC
+            lacunas_pl = [lac for lac in lacunas_fonte if lac["tipo"] == "PL"]
+            lacunas_pec = [lac for lac in lacunas_fonte if lac["tipo"] == "PEC"]
+
+            if lacunas_pl and lacunas_pec:
+                # Pondera a escolha do tipo (2/3 de chance para PL, 1/3 para PEC)
+                tipo_escolhido = random.choices(["PL", "PEC"], weights=[2, 1], k=1)[0]
+                if tipo_escolhido == "PL":
+                    lacuna = random.choice(lacunas_pl)
+                else:
+                    lacuna = random.choice(lacunas_pec)
+            elif lacunas_pl:
+                lacuna = random.choice(lacunas_pl)
+            elif lacunas_pec:
+                lacuna = random.choice(lacunas_pec)
+            else:
+                continue
+
             try:
                 qtd = await self._preencher_lacuna(
                     lacuna, config_compartilhada, len(lacunas)
