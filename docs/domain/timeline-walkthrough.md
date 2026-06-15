@@ -17,16 +17,16 @@ No Release 1 (R1), consolidamos a captura de dados brutos das APIs da Câmara e 
 
 ## Passo 1: O Domínio e a Regra de Relevância (Issue #129)
 
-A primeira etapa foi definir o que torna um evento "relevante". Seguindo os princípios de *Domain-Driven Design* (DDD) definidos no `GEMINI.md`, regras de negócio devem pertencer à camada de Domínio, e não a Controllers ou Services genéricos.
+A primeira etapa foi definir o que torna um evento "relevante". Seguindo os princípios de *Domain-Driven Design* (DDD) definidos no [AGENTS.md](file:///home/caio_martins/2026-1-Squad13/AGENTS.md), regras de negócio devem pertencer à camada de Domínio, e não a Controllers ou Services genéricos.
 
 ### 1.1. A Entidade `EventoTramitacao`
-No arquivo `src/domain/entities/evento_tramitacao.py`, centralizamos a lógica.
+No arquivo [evento_tramitacao.py](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/entities/evento_tramitacao.py), centralizamos a lógica.
 
 *   **Por que não usar um Service?** A relevância de um evento é uma característica intrínseca aos seus próprios dados (seu tipo, se mudou de fase, seu tempo de duração). Quando um objeto possui os dados necessários para tomar uma decisão sobre si mesmo, usamos o padrão *Information Expert*.
 *   **Implementação:** Adicionamos a propriedade computada `@property eh_relevante`.
 
 ```python
-# src/domain/entities/evento_tramitacao.py
+# backend/src/domain/entities/evento_tramitacao.py
 
 TIPOS_SEMPRE_RELEVANTES = {
     TipoEvento.APRESENTACAO.value,
@@ -59,10 +59,10 @@ Com os eventos marcados, precisávamos consolidar a timeline. Se uma lei passou 
 ### 2.1. O Value Object `PeriodoFase`
 No DDD, um *Value Object* é um objeto sem identidade única, definido apenas pelos seus atributos. O agrupamento temporal é um cálculo gerado para leitura, logo, não possui um ID no banco de dados.
 
-Criamos a `dataclass` `PeriodoFase` (`src/domain/value_objects/periodo_fase.py`). O uso de `dataclass` aqui é idiomático em Python para representar estruturas de dados imutáveis (ou puramente de transporte).
+Criamos a `dataclass` `PeriodoFase` ([periodo_fase.py](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/value_objects/periodo_fase.py)). O uso de `dataclass` aqui é idiomático em Python para representar estruturas de dados imutáveis (ou puramente de transporte).
 
 ### 2.2. A Lógica de Agregação (`AgregarPorFaseService`)
-No `src/application/services/agregar_por_fase_service.py`, criamos um serviço de domínio/aplicação puro (sem I/O de rede ou persistência, apenas transformação de dados).
+No módulo [agregar_por_fase_service.py](file:///home/caio_martins/2026-1-Squad13/backend/src/application/services/agregar_por_fase_service.py), criamos um serviço de domínio/aplicação puro (sem I/O de rede ou persistência, apenas transformação de dados).
 
 O algoritmo é clássico processamento de stream:
 1.  Ordena os eventos cronologicamente.
@@ -81,10 +81,10 @@ Finalmente, conectamos a mecânica analítica à interface REST, garantindo retr
 ### 3.1. Controller e Enums
 Utilizamos o FastAPI para expor a feature via *Query Parameters*, mantendo a URL limpa.
 
-Criamos o Enum `ModoMovimentacao` (`src/domain/value_objects/modo_movimentacao.py`) para garantir Type Safety e auto-documentação no Swagger/OpenAPI.
+Criamos o Enum `ModoMovimentacao` ([modo_movimentacao.py](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/value_objects/modo_movimentacao.py)) para garantir Type Safety e auto-documentação no Swagger/OpenAPI.
 
 ```python
-# src/domain/value_objects/modo_movimentacao.py
+# backend/src/domain/value_objects/modo_movimentacao.py
 class ModoMovimentacao(str, Enum):
     RESUMIDO = "resumido"
     COMPLETO = "completo"
@@ -92,10 +92,10 @@ class ModoMovimentacao(str, Enum):
 ```
 
 ### 3.2. Orquestração no `ListarMovimentacoesService`
-O `ListarMovimentacoesService` funciona como a fachada da camada de aplicação (Use Case). Ele delega a busca para o Repositório ou Adapters (se houver cache miss) e, por fim, aplica a estratégia de visualização.
+O [ListarMovimentacoesService](file:///home/caio_martins/2026-1-Squad13/backend/src/application/services/listar_movimentacoes_service.py) funciona como a fachada da camada de aplicação (Use Case). Ele delega a busca para o Repositório ou Adapters (se houver cache miss) e, por fim, aplica a estratégia de visualização.
 
 ```python
-# Trecho do ListarMovimentacoesService
+# backend/src/application/services/listar_movimentacoes_service.py
 if modo == ModoMovimentacao.RESUMIDO:
     return self._agregar_service.executar(eventos, ...)
 
@@ -106,7 +106,7 @@ return eventos # COMPLETO
 ```
 
 ### 3.3. DTOs (Data Transfer Objects)
-No `proposicao_controller.py`, a rota agora retorna `Union[List[PeriodoFaseResponse], List[EventoTramitacaoResponse]]`. Adicionamos as funções `_to_evento_response` e `_to_periodo_response` para atuar como conversores (Mappers).
+No [proposicao_controller.py](file:///home/caio_martins/2026-1-Squad13/backend/src/presentation/controllers/proposicao_controller.py), a rota agora retorna `Union[List[PeriodoFaseResponse], List[EventoTramitacaoResponse]]`. Adicionamos as funções `_to_evento_response` e `_to_periodo_response` para atuar como conversores (Mappers).
 
 *   **Padrão Anti-Corrupção (ACL):** Esses mappers isolam a entidade de domínio do formato JSON retornado (ex: convertendo `snake_case` para `camelCase`).
 
@@ -130,7 +130,7 @@ Embora a implementação atual atenda aos requisitos do R2 e forneça uma base s
 ### 1. Refatoração da Injeção de Dependências (Controllers)
 Atualmente, os controllers instanciam repositórios e serviços diretamente:
 ```python
-# proposicao_controller.py
+# backend/src/presentation/controllers/proposicao_controller.py
 evento_repo = SQLEventoTramitacaoRepository(session)
 service = ListarMovimentacoesService(evento_repo, ...)
 ```

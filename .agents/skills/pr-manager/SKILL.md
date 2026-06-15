@@ -8,14 +8,14 @@ description: Use when the user wants to create, configure, or review/analyze a p
 Você é um agente de gerenciamento e revisão de PRs que **lê o código do repositório local**, **aplica as decisões e diretrizes de governança** e **automatiza a criação e a validação** dos Pull Requests.
 
 Antes de qualquer ação, carregue as diretrizes documentadas em:
-- `/docs/ai/project-context.md`
-- `/docs/ai/project-memory.md`
+- `/AGENTS.md`
+- `/ARCHITECTURE.md`
 
 ## Objetivo da skill
 
 - **Criação de PRs:** Automatizar a criação de Pull Requests no GitHub seguindo rigorosamente a governança de associação de issues, ciclo de vida de labels da branch de destino e descrição robusta do PR.
 - **Revisão de PRs:** Analisar o diff e os arquivos afetados localmente para produzir um review holístico, técnico, arquitetural e acionável.
-- Não propor re‑decisões que já estão documentadas em `project-memory.md` (ex.: camadas, Adapter Pattern, EventoTramitacao, SQLModel, etc.).
+- Não propor re‑decisões que já estão documentadas em `ARCHITECTURE.md` ou `AGENTS.md` (ex.: camadas, Adapter Pattern, EventoTramitacao, SQLModel, etc.).
 
 ## Processo de criação de PRs
 
@@ -56,8 +56,8 @@ Ao ser solicitado a criar um Pull Request, você deve seguir o seguinte protocol
 ## Processo de análise de PRs (Revisão)
 
 1. Carregar o contexto do projeto:
-   - Ler `/docs/ai/project-context.md` (visão geral, stack, layered architecture, frontend, CI/CD, convenções de desenvolvimento).  
-   - Ler `/docs/ai/project-memory.md` (decisões arquiteturais já consolidadas).
+   - Ler `/AGENTS.md` (visão geral, perfil pedagógico, regras inegociáveis, stack, convenções).  
+   - Ler `/ARCHITECTURE.md` (layered architecture, ports & adapters, ADRs, estado atual).
 
 2. Coletar metadados da PR (e status de mergeability/conflitos):
    - Usar `gh pr view <num> --json ...` (ou o resultado já passado ao agente) para extrair:
@@ -107,7 +107,7 @@ Retorne sempre um review estruturado, similar a:
 # Review da PR #<NUM>
 
 ## Resumo
-<Ponto‑a‑ponto do que a PR faz e por que é importante para o projeto, conforme project-context.>
+<Ponto‑a‑ponto do que a PR faz e por que é importante para o projeto, conforme AGENTS.md e ARCHITECTURE.md.>
 
 ## Tabela de Conformidade Arquitetural
 | Critério | Status | Observação |
@@ -134,8 +134,8 @@ Retorne sempre um review estruturado, similar a:
 - <melhorias nas integrações com APIs externas, se for o caso.>
 - <mudanças de testes ou novas áreas que precisariam ser testadas.>
 
-## Rascunho para project-memory.md (Se Aplicável)
-> Se esta PR consolida uma nova decisão arquitetural durável, sugira o rascunho formatado para ser inserido na seção "Decisões Consolidadas" de `project-memory.md`:
+## Rascunho para ARCHITECTURE.md / AGENTS.md (Se Aplicável)
+> Se esta PR consolida uma nova decisão arquitetural durável, sugira o rascunho formatado para ser inserido na seção "ADRs — Architecture Decision Records" de `ARCHITECTURE.md` ou diretrizes do `AGENTS.md`:
 > ```markdown
 > ### [AAAA-MM] Título da decisão
 > **Evidência:** <arquivos, pastas, configs modificados>
@@ -155,7 +155,7 @@ approve / comment / request-changes
 
 - Nunca assumir que o código está correto sem verificar o arquivo real; use o `git` ou `gh` para coletar o status e o diff, e o repositório local para ler o código.  
 - **Desconfie de PRs massivas**: Se uma PR altera muitos arquivos sob a justificativa de "lint" ou "formatação", você deve auditar pelo menos 5 arquivos aleatórios usando `git diff -w` para garantir que não há regressão de lógica ou arquitetura escondida.
-- Se houver ambiguidade sobre camada, responsabilidade ou decisão, **sempre referenciar explicitamente** o que `project-memory.md` já consolida.
+- Se houver ambiguidade sobre camada, responsabilidade ou decisão, **sempre referenciar explicitamente** o que `ARCHITECTURE.md` ou `AGENTS.md` já consolida.
 - **Blindagem de Ports**: Se o projeto já consolidou o uso de Ports (Interfaces), qualquer retorno ao uso de classes concretas em camadas superiores deve ser reportado como falha bloqueante de arquitetura.
 - Evitar comentários de estilo triviais quando houver riscos arquiteturais ou de I/O mais relevantes.  
 - Se a PR mexe em `squad-dashboard` ou CI/CD, lembre que labels e workflows alimentam o Squad Dashboard; trate isso com prioridade.

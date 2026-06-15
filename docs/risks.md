@@ -45,7 +45,7 @@
 
 **Impacto:** Alto — alteração estrutural do banco e de todos os serviços.  
 **Probabilidade:** Ocorreu — migração de `Tramitacao` para `EventoTramitacao` concluída.  
-**Mitigação:** Documentação prévia em `MIGRATION_SCOPE.md`, execução em 6 etapas incrementais, seed-only (sem dados reais de produção a perder).
+**Mitigação:** Execução em etapas incrementais, seed-only (sem dados reais de produção a perder).
 
 ---
 
@@ -69,4 +69,4 @@
 ### Curva de aprendizado de tecnologias
 
 **Impacto:** Médio  
-**Mitigação:** Separar tempo para estudo, material em `Estudos/`, provas de conceito e pair programming.
+**Mitigação:** Separar tempo para estudo, provas de conceito e pair programming.
