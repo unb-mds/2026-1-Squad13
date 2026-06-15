@@ -164,7 +164,9 @@ class SQLDashboardRepository:
             var_str = "0%"
         return {"value": f"{var_str} vs {label}", "isPositive": is_positive}
 
-    def _calcular_trend_tempo_medio(self, atual: int, anterior: int, label: str) -> dict:
+    def _calcular_trend_tempo_medio(
+        self, atual: int, anterior: int, label: str
+    ) -> dict:
         diff = atual - anterior
         is_positive = diff <= 0
         diff_str = f"{diff:+} dias"
@@ -262,13 +264,17 @@ class SQLDashboardRepository:
             metricas_atual["total"], metricas_anterior["total"], periodo_label
         )
         trend_em_tramitacao = self._calcular_trend_percentual(
-            metricas_atual["em_tramitacao"], metricas_anterior["em_tramitacao"], periodo_label
+            metricas_atual["em_tramitacao"],
+            metricas_anterior["em_tramitacao"],
+            periodo_label,
         )
         trend_com_atraso = self._calcular_trend_atraso(
             metricas_atual["com_atraso"], metricas_anterior["com_atraso"], periodo_label
         )
         trend_tempo_medio = self._calcular_trend_tempo_medio(
-            metricas_atual["tempo_medio"], metricas_anterior["tempo_medio"], periodo_label
+            metricas_atual["tempo_medio"],
+            metricas_anterior["tempo_medio"],
+            periodo_label,
         )
 
         # Query para total de eventos (tramitações) - Tabela evento_tramitacao

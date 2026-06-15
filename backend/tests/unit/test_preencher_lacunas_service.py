@@ -152,7 +152,12 @@ def cache_mock():
 
 @pytest.fixture
 def service(repo_mock, camara_mock, senado_mock, cache_mock):
-    return PreencherLacunasService(repo_mock, camara_mock, senado_mock, cache_mock)
+    # Mocka o random.shuffle para garantir ordenação determinística nos testes
+    with patch(
+        "application.services.preencher_lacunas_service.random.shuffle",
+        side_effect=lambda x: x.sort(key=lambda item: item["ano"], reverse=True),
+    ):
+        yield PreencherLacunasService(repo_mock, camara_mock, senado_mock, cache_mock)
 
 
 def test_parse_retry_after_formatos():
