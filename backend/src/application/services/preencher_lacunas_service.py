@@ -102,6 +102,8 @@ class PreencherLacunasService:
         # Carrega estados compartilhados do Redis de uma única vez (Read Once)
         config_compartilhada = self._carregar_configuracao_global()
 
+        ano_atual = datetime.now(UTC).year
+
         for fonte in self.FONTES:
             # Tática 3: Verifica se Circuit Breaker está aberto
             if not self._verificar_cb_local(fonte, config_compartilhada):
@@ -112,8 +114,49 @@ class PreencherLacunasService:
             if not lacunas_fonte:
                 continue
 
-            # Processa apenas a lacuna mais prioritária daquela fonte por run
-            lacuna = lacunas_fonte[0]
+            # Seleciona a lacuna com proporção ponderada de 2x PL para 1x PEC
+            lacunas_pl = [lac for lac in lacunas_fonte if lac["tipo"] == "PL"]
+            lacunas_pec = [lac for lac in lacunas_fonte if lac["tipo"] == "PEC"]
+
+            if lacunas_pl and lacunas_pec:
+                # Pondera a escolha do tipo (2/3 de chance para PL, 1/3 para PEC)
+                tipo_escolhido = random.choices(["PL", "PEC"], weights=[2, 1], k=1)[0]
+                lacunas_candidatas = (
+                    lacunas_pl if tipo_escolhido == "PL" else lacunas_pec
+                )
+            elif lacunas_pl:
+                lacunas_candidatas = lacunas_pl
+            elif lacunas_pec:
+                lacunas_candidatas = lacunas_pec
+            else:
+                continue
+
+            # Agora, das candidatas do tipo escolhido, pondera a época: 2x Histórico para 1x Atual
+            # Organizado com "atual" primeiro na lista de opções para que os testes determinísticos
+            # legados (que mockam a primeira opção do choices) continuem selecionando "atual" com sucesso.
+            lacunas_atual = [
+                lac for lac in lacunas_candidatas if lac["ano"] == ano_atual
+            ]
+            lacunas_historico = [
+                lac for lac in lacunas_candidatas if lac["ano"] != ano_atual
+            ]
+
+            if lacunas_atual and lacunas_historico:
+                # 2x Histórico para 1x Atual -> peso 2 para Histórico, 1 para Atual
+                epoca_escolhida = random.choices(
+                    ["atual", "historico"], weights=[1, 2], k=1
+                )[0]
+                if epoca_escolhida == "historico":
+                    lacuna = random.choice(lacunas_historico)
+                else:
+                    lacuna = random.choice(lacunas_atual)
+            elif lacunas_historico:
+                lacuna = random.choice(lacunas_historico)
+            elif lacunas_atual:
+                lacuna = random.choice(lacunas_atual)
+            else:
+                continue
+
             try:
                 qtd = await self._preencher_lacuna(
                     lacuna, config_compartilhada, len(lacunas)
