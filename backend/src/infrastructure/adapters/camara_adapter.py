@@ -60,7 +60,10 @@ class CamaraAdapter:
                         await asyncio.sleep(wait_time)
                         continue
                     else:
-                        raise ApiRateLimitError("Câmara com limite de requisições excedido", retry_after=retry_after)
+                        raise ApiRateLimitError(
+                            "Câmara com limite de requisições excedido",
+                            retry_after=retry_after,
+                        )
 
                 if resp.status_code >= 500:
                     if attempt < max_retries - 1:
@@ -70,7 +73,10 @@ class CamaraAdapter:
                         await asyncio.sleep(1)
                         continue
                     else:
-                        raise ApiServerError(f"Erro no servidor da Câmara: {resp.status_code}", resp.status_code)
+                        raise ApiServerError(
+                            f"Erro no servidor da Câmara: {resp.status_code}",
+                            resp.status_code,
+                        )
 
                 resp.raise_for_status()
                 return resp
@@ -89,9 +95,10 @@ class CamaraAdapter:
                     )
                     await asyncio.sleep(1)
                 else:
-                    raise ApiConnectionError(f"Falha de conexão com a Câmara: {type(e).__name__}") from e
+                    raise ApiConnectionError(
+                        f"Falha de conexão com a Câmara: {type(e).__name__}"
+                    ) from e
         raise ApiConnectionError("Câmara indisponível")
-
 
     async def buscar_por_id(
         self, id_proposicao: int, client: httpx.AsyncClient | None = None, cache=None

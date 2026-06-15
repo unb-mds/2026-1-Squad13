@@ -37,5 +37,3 @@ class CacheProvider(Protocol):
     ) -> bool:
         """Executa uma atualização transacional segura (Optimistic Locking) em múltiplas chaves."""
         ...
-
-

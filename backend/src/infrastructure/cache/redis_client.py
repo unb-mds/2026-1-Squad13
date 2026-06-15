@@ -9,7 +9,6 @@ from application.ports.cache_provider import CacheProvider
 logger = logging.getLogger(__name__)
 
 
-
 class RedisClient(CacheProvider):
     """
     Implementação concreta do CacheProvider usando Redis.
@@ -82,6 +81,7 @@ class RedisClient(CacheProvider):
         """Executa uma atualização transacional segura (Optimistic Locking) em múltiplas chaves."""
         import random
         import time
+
         max_retries = 3
 
         for attempt in range(max_retries):
@@ -92,8 +92,7 @@ class RedisClient(CacheProvider):
                     values_raw = [pipe.get(k) for k in keys]
                     # Decodificamos bytes para string se necessário
                     values = [
-                        v.decode() if isinstance(v, bytes) else v
-                        for v in values_raw
+                        v.decode() if isinstance(v, bytes) else v for v in values_raw
                     ]
                     # A função callback calcula os novos valores
                     novos_valores = update_fn(values)
@@ -111,11 +110,11 @@ class RedisClient(CacheProvider):
                         jitter = random.uniform(0.01, 0.05)
                         time.sleep(jitter)
                     else:
-                        logger.error(f"Falha persistente (WatchError) ao atualizar chaves {keys} após {max_retries} tentativas.")
+                        logger.error(
+                            f"Falha persistente (WatchError) ao atualizar chaves {keys} após {max_retries} tentativas."
+                        )
                         return False
                 except redis.RedisError as e:
                     logger.error(f"Erro no Redis durante transação segura: {e}")
                     return False
         return False
-
-

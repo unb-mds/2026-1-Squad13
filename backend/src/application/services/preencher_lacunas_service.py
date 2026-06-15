@@ -118,9 +118,7 @@ class PreencherLacunasService:
                 qtd = await self._preencher_lacuna(
                     lacuna, config_compartilhada, len(lacunas)
                 )
-                resumo["processados"][
-                    f"{fonte}:{lacuna['ano']}:{lacuna['tipo']}"
-                ] = qtd
+                resumo["processados"][f"{fonte}:{lacuna['ano']}:{lacuna['tipo']}"] = qtd
 
                 # Tática 4: Sucesso geral -> incrementa taxa
                 self._pre_atualizar_taxa(
@@ -149,9 +147,7 @@ class PreencherLacunasService:
             for fonte in self.FONTES:
                 adapter = self._adapter_para(fonte)
                 orgao_nome = (
-                    "Câmara dos Deputados"
-                    if fonte == "camara"
-                    else "Senado Federal"
+                    "Câmara dos Deputados" if fonte == "camara" else "Senado Federal"
                 )
 
                 for ano in range(ano_atual, self.ANO_INICIO - 1, -1):
@@ -282,13 +278,11 @@ class PreencherLacunasService:
                     dados["cb_falhas"]
                 )
                 if dados["cb_bloqueado_ate"]:
-                    novos_valores[
-                        f"seeding:circuit_breaker:{fonte}:bloqueado_ate"
-                    ] = dados["cb_bloqueado_ate"]
+                    novos_valores[f"seeding:circuit_breaker:{fonte}:bloqueado_ate"] = (
+                        dados["cb_bloqueado_ate"]
+                    )
                 else:
-                    novos_valores[
-                        f"seeding:circuit_breaker:{fonte}:bloqueado_ate"
-                    ] = ""
+                    novos_valores[f"seeding:circuit_breaker:{fonte}:bloqueado_ate"] = ""
             return novos_valores
 
         self.cache.obter_e_atualizar_multichaves_seguro(chaves, update_fn)
@@ -342,9 +336,7 @@ class PreencherLacunasService:
                         pagina=pagina,
                     )
                 except Exception as e:
-                    logger.error(
-                        f"Erro ao listar recentes para lacuna {lacuna}: {e}"
-                    )
+                    logger.error(f"Erro ao listar recentes para lacuna {lacuna}: {e}")
                     raise e
 
                 # Lote vazio na listagem DESC
@@ -401,7 +393,7 @@ class PreencherLacunasService:
                 start_lote = time.perf_counter()
                 results = await asyncio.gather(
                     *[fetch_com_medicao(id_p) for id_p in ids_unicos],
-                    return_exceptions=True
+                    return_exceptions=True,
                 )
                 duration_lote = time.perf_counter() - start_lote
                 proposicoes = [r for r in results if isinstance(r, Proposicao)]
@@ -464,24 +456,31 @@ class PreencherLacunasService:
             except Exception as e:
                 # Trata erros específicos de domínio do adapter
                 err_str = str(e)
-                if isinstance(e, ApiRateLimitError) or "429" in err_str or "Too Many" in err_str:
+                if (
+                    isinstance(e, ApiRateLimitError)
+                    or "429" in err_str
+                    or "Too Many" in err_str
+                ):
                     cfg["429_count"] += 1
                     # Extrai retry-after do erro se disponível
                     retry_after_header = getattr(e, "retry_after", None)
                     wait_time = parse_retry_after(retry_after_header)
                     if wait_time == 0:
                         # Fallback com jitter
-                        wait_time = min(
-                            30, (2**attempt) + random.uniform(0.1, 0.7)
-                        )
+                        wait_time = min(30, (2**attempt) + random.uniform(0.1, 0.7))
 
                     cfg["retry_after_max"] = max(cfg["retry_after_max"], wait_time)
                     logger.warning(
-                        f"⏳ API retornou 429. Aguardando Retry-After/Backoff de {wait_time}s... (Tentativa {attempt+1}/{max_attempts})"
+                        f"⏳ API retornou 429. Aguardando Retry-After/Backoff de {wait_time}s... (Tentativa {attempt + 1}/{max_attempts})"
                     )
                     await asyncio.sleep(wait_time)
                     continue
-                elif isinstance(e, ApiServerError) or "500" in err_str or "502" in err_str or "503" in err_str:
+                elif (
+                    isinstance(e, ApiServerError)
+                    or "500" in err_str
+                    or "502" in err_str
+                    or "503" in err_str
+                ):
                     cfg["5xx_count"] += 1
                 elif isinstance(e, ApiTimeoutError) or "timeout" in err_str.lower():
                     cfg["timeout_count"] += 1
@@ -494,7 +493,11 @@ class PreencherLacunasService:
         p95 = self._calc_p95(cfg["rtts"])
 
         # Se houver erros graves (timeouts, 429 crônicos) ou RTT P95 estiver lento
-        if cfg.get("timeout_count", 0) > 0 or cfg.get("erros_criticos_lote", 0) > 0 or p95 > 1200:
+        if (
+            cfg.get("timeout_count", 0) > 0
+            or cfg.get("erros_criticos_lote", 0) > 0
+            or p95 > 1200
+        ):
             # Redução multiplicativa agressiva para 429 ou timeouts
             cfg["concorrencia"] = max(self.CONC_MIN[fonte], int(limite * 0.5))
         elif cfg.get("5xx_count", 0) > 0:
@@ -503,7 +506,6 @@ class PreencherLacunasService:
         elif p95 < 400 and cfg.get("timeout_count", 0) == 0:
             # Aumento aditivo limpo
             cfg["concorrencia"] = min(self.CONC_MAX[fonte], limite + 1)
-
 
     # --- Tática 3 Helpers (CB Conservador) ---
     def _verificar_cb_local(self, fonte: str, config: dict) -> bool:
@@ -577,16 +579,11 @@ class PreencherLacunasService:
         ano_atual = datetime.now(UTC).year
         if ano == ano_atual:
             if (
-                self.cache.get(
-                    f"seeding:sincronizado:ano_atual:{fonte}:{tipo}"
-                )
+                self.cache.get(f"seeding:sincronizado:ano_atual:{fonte}:{tipo}")
                 is not None
             ):
                 return True
-        return (
-            self.cache.get(f"seeding:consolidado:{fonte}:{ano}:{tipo}")
-            is not None
-        )
+        return self.cache.get(f"seeding:consolidado:{fonte}:{ano}:{tipo}") is not None
 
     def _consolidar_ano(self, fonte: str, ano: int, tipo: str):
         logger.info(f"🔒 Consolidando {fonte}:{ano}:{tipo} permanentemente.")
@@ -599,7 +596,6 @@ class PreencherLacunasService:
         idx = max(0, int(len(sorted_rtts) * 0.95) - 1)
         return int(sorted_rtts[idx] * 1000)
 
-
     def _adapter_para(self, fonte: str):
         return self.camara_adapter if fonte == "camara" else self.senado_adapter
 
@@ -607,9 +603,7 @@ class PreencherLacunasService:
         raw = self.cache.get(f"seeding:cursor:{fonte}:{ano}:{tipo}")
         return int(raw) if raw else 0
 
-    def _salvar_cursor_seguro(
-        self, fonte: str, ano: int, tipo: str, offset: int
-    ):
+    def _salvar_cursor_seguro(self, fonte: str, ano: int, tipo: str, offset: int):
         """Salva o cursor no Redis garantindo a monotonicidade por meio de Optimistic Locking."""
         chave = f"seeding:cursor:{fonte}:{ano}:{tipo}"
 
