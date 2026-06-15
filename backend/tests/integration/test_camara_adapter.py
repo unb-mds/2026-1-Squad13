@@ -14,7 +14,7 @@ def test_camara_adapter_buscar_por_id_valido():
 
     assert proposicao is not None
     assert isinstance(proposicao, Proposicao)
-    assert proposicao.id == str(id_valido)
+    assert proposicao.id == f"camara:{id_valido}"
     assert proposicao.tipo == "PL"
     assert proposicao.numero == "2981"
     assert proposicao.ano == 2023
