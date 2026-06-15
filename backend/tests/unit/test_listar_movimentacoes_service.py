@@ -339,4 +339,3 @@ def test_extrair_id_numerico(service):
     assert service._extrair_id_numerico("") == 0
     assert service._extrair_id_numerico("camara:invalido") == 0
     assert service._extrair_id_numerico("texto_puro") == 0
-

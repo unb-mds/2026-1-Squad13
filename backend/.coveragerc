@@ -2,7 +2,7 @@
 branch = True
 source = src
 omit =
-    src/seed.py
+    src/trigger_seed.py
     src/init_db.py
     src/audit_db.py
     src/drop_legacy_tables.py

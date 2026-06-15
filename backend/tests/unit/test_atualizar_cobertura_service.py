@@ -13,6 +13,7 @@ Exemplo real do bug:
         Câmara: 4/9 = 44%
         Senado: 9/9 = 100%
 """
+
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -34,6 +35,7 @@ def _snapshot(ano: int, tipo: str, fonte: str, total: int) -> CoberturaSnapshot:
 
 
 # ─── Fixtures base ──────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def mock_repos():
@@ -64,6 +66,7 @@ def service(mock_repos):
 
 
 # ─── atualizar_snapshot ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_atualizar_snapshot_camara(service, mock_repos):
@@ -113,6 +116,7 @@ async def test_atualizar_snapshot_fallback_api_zero(service, mock_repos):
 
 # ─── obter_metricas_cobertura — regressão do bug de cobertura cruzada ──────────
 
+
 def test_obter_metricas_cobertura_sem_fonte_retrocompativel(service, mock_repos):
     """Chamada sem fonte usa buscar_por_ano_e_tipo (retrocompatibilidade)."""
     dt = datetime.now(UTC)
@@ -156,7 +160,9 @@ def test_cobertura_camara_nao_soma_senado(service, mock_repos):
     metricas = service.obter_metricas_cobertura(2026, "PEC", "camara")
 
     assert metricas["total_local"] == 4, "Deve contar só Câmara"
-    assert metricas["percentual_cobertura"] <= 100.0, "Cobertura nunca pode exceder 100%"
+    assert metricas["percentual_cobertura"] <= 100.0, (
+        "Cobertura nunca pode exceder 100%"
+    )
     assert metricas["fonte"] == "camara"
 
 
@@ -183,6 +189,7 @@ def test_cobertura_senado_nao_soma_camara(service, mock_repos):
 
 
 # ─── obter_todas_metricas_cobertura ────────────────────────────────────────────
+
 
 def test_todas_metricas_filtram_por_fonte_corretamente(service, mock_repos):
     """
@@ -219,13 +226,17 @@ def test_todas_metricas_filtram_por_fonte_corretamente(service, mock_repos):
 
 # ─── Normalização de nomes de origem ──────────────────────────────────────────
 
+
 @pytest.mark.asyncio
-@pytest.mark.parametrize("origem,esperado", [
-    ("camara", "camara"),
-    ("Câmara dos Deputados", "camara"),
-    ("senado", "senado"),
-    ("Senado Federal", "senado"),
-])
+@pytest.mark.parametrize(
+    "origem,esperado",
+    [
+        ("camara", "camara"),
+        ("Câmara dos Deputados", "camara"),
+        ("senado", "senado"),
+        ("Senado Federal", "senado"),
+    ],
+)
 async def test_normalizacao_fonte_em_atualizar_snapshot(origem, esperado, mock_repos):
     """Diferentes formas de passar a origem são normalizadas corretamente."""
     adapter_key = "camara_adapter" if "camara" in esperado else "senado_adapter"

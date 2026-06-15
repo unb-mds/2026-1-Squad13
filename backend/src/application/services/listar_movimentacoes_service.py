@@ -148,7 +148,9 @@ class ListarMovimentacoesService:
                 casa_padrao = CasaLegislativa.CAMARA
                 if not dados_brutos:
                     dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
-                        self._extrair_id_numerico(real_id), client=client, timeout=req_timeout
+                        self._extrair_id_numerico(real_id),
+                        client=client,
+                        timeout=req_timeout,
                     )
                     casa_padrao = CasaLegislativa.SENADO
             elif proposicao and tipo_prop in tipos_unificaveis:
@@ -420,8 +422,10 @@ class ListarMovimentacoesService:
                     )
                     casa_padrao = CasaLegislativa.CAMARA
                     if not dados_brutos:
-                        dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
-                            id_num, client=client, timeout=req_timeout
+                        dados_brutos = (
+                            await self.senado_adapter.buscar_tramitacoes_brutas(
+                                id_num, client=client, timeout=req_timeout
+                            )
                         )
                         casa_padrao = CasaLegislativa.SENADO
 

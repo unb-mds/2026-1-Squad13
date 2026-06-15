@@ -36,7 +36,9 @@ class DashboardService:
         self.fase_repo = fase_repo
         self.cache_provider = cache_provider
         self.dashboard_repo = dashboard_repo
-        self.cache_ttl = 3600  # 1 hora em segundos (proteção secundária contra obsolescência)
+        self.cache_ttl = (
+            3600  # 1 hora em segundos (proteção secundária contra obsolescência)
+        )
 
     def _get_cached(self, key: str) -> Any | None:
         if not self.cache_provider:

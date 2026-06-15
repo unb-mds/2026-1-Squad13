@@ -63,11 +63,13 @@ async def test_service_falha_total(mock_proposicao):
 async def test_service_sucesso_parcial(mock_proposicao):
     """Cenário 2: Sucesso no Senado, falha na Câmara."""
     mock_repo = MagicMock()
+
     # Mock do repo para simular gap apenas em PL 2026
     def contar_mock(tipo=None, ano=None, orgao_origem=None):
         if ano == 2026 and tipo == "PL":
             return 9
         return 10
+
     mock_repo.contar.side_effect = contar_mock
 
     mock_evento_repo = MagicMock()
@@ -110,11 +112,13 @@ async def test_service_sucesso_parcial(mock_proposicao):
 async def test_service_sucesso_total(mock_proposicao):
     """Cenário 3: Sucesso em ambas as fontes."""
     mock_repo = MagicMock()
+
     # Mock do repo para simular gap apenas em PL 2026
     def contar_mock(tipo=None, ano=None, orgao_origem=None):
         if ano == 2026 and tipo == "PL":
             return 9
         return 10
+
     mock_repo.contar.side_effect = contar_mock
 
     mock_evento_repo = MagicMock()

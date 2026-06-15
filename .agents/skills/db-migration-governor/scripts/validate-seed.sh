@@ -15,7 +15,7 @@ if [ ! -d "$BACKEND_DIR" ]; then
 fi
 
 set +e
-(cd "$BACKEND_DIR" && export PYTHONPATH=src && uv run python src/seed.py)
+(cd "$BACKEND_DIR" && export PYTHONPATH=src && uv run python src/init_db.py)
 EXIT_CODE=$?
 set -e
 
