@@ -9,7 +9,8 @@ from application.services.coletar_em_lote_service import ColetarEmLoteService
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import engine
+from infrastructure.database import engine, init_redis
+from infrastructure.cache.redis_client import RedisClient
 from infrastructure.repositories.sql_apensamento_repository import (
     SQLApensamentoRepository,
 )
@@ -71,6 +72,9 @@ def task_coletar_proposicoes_diario(self):
                 proposicao_repo=repository,
             )
 
+            redis_raw = init_redis()
+            cache_provider = RedisClient(redis_raw)
+
             service = ColetarEmLoteService(
                 repository=repository,
                 evento_repo=evento_repo,
@@ -81,6 +85,7 @@ def task_coletar_proposicoes_diario(self):
                 camara_adapter=camara_adapter,
                 senado_adapter=senado_adapter,
                 reconstruir_service=reconstruir_service,
+                cache_provider=cache_provider,
             )
 
             try:

@@ -21,6 +21,7 @@ from application.services.listar_movimentacoes_service import ListarMovimentacoe
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from domain.entities.proposicao import Proposicao
 from domain.exceptions import ApiException
+from application.ports.cache_provider import CacheProvider
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class ColetarEmLoteService:
         camara_adapter: CamaraAdapterPort,
         senado_adapter: SenadoAdapterPort,
         reconstruir_service: ReconstruirPeriodosService | None = None,
+        cache_provider: CacheProvider | None = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
@@ -52,6 +54,7 @@ class ColetarEmLoteService:
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
         self.reconstruir_service = reconstruir_service
+        self.cache_provider = cache_provider
 
         self.listar_movimentacoes_service = ListarMovimentacoesService(
             evento_repo=self.evento_repo,
@@ -62,6 +65,7 @@ class ColetarEmLoteService:
             senado_adapter=self.senado_adapter,
             apensamento_repo=self.apensamento_repo,
             reconstruir_service=self.reconstruir_service,
+            cache_provider=self.cache_provider,
         )
 
     async def executar_coleta_diaria(self) -> dict:

@@ -40,12 +40,15 @@ class CamaraAdapter:
         max_retries = 3
 
         for attempt in range(max_retries):
+            # Escala connect de 3.0s até 6.0s (3.0 -> 4.5 -> 6.0)
+            connect_timeout = min(3.0 + (attempt * 1.5), 6.0)
+            timeout_dinamico = httpx.Timeout(8.0, connect=connect_timeout)
             try:
                 resp = await client.get(
                     url,
                     params=params,
                     headers=self.headers,
-                    timeout=self.default_timeout,
+                    timeout=timeout_dinamico,
                 )
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
@@ -73,14 +76,16 @@ class CamaraAdapter:
                 return resp
             except httpx.TimeoutException as e:
                 if attempt < max_retries - 1:
-                    logger.warning(f"🕒 Timeout na Câmara. Tentando novamente ({attempt + 1}/{max_retries})...")
+                    logger.warning(
+                        f"🕒 Timeout na Câmara (connect={connect_timeout}s). Tentando novamente ({attempt + 1}/{max_retries})..."
+                    )
                     await asyncio.sleep(1)
                 else:
                     raise ApiTimeoutError("Timeout na API da Câmara") from e
             except httpx.RequestError as e:
                 if attempt < max_retries - 1:
                     logger.warning(
-                        f"🔌 Falha de rede na Câmara ({type(e).__name__}). Retentando..."
+                        f"🔌 Falha de conexão/rede na Câmara ({type(e).__name__}, connect={connect_timeout}s). Retentando..."
                     )
                     await asyncio.sleep(1)
                 else:
