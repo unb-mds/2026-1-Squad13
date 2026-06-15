@@ -1,12 +1,12 @@
 import pytest
-from infrastructure.adapters.camara_adapter import CamaraAdapter
+
 from domain.entities.proposicao import Proposicao
+from infrastructure.adapters.camara_adapter import CamaraAdapter
 
 
 @pytest.mark.integration
-def test_camara_adapter_buscar_por_id_valido(
-    monkeypatch, camara_api_proposicao_json, camara_api_autores_json
-):
+@pytest.mark.asyncio
+async def test_camara_adapter_buscar_por_id_valido():
     """Verifica se o adaptador consegue buscar e converter uma proposição real da Câmara."""
     from unittest.mock import Mock
 
@@ -14,18 +14,7 @@ def test_camara_adapter_buscar_por_id_valido(
     # ID 2368289 -> PL 2981/2023
     id_valido = 2368289
 
-    def mock_get(url, *args, **kwargs):
-        mock_resp = Mock()
-        mock_resp.raise_for_status = Mock()
-        if url.endswith("/autores"):
-            mock_resp.json.return_value = camara_api_autores_json
-        else:
-            mock_resp.json.return_value = camara_api_proposicao_json
-        return mock_resp
-
-    monkeypatch.setattr(adapter.session, "get", mock_get)
-
-    proposicao = adapter.buscar_por_id(id_valido)
+    proposicao = await adapter.buscar_por_id(id_valido)
 
     assert proposicao is not None
     assert isinstance(proposicao, Proposicao)
@@ -41,11 +30,28 @@ def test_camara_adapter_buscar_por_id_valido(
 
 
 @pytest.mark.integration
-def test_camara_adapter_buscar_por_id_invalido():
+@pytest.mark.asyncio
+async def test_camara_adapter_buscar_por_id_invalido():
     """Verifica comportamento do adaptador com ID inexistente."""
     adapter = CamaraAdapter()
     id_invalido = 999999999  # Provavelmente inexistente
 
-    proposicao = adapter.buscar_por_id(id_invalido)
+    proposicao = await adapter.buscar_por_id(id_invalido)
 
     assert proposicao is None
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_camara_adapter_emendas_pl2630_2020():
+    """Verifica se o CamaraAdapter consegue contabilizar emendas para o PL 2630/2020 via /relacionadas."""
+    adapter = CamaraAdapter()
+    id_pl_2630 = 2256735  # ID do PL 2630/2020
+
+    proposicao = await adapter.buscar_por_id(id_pl_2630)
+
+    assert proposicao is not None
+    assert proposicao.numero_emendas is not None
+    assert proposicao.numero_emendas > 0, (
+        f"Deveria ter emendas, mas retornou {proposicao.numero_emendas}."
+    )

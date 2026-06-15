@@ -8,22 +8,44 @@ Sistema para busca e acompanhamento de proposições legislativas, com foco inic
 
 ## ⚡ Modo Rápido (Recomendado)
 
-Se você possui **Docker** e **uv** instalados, utilize os scripts de automação na raiz do projeto:
+Se você possui **Docker** instalado, utilize os scripts de automação na pasta `scripts/`:
 
-### 1. Subir o Ambiente Completo (Docker)
-Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend e Frontend automaticamente.
+### 1. Configurar Validação Automática (Git Hooks)
+Este comando instala um script que valida suas mudanças (lint, tipos e testes) automaticamente antes de cada `git push`, garantindo que você nunca envie código quebrado para o repositório.
+
 ```bash
-./start_dev.sh
+./scripts/dev/setup-hooks.sh
+```
+
+### 2. Subir o Ambiente Completo (Docker)
+Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend, Frontend e Workers automaticamente usando healthchecks para garantir a ordem correta.
+
+```bash
+./scripts/dev/up.sh
 ```
 - **Frontend:** http://localhost:5173
 - **Backend:** http://localhost:8000
 - **Docs (Swagger):** http://localhost:8000/docs
 
-### 2. Rodar Todos os Testes e Validações
-Executa linting, checagem de tipos e todos os testes (Unitários e Integração) de ambos os apps.
+### 2. Encerrar o Ambiente
+Para desligar tudo e limpar recursos (redes e containers órfãos):
 ```bash
-./test_all.sh
+./scripts/dev/down.sh
 ```
+
+### 3. Rodar Todos os Testes e Validações
+Executa linting, checagem de tipos e todos os testes de ambos os apps de forma isolada e segura.
+```bash
+./scripts/ci/test.sh
+```
+
+### 4. Popular o Banco (Seed)
+Para inserir dados de teste ou sincronizar dados reais:
+```bash
+./scripts/dev/seed.sh --type sample --limit 20
+```
+
+> **Dica:** Todos os scripts possuem suporte a `--help` para detalhamento de opções.
 
 ---
 
@@ -74,7 +96,13 @@ Para mais detalhes sobre como a automação funciona, consulte o [AUTOMATION.md]
 
 ## 🧪 Testes Automatizados
 
-Além do `./test_all.sh`, você pode rodar testes específicos:
+Para uma validação completa e rápida de todo o monorepo (Backend + Frontend + Dashboard), utilize o script central:
+
+```bash
+./scripts/ci/test.sh
+```
+
+Caso precise rodar testes específicos de cada módulo:
 
 ### Backend (Pytest)
 ```bash
@@ -108,6 +136,7 @@ O sistema está configurado para que o frontend consuma dados reais do backend v
 ├── frontend/           ← Aplicação React + Vite (Principal)
 ├── squad-dashboard/    ← Painel de métricas e gestão do time
 ├── docs/               ← Documentação técnica e ADRs
+├── scripts/            ← Automações (dev, db, ci, gcp)
 └── README.md
 ```
 

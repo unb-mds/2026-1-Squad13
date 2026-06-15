@@ -8,56 +8,14 @@ import type {
   GargaloInstitucional,
   ComparacaoTema,
   FiltrosProposicao,
+  TempoPorFase,
+  DashboardEstoqueResponse,
+  DashboardHandoffResponse,
+  CoberturaMetricaResponse,
+  DashboardQualidadeResponse,
 } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms))
-
-// --- Auth ---
-export async function loginApi(email: string, senha: string): Promise<{ token: string; user: { id: string; nome: string; email: string; perfil: 'analista' } }> {
-  const response = await fetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password: senha }),
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.detail || 'Credenciais inválidas. Verifique seu e-mail e senha.')
-  }
-
-  const data = await response.json()
-  
-  return {
-    token: data.access_token,
-    user: {
-      id: String(data.user.id),
-      nome: data.user.nome,
-      email: data.user.email,
-      perfil: data.user.perfil,
-    },
-  }
-}
-
-export async function cadastroApi(nome: string, email: string, senha: string): Promise<{ token: string; user: { id: string; nome: string; email: string; perfil: 'analista' } }> {
-  const response = await fetch(`${API_BASE}/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nome, email, password: senha }),
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.detail || 'Erro ao realizar cadastro.')
-  }
-
-  // Após o cadastro, fazemos o login automaticamente para obter o token
-  return loginApi(email, senha)
-}
-
-export async function recuperarSenhaApi(_email: string): Promise<void> {
-  await delay(1200)
-}
 
 // --- Proposições ---
 export async function listarProposicoes(
@@ -98,15 +56,17 @@ export async function obterProposicao(id: string): Promise<Proposicao | null> {
   return await response.json()
 }
 
-export async function obterMovimentacoes(proposicaoId: string): Promise<MovimentacaoTramitacao[]> {
+export async function obterMovimentacoes(proposicaoId: string, modo: 'completo' | 'relevante' = 'completo'): Promise<MovimentacaoTramitacao[]> {
   try {
-    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes`)
+    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes?modo=${modo}`)
 
     if (!response.ok) {
       return []
     }
 
     const rawData = await response.json()
+    if (!Array.isArray(rawData)) return []
+
     // Normalização das propriedades do Backend para a interface do Frontend
     return (rawData as Array<{
       proposicaoId: string;
@@ -117,19 +77,40 @@ export async function obterMovimentacoes(proposicaoId: string): Promise<Moviment
       diasNaEtapa: number;
       temAtraso: boolean;
     }>).map((d) => ({
-      id: String(d.sequencia),
-      proposicaoId: d.proposicaoId,
-      data: d.dataEvento,
+      id: String(d.sequencia || Math.random()),
+      proposicaoId: d.proposicaoId || '',
+      data: d.dataEvento || '',
       orgao: d.siglaOrgao || 'N/A',
       descricao: d.descricaoOriginal || 'Movimentação registrada',
       responsavel: undefined,
-      diasNaEtapa: d.diasNaEtapa,
-      temAtraso: d.temAtraso,
+      diasNaEtapa: d.diasNaEtapa || 0,
+      temAtraso: d.temAtraso || false,
     }))
   } catch {
     return []
   }
 }
+
+export async function obterMovimentacoesFases(proposicaoId: string): Promise<unknown[]> {
+  try {
+    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes?modo=resumido`)
+    if (!response.ok) return []
+    return await response.json()
+  } catch {
+    return []
+  }
+}
+
+export async function obterMovimentacoesEventos(proposicaoId: string, modo: 'completo' | 'relevante' = 'relevante'): Promise<unknown[]> {
+  try {
+    const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/movimentacoes?modo=${modo}`)
+    if (!response.ok) return []
+    return await response.json()
+  } catch {
+    return []
+  }
+}
+
 
 // --- Dashboard ---
 function _filtrosParaParams(filtros?: Partial<FiltrosProposicao>): string {
@@ -141,6 +122,7 @@ function _filtrosParaParams(filtros?: Partial<FiltrosProposicao>): string {
   if (filtros.orgaoOrigem) params.append('orgaoOrigem', filtros.orgaoOrigem)
   if (filtros.dataInicio) params.append('dataInicio', filtros.dataInicio)
   if (filtros.dataFim) params.append('dataFim', filtros.dataFim)
+  if (filtros.rito) params.append('rito', filtros.rito)
   const qs = params.toString()
   return qs ? `?${qs}` : ''
 }
@@ -170,15 +152,65 @@ export async function obterDadosStatus(filtros?: Partial<FiltrosProposicao>): Pr
 }
 
 // --- Relatórios ---
-export async function obterGargalos(): Promise<GargaloInstitucional[]> {
-  const response = await fetch(`${API_BASE}/dashboard/gargalos`)
+export async function obterGargalos(filtros?: Partial<FiltrosProposicao>): Promise<GargaloInstitucional[]> {
+  const response = await fetch(`${API_BASE}/dashboard/gargalos${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar gargalos da API')
   return await response.json()
 }
 
-export async function obterComparacaoTemas(): Promise<ComparacaoTema[]> {
-  const response = await fetch(`${API_BASE}/dashboard/comparacao-temas`)
+export async function obterComparacaoTemas(filtros?: Partial<FiltrosProposicao>): Promise<ComparacaoTema[]> {
+  const response = await fetch(`${API_BASE}/dashboard/comparacao-temas${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar comparação de temas')
+  return await response.json()
+}
+
+export async function obterTempoPorFase(filtros?: Partial<FiltrosProposicao>): Promise<TempoPorFase[]> {
+  const response = await fetch(`${API_BASE}/dashboard/tempo-por-fase${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar tempo por fase')
+  return await response.json()
+}
+
+export async function obterEvolucaoTemporal(filtros?: Partial<FiltrosProposicao>): Promise<unknown[]> {
+  const response = await fetch(`${API_BASE}/dashboard/evolucao-temporal${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar evolução temporal')
+  return await response.json()
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function obterTransicoesCasas(filtros?: Partial<FiltrosProposicao>): Promise<any> {
+  const response = await fetch(`${API_BASE}/dashboard/transicoes-casas${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar transições de casas')
+  return await response.json()
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function obterConfiabilidade(proposicaoId: string): Promise<any> {
+  const response = await fetch(`${API_BASE}/proposicoes/${proposicaoId}/confiabilidade`)
+  if (!response.ok) throw new Error('Falha ao buscar confiabilidade da proposição')
+  return await response.json()
+}
+
+export async function obterEstoque(filtros?: Partial<FiltrosProposicao>): Promise<DashboardEstoqueResponse> {
+  const response = await fetch(`${API_BASE}/dashboard/estoque${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar estoque por fase')
+  return await response.json()
+}
+
+export async function obterHandoff(filtros?: Partial<FiltrosProposicao>): Promise<DashboardHandoffResponse> {
+  const response = await fetch(`${API_BASE}/dashboard/handoff${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar handoff')
+  return await response.json()
+}
+
+export async function obterCobertura(): Promise<CoberturaMetricaResponse[]> {
+  const response = await fetch(`${API_BASE}/dashboard/cobertura`)
+  if (!response.ok) throw new Error('Falha ao buscar cobertura da base')
+  return await response.json()
+}
+
+export async function obterQualidade(filtros?: Partial<FiltrosProposicao>): Promise<DashboardQualidadeResponse> {
+  const response = await fetch(`${API_BASE}/dashboard/qualidade${_filtrosParaParams(filtros)}`)
+  if (!response.ok) throw new Error('Falha ao buscar qualidade da base')
   return await response.json()
 }
 

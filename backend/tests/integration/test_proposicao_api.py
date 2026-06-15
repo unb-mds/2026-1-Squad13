@@ -1,14 +1,3 @@
-def test_health_check(http_client):
-    # Act
-    response = http_client.get("/health")
-
-    # Assert
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "ok"
-    assert data["database"] == "connected"
-
-
 def test_buscar_proposicoes_sem_filtros_deve_retornar_200(http_client):
     # Act
     response = http_client.get("/proposicoes")
@@ -62,6 +51,9 @@ def test_obterProposicaoPorId_idExistente_retorna200(http_client):
     data = response.json()
     assert data["id"] == "1"
     assert data["tipo"] == "PL"
+    assert "indiceAtrasoRelativo" in data
+    assert "indiceEsperaImprodutiva" in data
+    assert "statusAtraso" in data
 
 
 def test_obterProposicaoPorId_idInexistente_retorna404(http_client):

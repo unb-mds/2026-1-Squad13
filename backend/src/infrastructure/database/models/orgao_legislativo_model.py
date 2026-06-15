@@ -1,9 +1,9 @@
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
+
 from sqlmodel import Field, SQLModel
 
 
-class CasaLegislativa(str, Enum):
+class CasaLegislativa(StrEnum):
     """Casa legislativa a que o órgão pertence."""
 
     CAMARA = "CAMARA"
@@ -18,11 +18,11 @@ class OrgaoLegislativoModel(SQLModel, table=True):
 
     __tablename__ = "orgaolegislativo"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     sigla: str = Field(index=True)
-    nome: Optional[str] = None
+    nome: str | None = None
     casa: CasaLegislativa
-    id_origem: Optional[str] = Field(
+    id_origem: str | None = Field(
         default=None,
         index=True,
         description="ID do órgão na API de origem (Câmara ou Senado)",

@@ -31,13 +31,21 @@ Monitoramento de Tempo de Tramitação de Leis (PL/PEC). Busca, acompanhamento e
 ## Convenções Obrigatórias
 
 - **Branches**: `feat/`, `fix/`, `docs/`, nunca `main` diretamente.
-- **Commits**: Conventional Commits em **português** e **IMPERATIVO** (`adiciona`, `corrige`, `refatora`).
+- **Commits**: Conventional Commits com **tipo em inglês** (`feat`, `fix`, `chore`, `refactor`) e **descrição em português no IMPERATIVO** (`adiciona`, `corrige`, `estabiliza`).
 - **CI Verde**: não fazer merge sem CI aprovada.
 - **Issues**: toda nova necessidade → issue aprovada → implementação.
 
 ## Estado Atual
 
 Integração com APIs reais estabilizada; infra Docker e scripts de automação operacionais; CI/CD validando a integridade de todo o monorepo.
+
+## Rigor de Implementação (Anti-Erro)
+
+Para garantir sucesso na primeira tentativa ("First-Pass"), siga estas diretrizes:
+
+1.  **Inspecione antes de Instanciar**: Antes de criar factories ou injetar serviços, **leia a assinatura completa do `__init__`** no arquivo de origem. Nunca assuma nomes de parâmetros (ex: `repository` vs `repo`).
+2.  **Integridade de Novos Módulos**: Ao criar arquivos novos, verifique se **todos os tipos e classes** usados foram importados. Rode `ruff check <arquivo>` imediatamente após a criação.
+3.  **Validação de Dependências**: Se uma task depende de outra recém-concluída, **re-leia os arquivos modificados** para atualizar seu mapa mental da estrutura, em vez de confiar no histórico de chat.
 
 ## O que evitar
 

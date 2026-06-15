@@ -1,10 +1,12 @@
+from unittest.mock import MagicMock, Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
+
 from application.services.normalizar_tramitacao_service import (
     NormalizarTramitacaoService,
 )
-from domain.entities.tipo_evento import TipoEvento
 from domain.entities.orgao_legislativo import CasaLegislativa
+from domain.entities.tipo_evento import TipoEvento
 
 
 @pytest.fixture
@@ -166,3 +168,25 @@ def test_normalizar_calcula_dias_na_etapa_e_atraso(service, mocks):
     assert eventos[2].dias_na_etapa == dias_esperados
     # Se dias_esperados > 180, deve marcar atraso
     assert eventos[2].tem_atraso == (dias_esperados > 180)
+
+
+def test_normalizar_com_apensamento(service, mocks):
+    ap_repo = MagicMock()
+    service.apensamento_repo = ap_repo
+
+    dados_brutos = [
+        {
+            "data_hora": "2024-01-01",
+            "sequencia": 1,
+            "sigla_orgao": "CCJ",
+            "descricao": "Apensada à PEC 221/2019",
+        }
+    ]
+
+    service.normalizar("1", dados_brutos)
+
+    # Deve ter chamado salvar no repositório de apensamento
+    assert ap_repo.salvar.call_count == 1
+    call_args = ap_repo.salvar.call_args[0][0]
+    assert call_args.materia_principal_id == "PEC2212019"
+    assert call_args.materia_apensada_id == "1"

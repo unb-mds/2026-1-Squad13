@@ -57,8 +57,12 @@ Crie issue apenas se:
 - nenhuma label fora do padrão do repositório.
 
 7. Criação:
-- usar `scripts/create-issue.sh`
-- retornar URL da issue criada
+- Gere o conteúdo COMPLETO do body baseando-se no template escolhido, substituindo todos os placeholders por informações reais do contexto.
+- Salve esse conteúdo gerado em um arquivo temporário (ex: `/tmp/new_issue_body.md`).
+- Use `scripts/create-issue.sh` passando o título, o CAMINHO DO ARQUIVO TEMPORÁRIO e as labels completas **em uma única string separada por vírgulas** (ex: `"type:bug,prio:high,status:todo,release:R2,feat:f6"`).
+- O script validará as labels e alertará caso detecte potenciais duplicados. Se houver alertas, analise-os antes de prosseguir.
+- Retorne a URL da issue criada.
+- Remova o arquivo temporário após a criação.
 
 ## Regras adicionais
 - Nunca criar issue sem a label `feat:f*`.

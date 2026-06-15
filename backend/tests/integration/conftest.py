@@ -1,15 +1,16 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
-from main import app
+from sqlmodel import Session, SQLModel, create_engine
+
 from infrastructure.database import get_session
 from infrastructure.database.models.proposicao_model import ProposicaoModel
+from main import app
 
 
 # Engine único para cada worker (processo) do xdist
-# Como o xdist usa processos separados, o escopo session aqui
-# cria um engine por processo, o que é ideal para SQLite em memória.
 @pytest.fixture(scope="session")
 def engine():
     engine = create_engine(
@@ -19,6 +20,25 @@ def engine():
     )
     SQLModel.metadata.create_all(engine)
     return engine
+
+
+@pytest.fixture(autouse=True)
+def mock_redis():
+    """
+    Mock global do Redis para todos os testes de integração.
+    Previne conexões reais e timeouts de 20s.
+    """
+    with patch("redis.Redis.from_url") as mock_from_url:
+        mock_client = MagicMock()
+        mock_client.ping.return_value = True
+        mock_client.get.return_value = None
+        mock_from_url.return_value = mock_client
+
+        # Também patcheamos o get_redis_client para garantir
+        with patch(
+            "infrastructure.database.get_redis_client", return_value=mock_client
+        ):
+            yield mock_client
 
 
 @pytest.fixture(name="db_session")

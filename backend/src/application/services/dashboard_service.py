@@ -1,18 +1,18 @@
-import json
 import hashlib
-from typing import Dict, List, Optional, Any
-from datetime import datetime, date
+import json
+import statistics
+from datetime import date, datetime
+from typing import Any
 
 from application.ports.cache_provider import CacheProvider
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
+from application.ports.dashboard_repository import DashboardRepositoryPort
+from application.ports.evento_tramitacao_repository import (
+    EventoTramitacaoRepositoryPort,
 )
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
+from application.ports.fase_analitica_repository import (
+    FaseAnaliticaRepositoryPort,
 )
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
 
@@ -20,23 +20,25 @@ from domain.entities.tipo_evento import TipoEvento
 class DashboardService:
     """
     Serviço de Aplicação para calcular métricas e dados do dashboard.
-    Centraliza a lógica de agregação que antes estava no frontend.
+    Centraliza a lógica usando o repositório SQL para performance no banco.
     """
 
     def __init__(
         self,
-        repository: SQLProposicaoRepository,
-        evento_repo: SQLEventoTramitacaoRepository,
-        fase_repo: Optional[SQLFaseAnaliticaRepository] = None,
-        cache_provider: Optional[CacheProvider] = None,
+        repository: ProposicaoRepositoryPort,
+        evento_repo: EventoTramitacaoRepositoryPort,
+        fase_repo: FaseAnaliticaRepositoryPort | None = None,
+        cache_provider: CacheProvider | None = None,
+        dashboard_repo: DashboardRepositoryPort | None = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
         self.fase_repo = fase_repo
         self.cache_provider = cache_provider
+        self.dashboard_repo = dashboard_repo
         self.cache_ttl = 86400  # 24 horas em segundos
 
-    def _get_cached(self, key: str) -> Optional[Any]:
+    def _get_cached(self, key: str) -> Any | None:
         if not self.cache_provider:
             return None
 
@@ -55,7 +57,7 @@ class DashboardService:
         if self.cache_provider:
             self.cache_provider.set(key, json.dumps(value), self.cache_ttl)
 
-    def _gerar_cache_key(self, base_key: str, filtros: Optional[Dict] = None) -> str:
+    def _gerar_cache_key(self, base_key: str, filtros: dict | None = None) -> str:
         """Gera uma chave de cache única baseada no hash dos filtros."""
         if not filtros:
             return base_key
@@ -74,9 +76,9 @@ class DashboardService:
 
     def _calcular_tempo_total(
         self,
-        eventos: List[EventoTramitacao],
+        eventos: list[EventoTramitacao],
         fallback_tempo: int,
-        proposicao: Optional[Any] = None,
+        proposicao: Any | None = None,
     ) -> int:
         if not eventos:
             return fallback_tempo
@@ -127,7 +129,7 @@ class DashboardService:
             return fallback_tempo
 
     def _extrair_status_atual(
-        self, eventos: List[EventoTramitacao], fallback_status: str
+        self, eventos: list[EventoTramitacao], fallback_status: str
     ) -> str:
         if not eventos:
             return fallback_status
@@ -157,341 +159,92 @@ class DashboardService:
 
         return fallback_status
 
-    def _obter_dados_em_lote(self, proposicoes) -> List[dict]:
-        if not proposicoes:
-            return []
-
-        ids = [str(p.id) for p in proposicoes]
-        mapa_eventos = self.evento_repo.buscar_por_multiplas_proposicoes(ids)
-
-        dados = []
-        for p in proposicoes:
-            eventos = mapa_eventos.get(str(p.id), [])
-            tempo = self._calcular_tempo_total(eventos, p.tempo_total_dias or 0, p)
-            status = self._extrair_status_atual(eventos, p.status)
-
-            # Atraso crítico só faz sentido se a proposição ainda estiver aberta
-            atraso_critico = (tempo > 180) and (p.data_encerramento is None)
-
-            dados.append(
-                {
-                    "prop": p,
-                    "tempo_total_dias": tempo,
-                    "status": status,
-                    "atraso_critico": atraso_critico,
-                    "orgao_atual": p.orgao_atual,
-                    "tipo": p.tipo,
-                    "tags": p.tags,
-                }
-            )
-        return dados
-
-    def _agrupar_status(self, status_raw: str) -> str:
-        status = status_raw.lower()
-
-        # 1. Aprovadas / Concluídas positivamente
-        if any(
-            term in status
-            for term in [
-                "aprovad",
-                "sancionad",
-                "norma jurídica",
-                "promulgad",
-                "transformad",
-                "enviado à sanção",
-                "ofício ao senado - sancionado",
-            ]
-        ):
-            return "Aprovada/Sancionada"
-
-        # 2. Rejeitadas / Concluídas negativamente / Arquivadas
-        if any(
-            term in status
-            for term in [
-                "rejeitad",
-                "arquivad",
-                "retirad",
-                "prejudicad",
-                "indiferid",
-                "devolvida",
-                "negado",
-                "materia despachada",
-            ]
-        ):
-            return "Rejeitada/Arquivada"
-
-        # 3. Em tramitação / Ativas
-        if (
-            any(
-                term in status
-                for term in [
-                    "tramitação",
-                    "análise",
-                    "votação",
-                    "pauta",
-                    "apresentação",
-                    "mesa",
-                    "relator",
-                    "parecer",
-                    "aguardando",
-                    "comissão",
-                    "ofício",
-                    "recebimento",
-                    "leitura",
-                    "despacho",
-                    "relatório",
-                ]
-            )
-            or status == "sem status"
-        ):
-            return "Em tramitação"
-
-        return "Outros"
-
-    def obter_metricas(self, filtros: Optional[Dict] = None) -> Dict:
+    def obter_metricas(self, filtros: dict | None = None) -> dict:
         cache_key = self._gerar_cache_key("dashboard:metricas", filtros)
 
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório para obter métricas")
 
-        if not todas:
-            resultado_vazio = {
-                "tempoMedioTramitacao": 0,
-                "totalProposicoes": 0,
-                "proposicoesComAtraso": 0,
-                "totalAprovadas": 0,
-                "totalEmTramitacao": 0,
-                "totalRejeitadas": 0,
-                "comissaoMaiorTempo": "N/A",
-                "comissaoMaiorTempoMedia": 0,
-            }
-            self._set_cache(cache_key, resultado_vazio)
-            return resultado_vazio
-
-        dados = self._obter_dados_em_lote(todas)
-
-        total = len(dados)
-        aprovadas = [
-            d
-            for d in dados
-            if self._agrupar_status(d["status"]) == "Aprovada/Sancionada"
-        ]
-        em_tramitacao = [
-            d for d in dados if self._agrupar_status(d["status"]) == "Em tramitação"
-        ]
-        rejeitadas = [
-            d
-            for d in dados
-            if self._agrupar_status(d["status"]) == "Rejeitada/Arquivada"
-        ]
-        com_atraso = [d for d in dados if d["atraso_critico"]]
-
-        tempos = [
-            d["tempo_total_dias"] for d in dados if d["tempo_total_dias"] is not None
-        ]
-        tempo_medio = sum(tempos) / len(tempos) if tempos else 0
-
-        # Agrupamento por órgão para identificar a comissão mais lenta
-        orgaos: Dict[str, List[int]] = {}
-        for d in dados:
-            if d["orgao_atual"] and d["tempo_total_dias"] is not None:
-                if d["orgao_atual"] not in orgaos:
-                    orgaos[d["orgao_atual"]] = []
-                orgaos[d["orgao_atual"]].append(d["tempo_total_dias"])
-
-        medias_orgaos = {org: sum(t) / len(t) for org, t in orgaos.items()}
-        pior_orgao = (
-            max(medias_orgaos, key=medias_orgaos.get) if medias_orgaos else "N/A"
-        )
-        pior_media = medias_orgaos.get(pior_orgao, 0)
-
-        resultado = {
-            "tempoMedioTramitacao": int(tempo_medio),
-            "totalProposicoes": total,
-            "proposicoesComAtraso": len(com_atraso),
-            "totalAprovadas": len(aprovadas),
-            "totalEmTramitacao": len(em_tramitacao),
-            "totalRejeitadas": len(rejeitadas),
-            "comissaoMaiorTempo": pior_orgao,
-            "comissaoMaiorTempoMedia": int(pior_media),
-        }
-
+        resultado = self.dashboard_repo.obter_metricas_gerais(filtros)
         self._set_cache(cache_key, resultado)
-
         return resultado
 
-    def obter_dados_tipo(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_dados_tipo(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:dados_tipo", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        dados = self._obter_dados_em_lote(todas)
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório para obter dados por tipo")
 
-        tipos: Dict[str, Dict] = {}
-        for d in dados:
-            if d["tipo"] not in tipos:
-                tipos[d["tipo"]] = {"tipo": d["tipo"], "tempos": [], "quantidade": 0}
-            tipos[d["tipo"]]["quantidade"] += 1
-            if d["tempo_total_dias"] is not None:
-                tipos[d["tipo"]]["tempos"].append(d["tempo_total_dias"])
-
-        resultado = []
-        for info in tipos.values():
-            tempo_medio = (
-                sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
-            )
-            resultado.append(
-                {
-                    "tipo": info["tipo"],
-                    "tempoMedio": int(tempo_medio),
-                    "quantidade": info["quantidade"],
-                }
-            )
-        resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
-
+        resultado = self.dashboard_repo.obter_dados_tipo(filtros)
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_dados_comissao(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_dados_comissao(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:dados_comissao", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        dados = self._obter_dados_em_lote(todas)
-
-        orgaos: Dict[str, Dict] = {}
-        for d in dados:
-            orgao = d["orgao_atual"] or "Desconhecido"
-            if orgao not in orgaos:
-                orgaos[orgao] = {"comissao": orgao, "tempos": [], "quantidade": 0}
-            orgaos[orgao]["quantidade"] += 1
-            if d["tempo_total_dias"] is not None:
-                orgaos[orgao]["tempos"].append(d["tempo_total_dias"])
-
-        resultado = []
-        for info in orgaos.values():
-            tempo_medio = (
-                sum(info["tempos"]) / len(info["tempos"]) if info["tempos"] else 0
+        if not self.dashboard_repo:
+            raise ValueError(
+                "dashboard_repo é obrigatório para obter dados por comissão"
             )
-            resultado.append(
-                {
-                    "comissao": info["comissao"],
-                    "tempoMedio": int(tempo_medio),
-                    "quantidade": info["quantidade"],
-                }
-            )
-        resultado = sorted(resultado, key=lambda x: x["tempoMedio"], reverse=True)[:10]
 
+        resultado = self.dashboard_repo.obter_dados_comissao(filtros)
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_dados_status(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_dados_status(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:dados_status", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        if not todas:
-            return []
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório para obter dados por status")
 
-        dados = self._obter_dados_em_lote(todas)
-        total = len(dados)
-        contagem: Dict[str, int] = {}
-        for d in dados:
-            status_agrupado = self._agrupar_status(d["status"])
-            contagem[status_agrupado] = contagem.get(status_agrupado, 0) + 1
-
-        resultado = [
-            {
-                "status": status,
-                "quantidade": qtd,
-                "percentual": round((qtd / total) * 100),
-            }
-            for status, qtd in contagem.items()
-        ]
-        resultado = sorted(resultado, key=lambda x: x["quantidade"], reverse=True)
-
+        resultado = self.dashboard_repo.obter_dados_status(filtros)
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_gargalos(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_gargalos(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:gargalos", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        dados = self._obter_dados_em_lote(todas)
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório para obter gargalos")
 
-        orgaos: Dict[str, Dict] = {}
-        for d in dados:
-            orgao = d["orgao_atual"] or "Desconhecido"
-            if orgao not in orgaos:
-                orgaos[orgao] = {
-                    "orgao": orgao,
-                    "tempos": [],
-                    "proposicoes": 0,
-                    "atrasos": 0,
-                }
-
-            orgaos[orgao]["proposicoes"] += 1
-            if d["atraso_critico"]:
-                orgaos[orgao]["atrasos"] += 1
-            if d["tempo_total_dias"] is not None:
-                orgaos[orgao]["tempos"].append(d["tempo_total_dias"])
-
-        resultado = []
-        for info in orgaos.values():
-            # Converte dias para meses (média de 30 dias)
-            tempo_medio_meses = (
-                (sum(info["tempos"]) / len(info["tempos"]) / 30)
-                if info["tempos"]
-                else 0
-            )
-            taxa_atraso = (
-                (info["atrasos"] / info["proposicoes"] * 100)
-                if info["proposicoes"]
-                else 0
-            )
-
-            resultado.append(
-                {
-                    "orgao": info["orgao"],
-                    "tempoMedioMeses": round(tempo_medio_meses, 1),
-                    "quantidadeProposicoes": info["proposicoes"],
-                    "taxaAtraso": round(taxa_atraso),
-                }
-            )
-
-        resultado = sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
-
+        resultado = self.dashboard_repo.obter_gargalos(filtros)
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_comparacao_temas(self, filtros: Optional[Dict] = None) -> List[Dict]:
+    def obter_comparacao_temas(self, filtros: dict | None = None) -> list[dict]:
         cache_key = self._gerar_cache_key("dashboard:comparacao_temas", filtros)
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        todas = self.repository.filtrar(**(filtros or {}))
-        dados = self._obter_dados_em_lote(todas)
+        if not self.dashboard_repo:
+            raise ValueError(
+                "dashboard_repo é obrigatório para obter comparação de temas"
+            )
 
-        temas: Dict[str, Dict] = {}
-
-        for d in dados:
-            if not d["tags"]:
+        dados_db = self.dashboard_repo.obter_proposicoes_para_temas(filtros)
+        temas: dict[str, dict] = {}
+        for d in dados_db:
+            tags = d.get("tags")
+            if not tags:
                 continue
-
-            for tag in d["tags"]:
+            for tag in tags:
                 tag_formatada = tag.capitalize()
                 if tag_formatada not in temas:
                     temas[tag_formatada] = {
@@ -500,12 +253,10 @@ class DashboardService:
                         "total": 0,
                         "aprovadas": 0,
                     }
-
                 temas[tag_formatada]["total"] += 1
-                if d["tempo_total_dias"] is not None:
+                if d.get("tempo_total_dias") is not None:
                     temas[tag_formatada]["tempos"].append(d["tempo_total_dias"])
-
-                if self._agrupar_status(d["status"]) == "Aprovada/Sancionada":
+                if d.get("status_agrupado") == "Aprovada/Sancionada":
                     temas[tag_formatada]["aprovadas"] += 1
 
         resultado = []
@@ -537,13 +288,21 @@ class DashboardService:
         self._set_cache(cache_key, resultado)
         return resultado
 
-    def obter_tempo_por_fase(self) -> List[Dict]:
+    def obter_tempo_por_fase(self, filtros: dict | None = None) -> list[dict]:
         """
         Calcula o tempo médio que proposições passam em cada fase analítica.
-
-        Retorna apenas fases com ao menos uma proposição registrada,
-        ordenadas por ordem_logica. Eventos sem fase_analitica_id são ignorados.
+        Usa o repositório SQL otimizado se disponível.
         """
+        cache_key = self._gerar_cache_key("dashboard:tempo_por_fase", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if self.dashboard_repo:
+            resultado = self.dashboard_repo.obter_tempo_por_fase(filtros)
+            self._set_cache(cache_key, resultado)
+            return resultado
+
         if self.fase_repo is None:
             return []
 
@@ -556,29 +315,55 @@ class DashboardService:
             for f in fases
         }
 
-        todas = self.repository.filtrar()
+        # Filtrar apenas chaves aceitas na assinatura de filtrar() do repositório
+        chaves_aceitas = {
+            "tipo",
+            "numero",
+            "ano",
+            "autor",
+            "uf_autor",
+            "status",
+            "busca",
+            "orgao_origem",
+            "data_inicio",
+            "data_fim",
+            "limit",
+            "offset",
+        }
+        filtros_seguros = {
+            k: v for k, v in (filtros or {}).items() if k in chaves_aceitas
+        }
+
+        todas = self.repository.filtrar(**filtros_seguros)
         if not todas:
+            # Registra no cache que não há dados antes de retornar
+            self._set_cache(cache_key, [])
             return []
 
         ids = [str(p.id) for p in todas]
         mapa_eventos = self.evento_repo.buscar_por_multiplas_proposicoes(ids)
 
         # {fase_id: {"dias": [...], "proposicoes": set()}}
-        acumulador: Dict[int, Dict] = {}
+        acumulador: dict[int, dict] = {}
+
+        # Inicializa acumulador para garantir que todas as fases apareçam
+        for f_id in mapa_fases.keys():
+            acumulador[f_id] = {"dias": [], "proposicoes": set()}
 
         for prop in todas:
             eventos = mapa_eventos.get(str(prop.id), [])
-            # filtra eventos sem fase definida
             eventos_com_fase = [e for e in eventos if e.fase_analitica_id is not None]
+
             if not eventos_com_fase:
                 continue
 
-            fase_atual: Optional[int] = None
-            data_entrada: Optional[str] = None
+            fase_atual: int | None = None
+            data_entrada: str | None = None
 
             for evento in eventos_com_fase:
-                if evento.fase_analitica_id != fase_atual:
-                    # registra tempo na fase anterior
+                f_id = evento.fase_analitica_id
+
+                if f_id != fase_atual:
                     if fase_atual is not None and data_entrada is not None:
                         try:
                             entrada = datetime.fromisoformat(data_entrada[:10]).date()
@@ -587,49 +372,127 @@ class DashboardService:
                             ).date()
                             dias = (saida - entrada).days
                             if dias >= 0:
-                                if fase_atual not in acumulador:
-                                    acumulador[fase_atual] = {
-                                        "dias": [],
-                                        "proposicoes": set(),
-                                    }
                                 acumulador[fase_atual]["dias"].append(dias)
                                 acumulador[fase_atual]["proposicoes"].add(str(prop.id))
                         except (ValueError, AttributeError):
                             pass
 
-                    fase_atual = evento.fase_analitica_id
+                    fase_atual = f_id
                     data_entrada = evento.data_evento
+                    acumulador[f_id]["proposicoes"].add(str(prop.id))
 
-            # registra tempo da última fase (ainda em tramitação ou encerrada)
+            # Tempo da última fase atingida
             if fase_atual is not None and data_entrada is not None:
                 try:
+                    info_fase = mapa_fases.get(fase_atual)
                     entrada = datetime.fromisoformat(data_entrada[:10]).date()
-                    saida = date.today()
+                    if (
+                        info_fase and info_fase["ordem"] >= 8
+                    ) or prop.data_encerramento:
+                        saida = (
+                            datetime.fromisoformat(prop.data_encerramento[:10]).date()
+                            if prop.data_encerramento
+                            else entrada
+                        )
+                    else:
+                        saida = date.today()
                     dias = (saida - entrada).days
                     if dias >= 0:
-                        if fase_atual not in acumulador:
-                            acumulador[fase_atual] = {"dias": [], "proposicoes": set()}
                         acumulador[fase_atual]["dias"].append(dias)
                         acumulador[fase_atual]["proposicoes"].add(str(prop.id))
                 except (ValueError, AttributeError):
                     pass
 
         resultado = []
+        # Só retorna algo se houver pelo menos uma proposição contabilizada em alguma fase
+        if not any(len(d["proposicoes"]) > 0 for d in acumulador.values()):
+            self._set_cache(cache_key, [])
+            return []
+
         for fase_id, dados in acumulador.items():
             info = mapa_fases.get(fase_id)
             if info is None:
                 continue
-            tempo_medio = (
-                sum(dados["dias"]) / len(dados["dias"]) if dados["dias"] else 0
-            )
+
+            qtd = len(dados["proposicoes"])
+
+            tempo_estatistico = statistics.median(dados["dias"]) if dados["dias"] else 0
+
             resultado.append(
                 {
                     "fase": info["nome"],
                     "codigoFase": info["codigo"],
                     "ordemLogica": info["ordem"],
-                    "tempoMedioDias": int(tempo_medio),
-                    "quantidadeProposicoes": len(dados["proposicoes"]),
+                    "tempoMedioDias": int(tempo_estatistico),
+                    "quantidadeProposicoes": qtd,
                 }
             )
 
-        return sorted(resultado, key=lambda x: x["ordemLogica"])
+        resultado_ordenado = sorted(resultado, key=lambda x: x["ordemLogica"])
+        self._set_cache(cache_key, resultado_ordenado)
+        return resultado_ordenado
+
+    def obter_evolucao_temporal(self, filtros: dict | None = None) -> list[dict]:
+        cache_key = self._gerar_cache_key("dashboard:evolucao_temporal", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_evolucao_temporal(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_transicoes_casas(self, filtros: dict | None = None) -> dict:
+        cache_key = self._gerar_cache_key("dashboard:transicoes_casas", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_transicoes_casas(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_estoque_fases(self, filtros: dict | None = None) -> list[dict]:
+        cache_key = self._gerar_cache_key("dashboard:estoque_fases", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_estoque_fases(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_mediana_handoff(self, filtros: dict | None = None) -> dict:
+        cache_key = self._gerar_cache_key("dashboard:mediana_handoff", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_mediana_handoff(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado
+
+    def obter_qualidade_base(self, filtros: dict | None = None) -> dict:
+        cache_key = self._gerar_cache_key("dashboard:qualidade_base", filtros)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        if not self.dashboard_repo:
+            raise ValueError("dashboard_repo é obrigatório")
+
+        resultado = self.dashboard_repo.obter_qualidade_base(filtros)
+        self._set_cache(cache_key, resultado)
+        return resultado

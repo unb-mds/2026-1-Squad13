@@ -47,7 +47,13 @@ describe('paginar', () => {
 describe('corStatus', () => {
   it('retorna classes corretas para status conhecido', () => {
     expect(corStatus('Aprovada')).toBe(
-      'bg-volt-400/20 text-volt-300 border-volt-400/30'
+      'bg-primary/10 text-primary border-primary/20'
+    )
+    expect(corStatus('Vetada')).toBe(
+      'bg-destructive/10 text-destructive border-destructive/20'
+    )
+    expect(corStatus('Em Tramitação')).toBe(
+      'bg-info/10 text-info border-info/20'
     )
   })
 })

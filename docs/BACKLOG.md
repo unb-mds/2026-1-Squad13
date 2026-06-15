@@ -25,12 +25,26 @@ Este documento contém o backlog oficial derivado do `story-map.md`, organizado 
 |---|---|---|---|
 | #88 | feat: modelo analítico EventoTramitacao e endpoint de movimentações | Alta | ✅ Done |
 | #90 | feat: endpoints de breakdown para dashboard | Alta | ✅ Done |
-| #92 | feat: logout com invalidação no servidor | Alta | 📝 Todo |
+| #130 | feat: criar AgregarPorFaseService para períodos de fase | Média | 📝 Todo |
+| #131 | feat: suporte ao query param modo no endpoint de movimentações | Média | 📝 Todo |
+| #165 | feat: infraestrutura e banco para métricas de atraso | Alta | 📝 Todo |
+| #166 | feat: serviço de cálculo de métricas (IAR, IAF, IEI) | Alta | 📝 Todo |
+| #167 | feat: worker de atualização de métricas e baselines | Alta | 📝 Todo |
+| #168 | feat: endpoints de métricas de atraso no dashboard e detalhe | Alta | 📝 Todo |
+| #169 | feat: interface visual de status de atraso e explicabilidade | Alta | 📝 Todo |
 | #87 | chore: worker de coleta batch diária | Alta | 📝 Todo |
-| #89 | feat: tempo por fase com dados reais | Média | 📝 Todo |
+| #89 | feat: tempo por fase com dados reais | Média | 🏗️ In Progress |
 | #91 | feat: filtros ativos afetando o dashboard | Média | 📝 Todo |
-| #94 | chore: cache Redis para métricas | Média | 📝 Todo |
-| #86 | feat: recuperação de senha por e-mail | Média | 📝 Todo |
-| #96 | feat: estimativa de tempo de aprovação (IA) | Baixa | 📝 Todo |
-| #93 | feat: bloqueio de conta (tentativas falhas) | Baixa | 📝 Todo |
-| #95 | chore: documentar mapeamento de campos (ADR-005) | Baixa | 📝 Todo |
+| #155 | feat: implementa cache distribuído (Redis) para períodos de fase | Média | 📝 Todo |
+| #156 | feat: integra modelo NLP leve para classificação semântica de eventos | Baixa | 📝 Todo |
+| #132 | chore: refatora injeção de dependência nos serviços de aplicação | Média | 📝 Todo |
+| #141 | chore: refatora injeção de dependência nos Controllers | Média | 📝 Todo |
+| #139 | test: implementa testes de contrato (VCR) para APIs governamentais | Média | 📝 Todo |
+| #144 | test: valida filtros JSONB de tags em ambiente Postgres real | Média | 📝 Todo |
+| #145 | test: implementa cobertura de testes para GerarEstimativaUseCase | Média | 📝 Todo |
+| #170 | chore: remover endpoints de autenticação, serviços e migrações no backend | Alta | 📝 Todo |
+| #171 | refactor: desativar AuthProvider, login/cadastro e rotas privadas no frontend | Alta | 📝 Todo |
+| #172 | refactor: redesenhar frontend para dashboard analítico de investigação sóbrio | Alta | 📝 Todo |
+| #173 | chore: estabelecer rotinas de pareamento e governança para equilíbrio de commits | Média | 📝 Todo |
+
+
