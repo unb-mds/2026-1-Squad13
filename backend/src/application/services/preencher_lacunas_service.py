@@ -66,17 +66,17 @@ class PreencherLacunasService:
     FONTES = ["camara", "senado"]
 
     # Limites da Tática 2 (Concorrência)
-    CONC_MIN = {"camara": 2, "senado": 1}
+    CONC_MIN = {"camara": 15, "senado": 8}
     CONC_MAX = {"camara": 20, "senado": 10}
-    CONC_DEFAULT = {"camara": 10, "senado": 5}
+    CONC_DEFAULT = {"camara": 20, "senado": 10}
 
     # Limites da Tática 4 (Throughput/Taxa)
-    TAXA_MIN = {"camara": 50, "senado": 20}
+    TAXA_MIN = {"camara": 100, "senado": 50}
     TAXA_MAX = {"camara": 300, "senado": 150}
-    TAXA_DEFAULT = {"camara": 100, "senado": 50}
+    TAXA_DEFAULT = {"camara": 150, "senado": 100}
 
     # Rate Limit Temporal (intervalo mínimo entre requests por worker em ms)
-    RATE_LIMIT_INTERVAL = {"camara": 100, "senado": 200}
+    RATE_LIMIT_INTERVAL = {"camara": 700, "senado": 1000}
 
     def __init__(self, proposicao_repo, camara_adapter, senado_adapter, cache):
         self.repo = proposicao_repo
