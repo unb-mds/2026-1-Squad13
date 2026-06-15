@@ -141,6 +141,7 @@ class DashboardHandoffResponse(BaseModel):
 class CoberturaMetricaResponse(BaseModel):
     ano: int
     tipoProposicao: str = Field(validation_alias="tipo_proposicao")
+    fonte: str = Field(default="")  # "camara" | "senado"
     totalLocal: int = Field(validation_alias="total_local")
     totalApiOficial: int = Field(validation_alias="total_api_oficial")
     percentualCobertura: float = Field(validation_alias="percentual_cobertura")
