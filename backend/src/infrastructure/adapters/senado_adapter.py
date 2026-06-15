@@ -41,10 +41,15 @@ class SenadoAdapter:
         backoff_type="exponential",
     ) -> httpx.Response:
         """Helper para realizar requisições com retry rápido em caso de erro."""
-        # Usa o timeout customizado ou o padrão granular
-        timeout_config = timeout or self.default_timeout
-
         for attempt in range(max_retries):
+            # Escala connect de 3.0s até 6.0s se timeout não for passado
+            if timeout is None:
+                connect_timeout = min(3.0 + (attempt * 1.5), 6.0)
+                timeout_config = httpx.Timeout(8.0, connect=connect_timeout)
+            else:
+                timeout_config = timeout
+                connect_timeout = getattr(timeout_config, "connect", 3.0)
+
             try:
                 resp = await client.get(
                     url, params=params, headers=headers, timeout=timeout_config
@@ -79,7 +84,8 @@ class SenadoAdapter:
             except (httpx.ConnectTimeout, httpx.ConnectError) as e:
                 if attempt < max_retries - 1:
                     logger.warning(
-                        f"🔌 Erro de conexão com Senado ({type(e).__name__}). Possível Cold Start ou DNS lento. Tentando reconectar ({attempt + 1}/{max_retries})..."
+                        f"🔌 Erro de conexão com Senado ({type(e).__name__}). Possível Cold Start ou DNS lento. "
+                        f"Tentando reconectar ({attempt + 1}/{max_retries}) com connect={connect_timeout}s..."
                     )
                     delay = 1 if backoff_type == "flat" else 2
                     await asyncio.sleep(delay)
@@ -88,7 +94,7 @@ class SenadoAdapter:
             except httpx.TimeoutException as e:
                 if attempt < max_retries - 1:
                     logger.warning(
-                        f"🕒 Timeout no Senado. Tentando novamente ({attempt + 1}/{max_retries})..."
+                        f"🕒 Timeout no Senado (connect={connect_timeout}s). Tentando novamente ({attempt + 1}/{max_retries})..."
                     )
                     delay = 1 if backoff_type == "flat" else 1
                     await asyncio.sleep(delay)

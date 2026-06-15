@@ -32,6 +32,8 @@ from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from domain.value_objects.periodo_fase import PeriodoFase
+from domain.exceptions import ApiException
+from application.ports.cache_provider import CacheProvider
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +51,7 @@ class ListarMovimentacoesService:
         senado_adapter: SenadoAdapterPort,
         apensamento_repo: ApensamentoRepositoryPort | None = None,
         reconstruir_service: ReconstruirPeriodosService | None = None,
+        cache_provider: CacheProvider | None = None,
     ):
         self.evento_repo = evento_repo
         self.proposicao_repo = proposicao_repo
@@ -58,6 +61,7 @@ class ListarMovimentacoesService:
         self.senado_adapter = senado_adapter
         self.apensamento_repo = apensamento_repo
         self.reconstruir_service = reconstruir_service
+        self.cache_provider = cache_provider
         self._agregar_service = AgregarPorFaseService(fase_repo)
 
     async def executar(
@@ -143,79 +147,137 @@ class ListarMovimentacoesService:
                 if "Câmara" in (proposicao.orgao_origem or ""):
                     id_raw = proposicao.id.split(":")[-1]
                     id_camara = int(id_raw) if id_raw.isdigit() else None
-                    # Tenta achar o correspondente no Senado
-                    id_senado = await self.senado_adapter.buscar_id_por_identificacao(
-                        tipo_prop, numero_prop, ano_prop, client=client
-                    )
-                    # Fallback para PLC se for PL da Câmara (comum em proposições antigas)
-                    if not id_senado and tipo_prop == "PL":
-                        id_senado = (
-                            await self.senado_adapter.buscar_id_por_identificacao(
-                                "PLC", numero_prop, ano_prop, client=client
+                    cache_key = f"crossover:resolvido:camara:{tipo_prop.lower()}:{numero_prop}:{ano_prop}"
+                    if self.cache_provider:
+                        cached_val = self.cache_provider.get(cache_key)
+                        if cached_val is not None:
+                            id_senado = None if cached_val == "nenhum" else int(cached_val)
+                            logger.info(f"⚡ ID correspondente no Senado obtido via cache: {id_senado}")
+
+                    # Se não temos no cache, busca na API externa e salva
+                    if id_senado is None and (not self.cache_provider or self.cache_provider.get(cache_key) is None):
+                        try:
+                            # Tenta achar o correspondente no Senado
+                            id_senado = await self.senado_adapter.buscar_id_por_identificacao(
+                                tipo_prop, numero_prop, ano_prop, client=client
                             )
-                        )
+                            # Fallback para PLC se for PL da Câmara (comum em proposições antigas)
+                            if not id_senado and tipo_prop == "PL":
+                                id_senado = (
+                                    await self.senado_adapter.buscar_id_por_identificacao(
+                                        "PLC", numero_prop, ano_prop, client=client
+                                    )
+                                )
+                            
+                            # Salva o ID correspondente no Redis
+                            if self.cache_provider:
+                                val_to_cache = str(id_senado) if id_senado else "nenhum"
+                                self.cache_provider.set(cache_key, val_to_cache, ttl_seconds=604800)
+                        except (ApiException, httpx.TimeoutException, httpx.RequestError) as e:
+                            logger.warning(
+                                f"⚠️ Crossover com o Senado para a proposição {proposicao.id} ignorado por instabilidade de rede: {e}"
+                            )
+                            id_senado = None
 
                     # Verificação de integridade: garante que o Senado refere-se à mesma proposição
                     if id_senado:
-                        p_sen = await self.senado_adapter.buscar_por_id(
-                            id_senado, client=client
-                        )
-                        if p_sen:
-                            # Se o Senado diz que veio da Câmara com o mesmo nome canônico, ou se o nome é idêntico
-                            match = (proposicao.nome_canonico in p_sen.tags) or (
-                                p_sen.nome_canonico == proposicao.nome_canonico
+                        try:
+                            p_sen = await self.senado_adapter.buscar_por_id(
+                                id_senado, client=client
                             )
-                            if not match:
-                                logger.warning(
-                                    f"Crossover ignorado: {p_sen.nome_canonico} no Senado não é {proposicao.nome_canonico}"
+                            if p_sen:
+                                # Se o Senado diz que veio da Câmara com o mesmo nome canônico, ou se o nome é idêntico
+                                match = (proposicao.nome_canonico in p_sen.tags) or (
+                                    p_sen.nome_canonico == proposicao.nome_canonico
                                 )
-                                id_senado = None
+                                if not match:
+                                    logger.warning(
+                                        f"Crossover ignorado: {p_sen.nome_canonico} no Senado não é {proposicao.nome_canonico}"
+                                    )
+                                    id_senado = None
+                        except (ApiException, httpx.TimeoutException, httpx.RequestError) as e:
+                            logger.warning(
+                                f"⚠️ Crossover ignorado: erro ao buscar detalhes no Senado para ID {id_senado}: {e}"
+                            )
+                            id_senado = None
                 else:
                     id_raw = proposicao.id.split(":")[-1]
                     id_senado = int(id_raw) if id_raw.isdigit() else None
                     # Tenta achar o correspondente na Câmara
                     id_camara = None
-                    # Primeiro tenta via tags de origem (ex: "PL 2681/1996")
-                    for tag in proposicao.tags or []:
-                        if " " in tag and "/" in tag:
-                            try:
-                                t_orig, rest = tag.split(" ", 1)
-                                n_orig, a_orig = rest.split("/", 1)
-                                id_camara = await self.camara_adapter.buscar_id_por_identificacao(
-                                    t_orig, n_orig, int(a_orig), client=client
-                                )
-                                if id_camara:
-                                    logger.info(
-                                        f"Origem na Câmara encontrada via tags: {tag} (ID {id_camara})"
-                                    )
-                                    break
-                            except Exception:
-                                continue
+                    cache_key = f"crossover:resolvido:senado:{tipo_prop.lower()}:{numero_prop}:{ano_prop}"
+                    if self.cache_provider:
+                        cached_val = self.cache_provider.get(cache_key)
+                        if cached_val is not None:
+                            id_camara = None if cached_val == "nenhum" else int(cached_val)
+                            logger.info(f"⚡ ID correspondente na Câmara obtido via cache: {id_camara}")
 
-                    # Fallback: busca direta pelo mesmo nome
-                    if not id_camara:
-                        id_camara = (
-                            await self.camara_adapter.buscar_id_por_identificacao(
-                                tipo_prop, numero_prop, ano_prop, client=client
+                    # Se não temos no cache, busca na API externa e salva
+                    if id_camara is None and (not self.cache_provider or self.cache_provider.get(cache_key) is None):
+                        try:
+                            # Primeiro tenta via tags de origem (ex: "PL 2681/1996")
+                            for tag in proposicao.tags or []:
+                                if " " in tag and "/" in tag:
+                                    try:
+                                        t_orig, rest = tag.split(" ", 1)
+                                        n_orig, a_orig = rest.split("/", 1)
+                                        id_camara = await self.camara_adapter.buscar_id_por_identificacao(
+                                            t_orig, n_orig, int(a_orig), client=client
+                                        )
+                                        if id_camara:
+                                            logger.info(
+                                                f"Origem na Câmara encontrada via tags: {tag} (ID {id_camara})"
+                                            )
+                                            break
+                                    except Exception:
+                                        continue
+
+                            # Fallback: busca direta pelo mesmo nome
+                            if not id_camara:
+                                id_camara = (
+                                    await self.camara_adapter.buscar_id_por_identificacao(
+                                        tipo_prop, numero_prop, ano_prop, client=client
+                                    )
+                                )
+                            
+                            # Salva o ID correspondente no Redis
+                            if self.cache_provider:
+                                val_to_cache = str(id_camara) if id_camara else "nenhum"
+                                self.cache_provider.set(cache_key, val_to_cache, ttl_seconds=604800)
+                        except (ApiException, httpx.TimeoutException, httpx.RequestError) as e:
+                            logger.warning(
+                                f"⚠️ Crossover com a Câmara para a proposição {proposicao.id} ignorado por instabilidade de rede: {e}"
                             )
-                        )
+                            id_camara = None
 
                 # 2. Coletar tramitações de onde encontramos ID
                 tramitacoes_camara = []
                 tramitacoes_senado = []
 
                 if id_camara:
-                    tramitacoes_camara = (
-                        await self.camara_adapter.buscar_tramitacoes_brutas(
-                            id_camara, client=client
+                    try:
+                        tramitacoes_camara = (
+                            await self.camara_adapter.buscar_tramitacoes_brutas(
+                                id_camara, client=client
+                            )
                         )
-                    )
+                    except (ApiException, httpx.TimeoutException, httpx.RequestError) as e:
+                        logger.warning(
+                            f"⚠️ Falha de rede ao buscar tramitações da Câmara para crossover de {proposicao.id}: {e}"
+                        )
+                        tramitacoes_camara = []
                 if id_senado:
-                    tramitacoes_senado = (
-                        await self.senado_adapter.buscar_tramitacoes_brutas(
-                            id_senado, client=client, timeout=req_timeout
+                    try:
+                        tramitacoes_senado = (
+                            await self.senado_adapter.buscar_tramitacoes_brutas(
+                                id_senado, client=client, timeout=req_timeout
+                            )
                         )
-                    )
+                    except (ApiException, httpx.TimeoutException, httpx.RequestError) as e:
+                        logger.warning(
+                            f"⚠️ Falha de rede ao buscar tramitações do Senado para crossover de {proposicao.id}: {e}"
+                        )
+                        tramitacoes_senado = []
 
                 # 3. Normalizar separadamente (pois cada uma tem sua casa_padrao)
                 eventos_unificados = []
@@ -268,7 +330,10 @@ class ListarMovimentacoesService:
 
                     # Reconstrói os períodos para persistência e uso no dashboard (estoque)
                     if self.reconstruir_service:
-                        self.reconstruir_service.reconstruir_para_proposicao(real_id)
+                        try:
+                            self.reconstruir_service.reconstruir_para_proposicao(real_id)
+                        except Exception as e:
+                            logger.error(f"Erro ao reconstruir períodos no crossover para {real_id}: {e}")
             else:
                 # Fallback para tipos não unificáveis (ou sem proposição)
                 id_parts = real_id.split(":")
