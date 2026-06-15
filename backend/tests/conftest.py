@@ -99,6 +99,7 @@ def lista_proposicoes(proposicao_exemplo):
         ),
     ]
 
+
 @pytest.fixture
 def camara_api_proposicao_json():
     return {
@@ -113,21 +114,16 @@ def camara_api_proposicao_json():
                 "dataHora": "2023-06-20T10:00:00",
                 "siglaOrgao": "CCJC",
                 "despacho": "Aguardando Parecer",
-                "descricaoSituacao": "Pronta para Pauta"
-            }
+                "descricaoSituacao": "Pronta para Pauta",
+            },
         }
     }
 
+
 @pytest.fixture
 def camara_api_autores_json():
-    return {
-        "dados": [
-            {
-                "nome": "João das Couves",
-                "siglaUf": "SP"
-            }
-        ]
-    }
+    return {"dados": [{"nome": "João das Couves", "siglaUf": "SP"}]}
+
 
 @pytest.fixture
 def senado_api_materia_json():
@@ -136,12 +132,12 @@ def senado_api_materia_json():
             "Materia": {
                 "IdentificacaoMateria": {
                     "DescricaoIdentificacaoMateria": "PL 1234/2023",
-                    "IdentificacaoProcesso": "1234567"
+                    "IdentificacaoProcesso": "1234567",
                 },
                 "DadosBasicosMateria": {
                     "EmentaMateria": "Ementa de teste Senado",
                     "DataApresentacao": "2023-01-01",
-                    "Autor": "Senador Fulano"
+                    "Autor": "Senador Fulano",
                 },
                 "SituacaoAtual": {
                     "Autuacoes": {
@@ -149,12 +145,12 @@ def senado_api_materia_json():
                             {
                                 "Situacao": {
                                     "DescricaoSituacao": "Aguardando Relator",
-                                    "DataSituacao": "2023-02-01"
+                                    "DataSituacao": "2023-02-01",
                                 }
                             }
                         ]
                     }
-                }
+                },
             }
         }
     }
