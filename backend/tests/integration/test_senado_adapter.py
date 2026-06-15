@@ -19,7 +19,7 @@ def test_senado_adapter_buscar_por_id_valido(monkeypatch, senado_api_materia_jso
         mock_resp.json.return_value = senado_api_materia_json
         return mock_resp
 
-    monkeypatch.setattr(adapter.session, 'get', mock_get)
+    monkeypatch.setattr(adapter.session, "get", mock_get)
 
     proposicao = adapter.buscar_por_id(id_valido)
 

@@ -4,7 +4,9 @@ from domain.entities.proposicao import Proposicao
 
 
 @pytest.mark.integration
-def test_camara_adapter_buscar_por_id_valido(monkeypatch, camara_api_proposicao_json, camara_api_autores_json):
+def test_camara_adapter_buscar_por_id_valido(
+    monkeypatch, camara_api_proposicao_json, camara_api_autores_json
+):
     """Verifica se o adaptador consegue buscar e converter uma proposição real da Câmara."""
     from unittest.mock import Mock
 
@@ -21,7 +23,7 @@ def test_camara_adapter_buscar_por_id_valido(monkeypatch, camara_api_proposicao_
             mock_resp.json.return_value = camara_api_proposicao_json
         return mock_resp
 
-    monkeypatch.setattr(adapter.session, 'get', mock_get)
+    monkeypatch.setattr(adapter.session, "get", mock_get)
 
     proposicao = adapter.buscar_por_id(id_valido)
 
