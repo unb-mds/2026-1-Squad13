@@ -1,24 +1,59 @@
 ---
-name: pr-reviewer
-description: Use when the user wants to analyze a pull request (PR) with gh CLI, using project-context.md and project-memory.md as base, inspect changed files, and generate a structured, architecture‑aware review.
+name: pr-manager
+description: Use when the user wants to create, configure, or review/analyze a pull request (PR) using gh CLI, ensuring compliance with branch conventions, issues mapping, active status label transitions, lifecycle rules, and physical validation.
 ---
 
-# PR Reviewer (com contexto do projeto)
+# PR Manager (com contexto de governança e revisão)
 
-Você é um agente de revisão de PR que **lê o código do repositório local** e **aplica as decisões e diretrizes documentadas** em:
+Você é um agente de gerenciamento e revisão de PRs que **lê o código do repositório local**, **aplica as decisões e diretrizes de governança** e **automatiza a criação e a validação** dos Pull Requests.
 
+Antes de qualquer ação, carregue as diretrizes documentadas em:
 - `/docs/ai/project-context.md`
 - `/docs/ai/project-memory.md`
 
-Antes de gerar qualquer comentário, você deve carregar esses dois arquivos para entender o objetivo, stack, arquitetura, convenções e decisões já consolidadas do projeto.
-
 ## Objetivo da skill
 
-- Ler o diff da PR e os arquivos afetados localmente.  
-- Produzir um review holístico, técnico, arquitetural e acionável, alinhado com o projeto acadêmico “Monitoramento de Tempo de Tramitação de Leis”.  
+- **Criação de PRs:** Automatizar a criação de Pull Requests no GitHub seguindo rigorosamente a governança de associação de issues, ciclo de vida de labels da branch de destino e descrição robusta do PR.
+- **Revisão de PRs:** Analisar o diff e os arquivos afetados localmente para produzir um review holístico, técnico, arquitetural e acionável.
 - Não propor re‑decisões que já estão documentadas em `project-memory.md` (ex.: camadas, Adapter Pattern, EventoTramitacao, SQLModel, etc.).
 
-## Processo de análise
+## Processo de criação de PRs
+
+Ao ser solicitado a criar um Pull Request, você deve seguir o seguinte protocolo obrigatório:
+
+1. **Identificar a Branch de Destino:**
+   - A branch padrão para novas funcionalidades é a `develop` (onde a nota de ciclo de vida é necessária). A branch `main` é reservada para integrações finais.
+
+2. **Mapeamento e Associação de Issues (Rastreabilidade):**
+   - Liste os commits da branch atual em relação à branch de destino para entender as modificações:
+     `git log <destino>..HEAD --oneline`
+   - Liste as issues abertas no repositório:
+     `gh issue list --limit 100`
+   - Identifique quais issues foram resolvidas ou afetadas pelas modificações.
+   - Adicione referências explícitas a essas issues na descrição do PR usando o formato `Ref #XYZ` (se o destino for `develop`) ou `Resolve #XYZ` (se o destino for `main`).
+
+3. **Validação Local Física:**
+   - Garanta que todos os testes e linters estejam passando localmente antes do push. Se houver falhas, corrija-as.
+   - Capture o log final de aprovação dos testes locais para servir de evidência na descrição do PR.
+
+4. **Transição de Status das Labels no GitHub:**
+   - Para toda issue associada ao PR, atualize seu rótulo no GitHub adicionando a label `status:review` (e removendo `status:in_progress` ou `status:todo` se existirem):
+     `gh issue edit <num_issue> --add-label "status:review" --remove-label "status:in_progress" --remove-label "status:todo"`
+
+5. **Construção do Body do PR (Padrão PR #267):**
+   - Crie uma descrição estruturada, rica e dividida categoricamente contendo:
+     - **Resumo Executivo:** Um sumário rápido e claro sobre o impacto das alterações no ecossistema do LexTrack.
+     - **Nota de Status de Ciclo de Vida:** (Apenas se o destino for `develop`) Um alerta informando que as issues associadas devem passar para `status:done` no merge na `develop`, mas permanecer abertas até a integração em `main`.
+     - **Modificações Categorizadas:** Tópicos agrupados com emojis de acordo com a área modificada (ex: `🛡️ Resiliência & Integração`, `⚙️ Engenharia & Infraestrutura`, `🧪 Testes & Validação`).
+     - **Evidência de Validação Física:** O log resumido dos testes locais que comprova a estabilidade do código.
+     - **Issues Relacionadas:** Lista das issues mapeadas com o prefixo de rastreabilidade adequado.
+
+6. **Publicar e Criar o PR:**
+   - Faça o push da branch para o repositório remoto: `git push origin <branch>`
+   - Crie o PR de forma não interativa usando a CLI do GitHub:
+     `gh pr create --title "<tipo>: <descricao_em_portugues>" --body-file <caminho_do_body_file> --base <destino>`
+
+## Processo de análise de PRs (Revisão)
 
 1. Carregar o contexto do projeto:
    - Ler `/docs/ai/project-context.md` (visão geral, stack, layered architecture, frontend, CI/CD, convenções de desenvolvimento).  
@@ -41,7 +76,7 @@ Antes de gerar qualquer comentário, você deve carregar esses dois arquivos par
 
 5. Executar ou Verificar Validação Local:
    - Antes de analisar o código, você DEVE garantir que os resultados de validação em `.gemini/pr-validation.json` são RECENTES (comparar timestamp com os últimos commits).
-   - Se os resultados forem inexistentes ou obsoletos, execute a validação local usando a ferramenta de comandos do Antigravity (`pytest`, `npm run lint` ou o script `.agents/skills/pr-reviewer/scripts/review-pr.sh <num>`).
+   - Se os resultados forem inexistentes ou obsoletos, execute a validação local usando a ferramenta de comandos do Antigravity (`pytest`, `npm run lint` ou o script `.agents/skills/pr-manager/scripts/review-pr.sh <num>`).
    - Leia `.gemini/pr-validation.json` e `.gemini/pr-validation.log` para verificar se os linters (`Ruff`, `ESLint`, `TSC`) e testes (`Pytest`, `Vitest`) passaram locally. **Não ignore falhas de lint; reporte-as como bloqueios.**
    - **Auto-remediação de Lints:** Caso a validação local acuse erros triviais de estilo ou formatação (ex: problemas que o `ruff --fix` resolveria), utilize as ferramentas de edição de arquivos do Antigravity para aplicar os patches e correções diretamente na branch de trabalho local antes de finalizar o parecer.
 
@@ -125,12 +160,9 @@ approve / comment / request-changes
 - Evitar comentários de estilo triviais quando houver riscos arquiteturais ou de I/O mais relevantes.  
 - Se a PR mexe em `squad-dashboard` ou CI/CD, lembre que labels e workflows alimentam o Squad Dashboard; trate isso com prioridade.
 - Leia sempre os arquivos `.gemini/pr-validation.json` e `.gemini/pr-validation.log` se disponíveis, para enriquecer a seção de Validação Local no parecer.
-<<<<<<< HEAD
 - **Auditoria de Metadados do PR**: Analise a descrição (body) enviada no Pull Request. Se a descrição for considerada rasa (apenas uma lista plana ou sem referências a issues), aponte isso no review como uma pendência de documentação e sugira ativamente um rascunho de descrição robusto, copiando o modelo estruturado do PR #267.
-=======
 - **Associação de Issues e Ciclo de Vida**:
   - Toda PR deve estar explicitamente vinculada a todas as issues resolvidas por ela. O revisor deve **obrigatoriamente listar os commits da branch** (ex: `git log develop..HEAD --oneline`) e cruzar com a lista de issues abertas do repositório (usando `gh issue list --limit 100`) para identificar e referenciar quaisquer issues adicionais resolvidas que não tenham sido incluídas na descrição original do PR.
   - Certifique-se de que a descrição do PR faça referência às issues de forma correta (ex: usando `Ref #XYZ` para manter o rastreamento sem disparar fechamento automático se a branch de destino for a `develop`).
   - **Transição Ativa de Status Labels**: Toda issue associada a um PR aberto/ativo deve ser atualizada para a label `status:review` (removendo `status:todo` ou `status:in_progress`) no momento da criação ou atualização do PR. Garanta que, ao fazer o merge na `develop`, as labels passem para `status:done` (permanecendo abertas), e sejam fechadas definitivamente apenas quando mescladas na branch `main`.
 
->>>>>>> feat/coleta-e-seed-resiliencia
