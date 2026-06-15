@@ -115,15 +115,25 @@ class ListarMovimentacoesService:
             ano_prop = proposicao.ano if proposicao else None
 
             if not proposicao and real_id.isdigit():
+                # IDs numéricos legados podem ter sido migrados para o formato prefixado.
+                # Resolve antes de ir para a API para evitar FK violation ao salvar eventos.
+                proposicao = (
+                    self.proposicao_repo.buscar_por_id(f"camara:{real_id}")
+                    or self.proposicao_repo.buscar_por_id(f"senado:{real_id}")
+                )
+                if proposicao:
+                    real_id = proposicao.id
+
+            if not proposicao and real_id.isdigit():
                 # Tenta descobrir o tipo se não tiver proposicao (fallback para IDs diretos)
                 # Neste caso mantemos a lógica sequencial original
                 dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(
-                    int(real_id), client=client
+                    int(real_id.split(":")[-1]), client=client
                 )
                 casa_padrao = CasaLegislativa.CAMARA
                 if not dados_brutos:
                     dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
-                        int(real_id), client=client, timeout=req_timeout
+                        int(real_id.split(":")[-1]), client=client, timeout=req_timeout
                     )
                     casa_padrao = CasaLegislativa.SENADO
             elif proposicao and tipo_prop in tipos_unificaveis:
@@ -137,7 +147,7 @@ class ListarMovimentacoesService:
                 id_senado = None
 
                 if "Câmara" in (proposicao.orgao_origem or ""):
-                    id_camara = int(proposicao.id)
+                    id_camara = int(proposicao.id.split(":")[-1])
                     # Tenta achar o correspondente no Senado
                     id_senado = await self.senado_adapter.buscar_id_por_identificacao(
                         tipo_prop, numero_prop, ano_prop, client=client
@@ -166,7 +176,7 @@ class ListarMovimentacoesService:
                                 )
                                 id_senado = None
                 else:
-                    id_senado = int(proposicao.id)
+                    id_senado = int(proposicao.id.split(":")[-1])
                     # Tenta achar o correspondente na Câmara
                     id_camara = None
                     # Primeiro tenta via tags de origem (ex: "PL 2681/1996")
@@ -267,12 +277,12 @@ class ListarMovimentacoesService:
                 # Fallback para tipos não unificáveis (ou sem proposição)
                 if proposicao and "Câmara" in (proposicao.orgao_origem or ""):
                     dados_brutos = await self.camara_adapter.buscar_tramitacoes_brutas(
-                        int(real_id), client=client
+                        int(real_id.split(":")[-1]), client=client
                     )
                     casa_padrao = CasaLegislativa.CAMARA
                 else:
                     dados_brutos = await self.senado_adapter.buscar_tramitacoes_brutas(
-                        int(real_id), client=client, timeout=req_timeout
+                        int(real_id.split(":")[-1]), client=client, timeout=req_timeout
                     )
                     casa_padrao = CasaLegislativa.SENADO
 
