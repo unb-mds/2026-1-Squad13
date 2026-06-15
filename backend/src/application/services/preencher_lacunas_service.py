@@ -203,8 +203,8 @@ class PreencherLacunasService:
                                 }
                             )
 
-        # Prioriza anos mais recentes
-        lacunas.sort(key=lambda x: x["ano"], reverse=True)
+        # Embaralha as lacunas para coletar dados de todo o espaço amostral de forma uniforme e distribuída
+        random.shuffle(lacunas)
         return lacunas
 
     def _carregar_configuracao_global(self) -> dict:

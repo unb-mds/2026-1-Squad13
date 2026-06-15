@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy import and_, case, func
@@ -78,10 +79,8 @@ class SQLDashboardRepository:
             else_="Outros",
         )
 
-    def obter_metricas_gerais(self, filtros: dict | None) -> dict:
+    def _calcular_para_filtros(self, filtros: dict | None) -> dict:
         status_agrupado = self._status_agrupado_case()
-
-        # Query para métricas de proposições
         stmt = select(
             func.count().label("total"),
             func.coalesce(func.avg(ProposicaoModel.tempo_total_dias), 0).label(
@@ -116,8 +115,167 @@ class SQLDashboardRepository:
             ),
         )
         stmt = self._aplicar_filtros(stmt, filtros)
-
         row = self.session.exec(stmt).first()
+
+        if not row or row.total == 0:
+            return {
+                "total": 0,
+                "tempo_medio": 0,
+                "com_atraso": 0,
+                "aprovadas": 0,
+                "em_tramitacao": 0,
+                "rejeitadas": 0,
+                "iar_medio": 0.0,
+                "iei_medio": 0.0,
+            }
+
+        return {
+            "total": row.total,
+            "tempo_medio": int(row.tempo_medio or 0),
+            "com_atraso": int(row.com_atraso or 0),
+            "aprovadas": int(row.aprovadas or 0),
+            "em_tramitacao": int(row.em_tramitacao or 0),
+            "rejeitadas": int(row.rejeitadas or 0),
+            "iar_medio": round(float(row.iar_medio or 0.0), 2),
+            "iei_medio": round(float(row.iei_medio or 0.0), 2),
+        }
+
+    def _calcular_trend_percentual(self, atual: int, anterior: int, label: str) -> dict:
+        if anterior <= 0:
+            if atual > 0:
+                return {"value": f"+100% vs {label}", "isPositive": True}
+            return {"value": f"0% vs {label}", "isPositive": True}
+        var = ((atual - anterior) / anterior) * 100
+        is_positive = var >= 0
+        var_str = f"{var:+.0f}%"
+        if int(var) == 0:
+            var_str = "0%"
+        return {"value": f"{var_str} vs {label}", "isPositive": is_positive}
+
+    def _calcular_trend_atraso(self, atual: int, anterior: int, label: str) -> dict:
+        if anterior <= 0:
+            if atual > 0:
+                return {"value": f"+100% vs {label}", "isPositive": False}
+            return {"value": f"0% vs {label}", "isPositive": True}
+        var = ((atual - anterior) / anterior) * 100
+        is_positive = var <= 0
+        var_str = f"{var:+.0f}%"
+        if int(var) == 0:
+            var_str = "0%"
+        return {"value": f"{var_str} vs {label}", "isPositive": is_positive}
+
+    def _calcular_trend_tempo_medio(
+        self, atual: int, anterior: int, label: str
+    ) -> dict:
+        diff = atual - anterior
+        is_positive = diff <= 0
+        diff_str = f"{diff:+} dias"
+        if diff == 0:
+            diff_str = "0 dias"
+        return {"value": f"{diff_str} vs {label}", "isPositive": is_positive}
+
+    def obter_metricas_gerais(self, filtros: dict | None) -> dict:
+        # 1. Calcular as métricas do período atual/filtro original
+        metricas_reais = self._calcular_para_filtros(filtros)
+
+        # 2. Obter a maior data no banco para referência
+        max_date_str = self.session.exec(
+            select(func.max(ProposicaoModel.data_apresentacao))
+        ).first()
+
+        if max_date_str:
+            try:
+                max_date = date.fromisoformat(max_date_str)
+            except ValueError:
+                max_date = date.today()
+        else:
+            max_date = date.today()
+
+        # 3. Determinar janelas de comparação temporais
+        filtros_atual = (filtros or {}).copy()
+        filtros_anterior = (filtros or {}).copy()
+
+        data_inicio_original = filtros_atual.get("data_inicio")
+        data_fim_original = filtros_atual.get("data_fim")
+        periodo_label = "mês anterior"
+
+        if data_inicio_original and data_fim_original:
+            try:
+                inicio = date.fromisoformat(data_inicio_original)
+                fim = date.fromisoformat(data_fim_original)
+                dias = (fim - inicio).days
+                if dias <= 0:
+                    dias = 30
+                inicio_anterior = inicio - timedelta(days=dias)
+                fim_anterior = inicio - timedelta(days=1)
+
+                filtros_anterior["data_inicio"] = inicio_anterior.isoformat()
+                filtros_anterior["data_fim"] = fim_anterior.isoformat()
+                periodo_label = "período anterior"
+            except ValueError:
+                pass
+        elif data_inicio_original:
+            try:
+                inicio = date.fromisoformat(data_inicio_original)
+                dias = (max_date - inicio).days
+                if dias <= 0:
+                    dias = 30
+                inicio_anterior = inicio - timedelta(days=dias)
+                fim_anterior = inicio - timedelta(days=1)
+
+                filtros_atual["data_fim"] = max_date.isoformat()
+                filtros_anterior["data_inicio"] = inicio_anterior.isoformat()
+                filtros_anterior["data_fim"] = fim_anterior.isoformat()
+                periodo_label = "período anterior"
+            except ValueError:
+                pass
+        elif data_fim_original:
+            try:
+                fim = date.fromisoformat(data_fim_original)
+                inicio = fim - timedelta(days=30)
+                inicio_anterior = inicio - timedelta(days=30)
+                fim_anterior = inicio - timedelta(days=1)
+
+                filtros_atual["data_inicio"] = inicio.isoformat()
+                filtros_anterior["data_inicio"] = inicio_anterior.isoformat()
+                filtros_anterior["data_fim"] = fim_anterior.isoformat()
+                periodo_label = "mês anterior"
+            except ValueError:
+                pass
+        else:
+            # Sem filtros de data: últimos 30 dias vs 30 dias anteriores
+            inicio = max_date - timedelta(days=30)
+            fim = max_date
+            inicio_anterior = inicio - timedelta(days=30)
+            fim_anterior = inicio - timedelta(days=1)
+
+            filtros_atual["data_inicio"] = inicio.isoformat()
+            filtros_atual["data_fim"] = fim.isoformat()
+            filtros_anterior["data_inicio"] = inicio_anterior.isoformat()
+            filtros_anterior["data_fim"] = fim_anterior.isoformat()
+            periodo_label = "mês anterior"
+
+        # 4. Calcular métricas das janelas atual e anterior para trends
+        metricas_atual = self._calcular_para_filtros(filtros_atual)
+        metricas_anterior = self._calcular_para_filtros(filtros_anterior)
+
+        # 5. Calcular trends dinâmicas
+        trend_proposicoes = self._calcular_trend_percentual(
+            metricas_atual["total"], metricas_anterior["total"], periodo_label
+        )
+        trend_em_tramitacao = self._calcular_trend_percentual(
+            metricas_atual["em_tramitacao"],
+            metricas_anterior["em_tramitacao"],
+            periodo_label,
+        )
+        trend_com_atraso = self._calcular_trend_atraso(
+            metricas_atual["com_atraso"], metricas_anterior["com_atraso"], periodo_label
+        )
+        trend_tempo_medio = self._calcular_trend_tempo_medio(
+            metricas_atual["tempo_medio"],
+            metricas_anterior["tempo_medio"],
+            periodo_label,
+        )
 
         # Query para total de eventos (tramitações) - Tabela evento_tramitacao
         from infrastructure.database.models.evento_tramitacao_model import (
@@ -125,10 +283,7 @@ class SQLDashboardRepository:
         )
 
         stmt_eventos = select(func.count()).select_from(EventoTramitacaoModel)
-        # Note: Aplicar filtros em eventos é complexo se os filtros forem de Proposição.
-        # Por enquanto, pegamos o total global ou vinculado às proposições filtradas se necessário.
         if filtros:
-            # Se houver filtros, filtramos eventos vinculados a essas proposições
             stmt_filt_props = select(ProposicaoModel.id)
             stmt_filt_props = self._aplicar_filtros(stmt_filt_props, filtros)
             stmt_eventos = stmt_eventos.where(
@@ -137,26 +292,7 @@ class SQLDashboardRepository:
 
         total_eventos = self.session.exec(stmt_eventos).first() or 0
 
-        if not row or row.total == 0:
-            return {
-                "tempoMedioTramitacao": 0,
-                "totalProposicoes": 0,
-                "totalTramitacoes": total_eventos,
-                "proposicoesComAtraso": 0,
-                "totalAprovadas": 0,
-                "totalEmTramitacao": 0,
-                "totalRejeitadas": 0,
-                "comissaoMaiorTempo": "N/A",
-                "comissaoMaiorTempoMedia": 0,
-                "iarMedio": 0.0,
-                "ieiMedio": 0.0,
-                "percentualAtrasadas": 0,
-                "totalProposicoesTrend": None,
-                "totalEmTramitacaoTrend": None,
-                "proposicoesComAtrasoTrend": None,
-                "tempoMedioTramitacaoTrend": None,
-            }
-
+        # Query para pior órgão (maior tempo médio)
         stmt_orgao = select(
             ProposicaoModel.orgao_atual,
             func.avg(ProposicaoModel.tempo_total_dias).label("media_tempo"),
@@ -174,38 +310,28 @@ class SQLDashboardRepository:
         pior_orgao_row = self.session.exec(stmt_orgao).first()
 
         return {
-            "tempoMedioTramitacao": int(row.tempo_medio or 0),
-            "totalProposicoes": row.total,
+            "tempoMedioTramitacao": metricas_reais["tempo_medio"],
+            "totalProposicoes": metricas_reais["total"],
             "totalTramitacoes": total_eventos,
-            "proposicoesComAtraso": int(row.com_atraso or 0),
-            "totalAprovadas": int(row.aprovadas or 0),
-            "totalEmTramitacao": int(row.em_tramitacao or 0),
-            "totalRejeitadas": int(row.rejeitadas or 0),
+            "proposicoesComAtraso": metricas_reais["com_atraso"],
+            "totalAprovadas": metricas_reais["aprovadas"],
+            "totalEmTramitacao": metricas_reais["em_tramitacao"],
+            "totalRejeitadas": metricas_reais["rejeitadas"],
             "comissaoMaiorTempo": pior_orgao_row[0] if pior_orgao_row else "N/A",
             "comissaoMaiorTempoMedia": int(pior_orgao_row[1] or 0)
             if pior_orgao_row
             else 0,
-            "iarMedio": round(float(row.iar_medio or 0.0), 2),
-            "ieiMedio": round(float(row.iei_medio or 0.0), 2),
-            "percentualAtrasadas": int((row.com_atraso or 0) / row.total * 100)
-            if row.total > 0
+            "iarMedio": metricas_reais["iar_medio"],
+            "ieiMedio": metricas_reais["iei_medio"],
+            "percentualAtrasadas": int(
+                (metricas_reais["com_atraso"]) / metricas_reais["total"] * 100
+            )
+            if metricas_reais["total"] > 0
             else 0,
-            "totalProposicoesTrend": {
-                "value": "+12% vs mês anterior",
-                "isPositive": True,
-            },
-            "totalEmTramitacaoTrend": {
-                "value": "+8% vs mês anterior",
-                "isPositive": True,
-            },
-            "proposicoesComAtrasoTrend": {
-                "value": "-5% vs mês anterior",
-                "isPositive": True,
-            },
-            "tempoMedioTramitacaoTrend": {
-                "value": "+3 dias vs trimestre",
-                "isPositive": False,
-            },
+            "totalProposicoesTrend": trend_proposicoes,
+            "totalEmTramitacaoTrend": trend_em_tramitacao,
+            "proposicoesComAtrasoTrend": trend_com_atraso,
+            "tempoMedioTramitacaoTrend": trend_tempo_medio,
         }
 
     def obter_dados_tipo(self, filtros: dict | None) -> list[dict]:
