@@ -281,7 +281,7 @@ class SenadoAdapter:
                     tema_economico = classificar_tema_economico(ementa)
 
                     return Proposicao(
-                        id=str(id_materia),
+                        id=f"senado:{id_materia}",
                         tipo=tipo,
                         numero=str(numero),
                         ano=ano,
@@ -666,7 +666,7 @@ class SenadoAdapter:
         tema_economico = classificar_tema_economico(ementa)
 
         return Proposicao(
-            id=str(id_materia),
+            id=f"senado:{id_materia}",
             tipo=tipo,
             numero=str(numero),
             ano=ano,

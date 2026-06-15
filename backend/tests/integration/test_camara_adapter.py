@@ -8,6 +8,7 @@ from infrastructure.adapters.camara_adapter import CamaraAdapter
 @pytest.mark.asyncio
 async def test_camara_adapter_buscar_por_id_valido():
     """Verifica se o adaptador consegue buscar e converter uma proposição real da Câmara."""
+
     adapter = CamaraAdapter()
     # ID 2368289 -> PL 2981/2023
     id_valido = 2368289
@@ -16,7 +17,7 @@ async def test_camara_adapter_buscar_por_id_valido():
 
     assert proposicao is not None
     assert isinstance(proposicao, Proposicao)
-    assert proposicao.id == str(id_valido)
+    assert proposicao.id == f"camara:{id_valido}"
     assert proposicao.tipo == "PL"
     assert proposicao.numero == "2981"
     assert proposicao.ano == 2023
