@@ -152,10 +152,21 @@ def cache_mock():
 
 @pytest.fixture
 def service(repo_mock, camara_mock, senado_mock, cache_mock):
-    # Mocka o random.shuffle para garantir ordenação determinística nos testes
-    with patch(
-        "application.services.preencher_lacunas_service.random.shuffle",
-        side_effect=lambda x: x.sort(key=lambda item: item["ano"], reverse=True),
+    # Mocka o random.shuffle para garantir ordenação determinística nos testes,
+    # e também random.choices/choice para garantir que a lógica ponderada seja previsível.
+    with (
+        patch(
+            "application.services.preencher_lacunas_service.random.shuffle",
+            side_effect=lambda x: x.sort(key=lambda item: item["ano"], reverse=True),
+        ),
+        patch(
+            "application.services.preencher_lacunas_service.random.choices",
+            side_effect=lambda population, weights, k: [population[0]],
+        ),
+        patch(
+            "application.services.preencher_lacunas_service.random.choice",
+            side_effect=lambda seq: seq[0],
+        ),
     ):
         yield PreencherLacunasService(repo_mock, camara_mock, senado_mock, cache_mock)
 
@@ -600,3 +611,118 @@ async def test_executar_passa_cache_para_adapter(
         camara_mock.buscar_por_id.assert_called()
         _, kwargs = camara_mock.buscar_por_id.call_args
         assert kwargs.get("cache") == cache_mock
+
+
+@pytest.mark.asyncio
+async def test_selecao_lacuna_ponderada_pl_pec(
+    repo_mock, camara_mock, senado_mock, cache_mock
+):
+    """Garante que a seleção ponderada de lacunas respeita a proporção estatística de 2 PL para 1 PEC."""
+    # Cria uma instância de service real (sem mocks no random)
+    service_real = PreencherLacunasService(
+        repo_mock, camara_mock, senado_mock, cache_mock
+    )
+
+    # Mocka apenas a detecção de lacunas para retornar um PL e um PEC do mesmo ano e fonte
+    lacunas_mock = [
+        {
+            "fonte": "camara",
+            "ano": 2026,
+            "tipo": "PL",
+            "local": 0,
+            "api_total": 10,
+            "coverage": 0.0,
+        },
+        {
+            "fonte": "camara",
+            "ano": 2026,
+            "tipo": "PEC",
+            "local": 0,
+            "api_total": 10,
+            "coverage": 0.0,
+        },
+    ]
+    service_real._detectar_lacunas = AsyncMock(return_value=lacunas_mock)
+
+    # Coleta quais tipos de lacuna foram processados
+    tipos_processados = []
+
+    async def mock_preencher(lacuna, config, backlog_size):
+        tipos_processados.append(lacuna["tipo"])
+        return 1
+
+    service_real._preencher_lacuna = mock_preencher
+
+    # Simula 300 execuções do serviço para obter uma amostragem estatística razoável
+    for _ in range(300):
+        await service_real.executar()
+
+    # Contabilidade das escolhas
+    contagem_pl = tipos_processados.count("PL")
+    contagem_pec = tipos_processados.count("PEC")
+
+    assert contagem_pl > 0
+    assert contagem_pec > 0
+    # PL deve ser mais escolhido que PEC
+    assert contagem_pl > contagem_pec
+
+    # A proporção deve estar próxima de 2.0 (permitindo desvio estatístico no intervalo [1.1, 4.0])
+    proporcao = contagem_pl / contagem_pec
+    assert 1.1 <= proporcao <= 4.0
+
+
+@pytest.mark.asyncio
+async def test_selecao_lacuna_ponderada_ano(
+    repo_mock, camara_mock, senado_mock, cache_mock
+):
+    """Garante que a seleção ponderada de lacunas respeita a proporção estatística de 2 anos históricos para 1 ano atual."""
+    service_real = PreencherLacunasService(
+        repo_mock, camara_mock, senado_mock, cache_mock
+    )
+
+    ano_atual = datetime.now(UTC).year
+
+    # Retorna uma lacuna de ano atual e uma de ano histórico (ambos tipo PL para isolar do tipo)
+    lacunas_mock = [
+        {
+            "fonte": "camara",
+            "ano": ano_atual,
+            "tipo": "PL",
+            "local": 0,
+            "api_total": 10,
+            "coverage": 0.0,
+        },
+        {
+            "fonte": "camara",
+            "ano": ano_atual - 1,
+            "tipo": "PL",
+            "local": 0,
+            "api_total": 10,
+            "coverage": 0.0,
+        },
+    ]
+    service_real._detectar_lacunas = AsyncMock(return_value=lacunas_mock)
+
+    anos_processados = []
+
+    async def mock_preencher(lacuna, config, backlog_size):
+        anos_processados.append(lacuna["ano"])
+        return 1
+
+    service_real._preencher_lacuna = mock_preencher
+
+    # Simula 300 execuções do serviço para obter uma amostragem estatística razoável
+    for _ in range(300):
+        await service_real.executar()
+
+    contagem_atual = anos_processados.count(ano_atual)
+    contagem_historico = anos_processados.count(ano_atual - 1)
+
+    assert contagem_atual > 0
+    assert contagem_historico > 0
+    # Histórico deve ser mais escolhido que Atual (peso 2 vs 1)
+    assert contagem_historico > contagem_atual
+
+    # A proporção deve estar próxima de 2.0 (permitindo desvio estatístico no intervalo [1.1, 4.0])
+    proporcao = contagem_historico / contagem_atual
+    assert 1.1 <= proporcao <= 4.0
