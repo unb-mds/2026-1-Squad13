@@ -36,8 +36,7 @@ async def check_api_connectivity(url: str, timeout: float = 2.0) -> bool:
     """Realiza uma requisição HEAD ou GET rápida para validar conectividade."""
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            # Usamos um endpoint de referências que é leve e estável
-            response = await client.get(url)
+            response = await client.head(url)
             return response.status_code == 200
     except Exception as e:
         logger.warning(f"Falha de conectividade com {url}: {e}")
@@ -89,7 +88,7 @@ async def health(response: Response, session: Session = Depends(get_session)):
 
     # Senado
     senado_ok = await check_api_connectivity(
-        "https://www25.senado.leg.br/dadosabertos/materia/tipos"
+        "https://legis.senado.leg.br/dadosabertos/materia/atualizadas"
     )
     components["senado_api"] = HealthComponentStatus(
         status="ok" if senado_ok else "degraded",
