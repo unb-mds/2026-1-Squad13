@@ -36,9 +36,9 @@ async def test_service_falha_total(mock_proposicao):
     mock_log_repo = MagicMock()
 
     mock_camara = AsyncMock()
-    mock_camara.coletar_em_lote.side_effect = Exception("Erro Câmara")
+    mock_camara.obter_total.side_effect = Exception("Erro Câmara")
     mock_senado = AsyncMock()
-    mock_senado.coletar_em_lote.side_effect = Exception("Erro Senado")
+    mock_senado.obter_total.side_effect = Exception("Erro Senado")
 
     service = ColetarEmLoteService(
         repository=mock_repo,
@@ -63,6 +63,8 @@ async def test_service_falha_total(mock_proposicao):
 async def test_service_sucesso_parcial(mock_proposicao):
     """Cenário 2: Sucesso no Senado, falha na Câmara."""
     mock_repo = MagicMock()
+    # Mock do repo para simular gap (local < api_total)
+    mock_repo.contar.return_value = 5
     mock_evento_repo = MagicMock()
     mock_fase_repo = MagicMock()
     mock_orgao_repo = MagicMock()
@@ -70,9 +72,12 @@ async def test_service_sucesso_parcial(mock_proposicao):
     mock_log_repo = MagicMock()
 
     mock_camara = AsyncMock()
-    mock_camara.coletar_em_lote.side_effect = Exception("Erro Câmara")
+    mock_camara.obter_total.side_effect = Exception("Erro Câmara")
+    
     mock_senado = AsyncMock()
-    mock_senado.coletar_em_lote.return_value = [mock_proposicao]
+    mock_senado.obter_total.return_value = 10
+    mock_senado.listar_recentes.return_value = [456]
+    mock_senado.buscar_por_id.return_value = mock_proposicao
 
     service = ColetarEmLoteService(
         repository=mock_repo,
@@ -99,6 +104,8 @@ async def test_service_sucesso_parcial(mock_proposicao):
 async def test_service_sucesso_total(mock_proposicao):
     """Cenário 3: Sucesso em ambas as fontes."""
     mock_repo = MagicMock()
+    # Mock do repo para simular gap (local < api_total)
+    mock_repo.contar.return_value = 5
     mock_evento_repo = MagicMock()
     mock_fase_repo = MagicMock()
     mock_orgao_repo = MagicMock()
@@ -106,9 +113,14 @@ async def test_service_sucesso_total(mock_proposicao):
     mock_log_repo = MagicMock()
 
     mock_camara = AsyncMock()
-    mock_camara.coletar_em_lote.return_value = [mock_proposicao]
+    mock_camara.obter_total.return_value = 10
+    mock_camara.listar_recentes.return_value = [123]
+    mock_camara.buscar_por_id.return_value = mock_proposicao
+    
     mock_senado = AsyncMock()
-    mock_senado.coletar_em_lote.return_value = [mock_proposicao]
+    mock_senado.obter_total.return_value = 10
+    mock_senado.listar_recentes.return_value = [456]
+    mock_senado.buscar_por_id.return_value = mock_proposicao
 
     service = ColetarEmLoteService(
         repository=mock_repo,
@@ -125,4 +137,7 @@ async def test_service_sucesso_total(mock_proposicao):
 
     assert resumo["camara"]["status"] == "sucesso"
     assert resumo["senado"]["status"] == "sucesso"
+    # O total coletado deve ser 1 por fonte (Câmara e Senado)
+    assert resumo["camara"]["itens_coletados"] == 1
+    assert resumo["senado"]["itens_coletados"] == 1
     assert mock_repo.upsert_em_lote_por_numero_canonico.call_count == 2

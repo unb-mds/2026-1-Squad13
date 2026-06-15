@@ -19,6 +19,7 @@ from application.ports.proposicao_repository import ProposicaoRepositoryPort
 from application.ports.senado_adapter import SenadoAdapterPort
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
+from application.services.atualizar_cobertura_service import AtualizarCoberturaService
 from domain.entities.proposicao import Proposicao
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ class ColetarEmLoteService:
         camara_adapter: CamaraAdapterPort,
         senado_adapter: SenadoAdapterPort,
         reconstruir_service: ReconstruirPeriodosService | None = None,
+        cobertura_service: AtualizarCoberturaService | None = None,
     ):
         self.repository = repository
         self.evento_repo = evento_repo
@@ -51,6 +53,7 @@ class ColetarEmLoteService:
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
         self.reconstruir_service = reconstruir_service
+        self.cobertura_service = cobertura_service
 
         self.listar_movimentacoes_service = ListarMovimentacoesService(
             evento_repo=self.evento_repo,
@@ -65,56 +68,172 @@ class ColetarEmLoteService:
 
     async def executar_coleta_diaria(self) -> dict:
         """
-        Orquestra a coleta diária de ambas as fontes (Câmara e Senado).
-        Retorna um resumo da execução.
+        Orquestra a coleta diária inteligente baseada em gaps e cotas dinâmicas,
+        evitando timeouts e sobrecarga nas APIs oficiais.
         """
+        from datetime import datetime
+
         resumo = {
-            "camara": {"status": "pendente", "itens_coletados": 0, "erro": None},
-            "senado": {"status": "pendente", "itens_coletados": 0, "erro": None},
+            "camara": {"status": "sucesso", "itens_coletados": 0, "erro": None},
+            "senado": {"status": "sucesso", "itens_coletados": 0, "erro": None},
         }
 
+        current_year = datetime.now().year
+        anos = [current_year - 2, current_year - 1, current_year]
+        tipos = ["PL", "PEC"]
+        fontes = ["camara", "senado"]
+
+        gaps = []
+
         async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
-            # Coleta Câmara (Meta: 300)
-            try:
-                logger.info(
-                    "Iniciando coleta em lote da Câmara dos Deputados (Meta: 300)..."
-                )
-                props_camara = await self.camara_adapter.coletar_em_lote(
-                    {"limite_total": 300}
-                )
-                if props_camara:
-                    await self._processar_proposicoes(props_camara, client)
+            # 1. Análise de gaps locais vs. API
+            for ano in anos:
+                for tipo in tipos:
+                    for fonte in fontes:
+                        orgao_nome = (
+                            "Câmara dos Deputados"
+                            if fonte == "camara"
+                            else "Senado Federal"
+                        )
+                        adapter = self.camara_adapter if fonte == "camara" else self.senado_adapter
+                        
+                        try:
+                            local_count = self.repository.contar(
+                                tipo=tipo, ano=ano, orgao_origem=orgao_nome
+                            )
+                            api_total = await adapter.obter_total(tipo, ano, client=client)
+                            
+                            # Tratamento de resiliência caso API retorne 0 por instabilidade
+                            if api_total == 0 and local_count > 0:
+                                continue
+                                
+                            if api_total > local_count:
+                                gaps.append({
+                                    "fonte": fonte,
+                                    "ano": ano,
+                                    "tipo": tipo,
+                                    "local_count": local_count,
+                                    "api_total": api_total,
+                                    "missing": api_total - local_count
+                                })
+                        except Exception as e:
+                            logger.warning(
+                                f"Falha ao analisar gaps para {fonte.upper()} {tipo} {ano}: {e}"
+                            )
+                            resumo[fonte]["status"] = "falha"
+                            resumo[fonte]["erro"] = str(e)
 
-                resumo["camara"]["status"] = "sucesso"
-                resumo["camara"]["itens_coletados"] = len(props_camara)
-                logger.info(f"Câmara finalizada com {len(props_camara)} itens.")
-                self._registrar_log("camara", "sucesso", len(props_camara))
-            except Exception as e:
-                logger.exception("Falha total na coleta da Câmara.")
-                resumo["camara"]["status"] = "falha"
-                resumo["camara"]["erro"] = str(e)
-                self._registrar_log("camara", "falha", 0, str(e))
+            # Se não houver gaps, encerra mais cedo sem desperdiçar recursos
+            if not gaps:
+                logger.info("🎉 Cobertura de dados em 100% nos anos recentes. Nenhuma coleta de gaps necessária.")
+                return resumo
 
-            # Coleta Senado (Meta: 200)
-            try:
-                logger.info("Iniciando coleta em lote do Senado Federal (Meta: 200)...")
-                props_senado = await self.senado_adapter.coletar_em_lote(
-                    {"limite_total": 200}
-                )
-                if props_senado:
-                    await self._processar_proposicoes(props_senado, client)
+            # 2. Priorização dos gaps
+            # Prioriza ano mais recente (decrescente) e depois tipo/fonte
+            gaps.sort(key=lambda x: x["ano"], reverse=True)
 
-                resumo["senado"]["status"] = "sucesso"
-                resumo["senado"]["itens_coletados"] = len(props_senado)
-                logger.info(f"Senado finalizado com {len(props_senado)} itens.")
-                self._registrar_log("senado", "sucesso", len(props_senado))
-            except Exception as e:
-                logger.exception("Falha total na coleta do Senado.")
-                resumo["senado"]["status"] = "falha"
-                resumo["senado"]["erro"] = str(e)
-                self._registrar_log("senado", "falha", 0, str(e))
+            # Cota global máxima de proposições por rodada para evitar timeouts nas APIs
+            COTA_GLOBAL_MAX = 40
+            total_planejado = 0
+            tarefas_execucao = []
 
-        return resumo
+            for gap in gaps:
+                if total_planejado >= COTA_GLOBAL_MAX:
+                    break
+                    
+                # Limite de proposições por grupo por execução (máximo 10)
+                limit_grupo = min(gap["missing"], 10)
+                if total_planejado + limit_grupo > COTA_GLOBAL_MAX:
+                    limit_grupo = COTA_GLOBAL_MAX - total_planejado
+                    
+                if limit_grupo > 0:
+                    gap["limit"] = limit_grupo
+                    tarefas_execucao.append(gap)
+                    total_planejado += limit_grupo
+
+            logger.info(
+                f"📋 Plano de coleta diária inteligente: {len(tarefas_execucao)} tarefas planejadas, "
+                f"totalizando no máximo {total_planejado} proposições a coletar."
+            )
+
+            # 3. Execução das tarefas planejadas
+            for tarefa in tarefas_execucao:
+                fonte = tarefa["fonte"]
+                ano = tarefa["ano"]
+                tipo = tarefa["tipo"]
+                limit = tarefa["limit"]
+                local_offset = tarefa["local_count"]
+                adapter = self.camara_adapter if fonte == "camara" else self.senado_adapter
+
+                try:
+                    logger.info(
+                        f"🔎 Coletando {tipo} {ano} da {fonte.upper()} (Offset: {local_offset}, Limite: {limit})..."
+                    )
+                    
+                    ids = []
+                    if fonte == "camara":
+                        page = (local_offset // limit) + 1
+                        ids = await adapter.listar_recentes(
+                            tipo=tipo,
+                            quantidade=limit,
+                            ano=ano,
+                            client=client,
+                            pagina=page,
+                        )
+                    else:
+                        # Senado não tem paginação, buscamos com margem de segurança e extraímos a fatia
+                        ids_raw = await adapter.listar_recentes(
+                            tipo=tipo,
+                            quantidade=limit + local_offset + 5,
+                            ano=ano,
+                            client=client,
+                        )
+                        ids = ids_raw[local_offset : local_offset + limit]
+
+                    if not ids:
+                        logger.warning(f"Nenhum ID retornado para {fonte.upper()} {tipo} {ano}")
+                        continue
+
+                    # Deduplica IDs antes de buscar detalhes externos
+                    ids_unicos = list(dict.fromkeys(ids))
+                    
+                    # Semáforo para controlar concorrência das requisições externas para o grupo (máximo 5)
+                    sem_grupo = asyncio.Semaphore(5)
+                    
+                    async def fetch_prop(id_p):
+                        async with sem_grupo:
+                            try:
+                                p = await adapter.buscar_por_id(id_p, client=client)
+                                if p:
+                                    return p
+                            except Exception as e:
+                                logger.warning(f"Erro ao buscar proposição {id_p} na {fonte.upper()}: {e}")
+                            return None
+
+                    tasks_props = [fetch_prop(id_p) for id_p in ids_unicos]
+                    results_props = await asyncio.gather(*tasks_props, return_exceptions=True)
+                    proposicoes_coletadas = [r for r in results_props if isinstance(r, Proposicao)]
+
+                    if proposicoes_coletadas:
+                        # Processa e persiste no banco
+                        await self._processar_proposicoes(proposicoes_coletadas, client)
+                        resumo[fonte]["itens_coletados"] += len(proposicoes_coletadas)
+                        logger.info(
+                            f"💾 Salvas {len(proposicoes_coletadas)} proposições de {tipo} {ano} da {fonte.upper()}."
+                        )
+
+                        # Atualiza os snapshots de cobertura no banco de dados para sincronizar com o dashboard
+                        if self.cobertura_service:
+                            try:
+                                await self.cobertura_service.atualizar_snapshot(ano, tipo, fonte)
+                                logger.info(f"✅ Cobertura de snapshot atualizada para {fonte.upper()} {tipo} {ano}.")
+                            except Exception as e:
+                                logger.warning(f"Falha ao atualizar snapshot de cobertura: {e}")
+
+                except Exception as e:
+                    logger.exception(f"Erro ao executar tarefa de gap para {fonte.upper()} {tipo} {ano}.")
+                    resumo[fonte]["status"] = "parcial"
+                    resumo[fonte]["erro"] = str(e)
 
     async def _processar_proposicoes(
         self, proposicoes: list[Proposicao], client: httpx.AsyncClient

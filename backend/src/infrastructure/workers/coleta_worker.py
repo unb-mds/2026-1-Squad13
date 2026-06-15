@@ -71,6 +71,21 @@ def task_coletar_proposicoes_diario(self):
                 proposicao_repo=repository,
             )
 
+            from infrastructure.repositories.sql_cobertura_snapshot_repository import (
+                SQLCoberturaSnapshotRepository,
+            )
+            from application.services.atualizar_cobertura_service import (
+                AtualizarCoberturaService,
+            )
+
+            cobertura_repo = SQLCoberturaSnapshotRepository(session)
+            cobertura_service = AtualizarCoberturaService(
+                cobertura_repo=cobertura_repo,
+                proposicao_repo=repository,
+                camara_adapter=camara_adapter,
+                senado_adapter=senado_adapter,
+            )
+
             service = ColetarEmLoteService(
                 repository=repository,
                 evento_repo=evento_repo,
@@ -81,6 +96,7 @@ def task_coletar_proposicoes_diario(self):
                 camara_adapter=camara_adapter,
                 senado_adapter=senado_adapter,
                 reconstruir_service=reconstruir_service,
+                cobertura_service=cobertura_service,
             )
 
             try:
