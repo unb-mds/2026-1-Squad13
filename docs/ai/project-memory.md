@@ -77,3 +77,10 @@ Sempre que uma nova decisão persistente for adicionada, o registro deve seguir 
 **Decisão:** Uso de scripts de entrada única para subir o ambiente e validar todo o monorepo. Adoção do Ruff (backend) e Vitest (frontend) como padrões de qualidade.
 **Justificativa:** Reduzir o atrito no onboarding e garantir que nenhum commit quebre a integridade do monorepo.
 **Impacto:** O CI bloqueia merges sem a "Validação Blindada" (lint + tipos + testes) aprovada em ambos os subprojetos.
+
+### [2026-06] Prefixação de Identificadores de Proposições (Câmara vs Senado)
+**Evidência:** Arquivos `backend/src/infrastructure/adapters/camara_adapter.py`, `backend/src/infrastructure/adapters/senado_adapter.py` e `backend/src/update_ids_migration.py`.
+**Decisão:** IDs de proposições ingeridos são prefixados com a respectiva sigla do órgão de origem (`camara:<id>` e `senado:<id>`), e chaves estrangeiras dependentes nas tabelas de eventos e apensamentos refletem esse padrão.
+**Justificativa:** Câmara e Senado utilizam geradores numéricos de IDs independentes que causam conflitos de chave primária (`UniqueViolation`) na tabela unificada de proposições.
+**Impacto:** Novas consultas ou ingestões que buscam referenciar uma proposição devem usar e persistir o ID em formato string prefixado.
+
