@@ -152,7 +152,6 @@ class ListarMovimentacoesService:
                     )
                     casa_padrao = CasaLegislativa.SENADO
             elif proposicao and tipo_prop in tipos_unificaveis:
-            elif tipo_prop in tipos_unificaveis:
                 # LÓGICA DE UNIFICAÇÃO (CROSSOVER)
                 logger.info(
                     f"Iniciando busca unificada para {proposicao.nome_canonico}"

@@ -10,7 +10,7 @@ from application.services.reconstruir_periodos_service import ReconstruirPeriodo
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
 from infrastructure.cache.redis_client import RedisClient
-from infrastructure.database import engine, init_redis
+from infrastructure.database import engine
 from infrastructure.repositories.sql_apensamento_repository import (
     SQLApensamentoRepository,
 )
@@ -72,13 +72,13 @@ def task_coletar_proposicoes_diario(self):
                 proposicao_repo=repository,
             )
 
+            from application.services.atualizar_cobertura_service import (
+                AtualizarCoberturaService,
+            )
             from infrastructure.cache.redis_client import RedisClient
             from infrastructure.database import init_redis
             from infrastructure.repositories.sql_cobertura_snapshot_repository import (
                 SQLCoberturaSnapshotRepository,
-            )
-            from application.services.atualizar_cobertura_service import (
-                AtualizarCoberturaService,
             )
 
             redis_raw = init_redis()
@@ -213,7 +213,6 @@ def task_preencher_lacunas(self):
     import uuid
 
     from application.services.preencher_lacunas_service import PreencherLacunasService
-    from infrastructure.cache.redis_client import RedisClient
     from infrastructure.database import get_redis_client
 
     job_id = self.request.id or "lacunas-manual"

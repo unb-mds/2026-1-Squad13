@@ -18,9 +18,9 @@ from application.ports.orgao_legislativo_repository import (
 )
 from application.ports.proposicao_repository import ProposicaoRepositoryPort
 from application.ports.senado_adapter import SenadoAdapterPort
+from application.services.atualizar_cobertura_service import AtualizarCoberturaService
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
-from application.services.atualizar_cobertura_service import AtualizarCoberturaService
 from domain.entities.proposicao import Proposicao
 from domain.exceptions import ApiException
 
@@ -43,6 +43,7 @@ class ColetarEmLoteService:
         log_repo: LogColetaRepositoryPort,
         camara_adapter: CamaraAdapterPort,
         senado_adapter: SenadoAdapterPort,
+        reconstruir_service: ReconstruirPeriodosService | None = None,
         cobertura_service: AtualizarCoberturaService | None = None,
         cache_provider: CacheProvider | None = None,
     ):
@@ -100,17 +101,17 @@ class ColetarEmLoteService:
                             else "Senado Federal"
                         )
                         adapter = self.camara_adapter if fonte == "camara" else self.senado_adapter
-                        
+
                         try:
                             local_count = self.repository.contar(
                                 tipo=tipo, ano=ano, orgao_origem=orgao_nome
                             )
                             api_total = await adapter.obter_total(tipo, ano, client=client)
-                            
+
                             # Tratamento de resiliência caso API retorne 0 por instabilidade
                             if api_total == 0 and local_count > 0:
                                 continue
-                                
+
                             if api_total > local_count:
                                 gaps.append({
                                     "fonte": fonte,
@@ -127,9 +128,14 @@ class ColetarEmLoteService:
                             resumo[fonte]["status"] = "falha"
                             resumo[fonte]["erro"] = str(e)
 
-            # Se não houver gaps, encerra mais cedo sem desperdiçar recursos
+            # Se não houver gaps, encerra mais cedo sem desperdiçar recursos, mas registra logs
             if not gaps:
                 logger.info("🎉 Cobertura de dados em 100% nos anos recentes. Nenhuma coleta de gaps necessária.")
+                for fonte in fontes:
+                    status = resumo[fonte]["status"]
+                    itens = resumo[fonte]["itens_coletados"]
+                    erro = resumo[fonte]["erro"]
+                    self._registrar_log(fonte, status, itens, erro)
                 return resumo
 
             # 2. Priorização dos gaps
@@ -144,12 +150,12 @@ class ColetarEmLoteService:
             for gap in gaps:
                 if total_planejado >= COTA_GLOBAL_MAX:
                     break
-                    
+
                 # Limite de proposições por grupo por execução (máximo 10)
                 limit_grupo = min(gap["missing"], 10)
                 if total_planejado + limit_grupo > COTA_GLOBAL_MAX:
                     limit_grupo = COTA_GLOBAL_MAX - total_planejado
-                    
+
                 if limit_grupo > 0:
                     gap["limit"] = limit_grupo
                     tarefas_execucao.append(gap)
@@ -173,7 +179,7 @@ class ColetarEmLoteService:
                     logger.info(
                         f"🔎 Coletando {tipo} {ano} da {fonte.upper()} (Offset: {local_offset}, Limite: {limit})..."
                     )
-                    
+
                     ids = []
                     if fonte == "camara":
                         page = (local_offset // limit) + 1
@@ -200,18 +206,18 @@ class ColetarEmLoteService:
 
                     # Deduplica IDs antes de buscar detalhes externos
                     ids_unicos = list(dict.fromkeys(ids))
-                    
+
                     # Semáforo para controlar concorrência das requisições externas para o grupo (máximo 5)
                     sem_grupo = asyncio.Semaphore(5)
-                    
-                    async def fetch_prop(id_p):
-                        async with sem_grupo:
+
+                    async def fetch_prop(id_p, sem=sem_grupo, adapt=adapter, f=fonte):
+                        async with sem:
                             try:
-                                p = await adapter.buscar_por_id(id_p, client=client)
+                                p = await adapt.buscar_por_id(id_p, client=client)
                                 if p:
                                     return p
                             except Exception as e:
-                                logger.warning(f"Erro ao buscar proposição {id_p} na {fonte.upper()}: {e}")
+                                logger.warning(f"Erro ao buscar proposição {id_p} na {f.upper()}: {e}")
                             return None
 
                     tasks_props = [fetch_prop(id_p) for id_p in ids_unicos]
@@ -238,6 +244,15 @@ class ColetarEmLoteService:
                     logger.exception(f"Erro ao executar tarefa de gap para {fonte.upper()} {tipo} {ano}.")
                     resumo[fonte]["status"] = "parcial"
                     resumo[fonte]["erro"] = str(e)
+
+        # 4. Registrar logs da execução
+        for fonte in fontes:
+            status = resumo[fonte]["status"]
+            itens = resumo[fonte]["itens_coletados"]
+            erro = resumo[fonte]["erro"]
+            self._registrar_log(fonte, status, itens, erro)
+
+        return resumo
 
     async def _processar_proposicoes(
         self, proposicoes: list[Proposicao], client: httpx.AsyncClient
