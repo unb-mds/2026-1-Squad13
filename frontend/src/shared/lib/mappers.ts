@@ -83,6 +83,7 @@ export function mapProposicaoToProposition(p: Proposicao): Proposition {
     coberturaDados: p.coberturaDados,
     confiabilidade: p.confiabilidade,
     statusTramitacao,
+    status: p.status,
     statusLabel: p.temAtraso ? "Em atraso" : p.status,
     transitouEntreCasas: p.orgaoOrigem?.toLowerCase().includes("senado") && p.orgaoAtual?.toLowerCase().includes("camara") || p.orgaoOrigem?.toLowerCase().includes("camara") && p.orgaoAtual?.toLowerCase().includes("senado"),
   };
