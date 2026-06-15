@@ -54,18 +54,32 @@ O sistema é focado em estudantes, pesquisadores, jornalistas, cidadãos e usuá
   - FastAPI
   - SQLModel (ORM sobre SQLAlchemy + Pydantic)
   - Ruff (linter)
-  - Layered Architecture
+  - Layered Architecture com Ports & Adapters completo
   - Services + Domain + Adapters
 
 - **Banco de dados:**
   - PostgreSQL
+  - Migrações gerenciadas por Alembic (`backend/src/infrastructure/database/alembic/versions/`)
+  - `scripts/db/migrate.sh` executa `alembic upgrade head` via Docker Compose e dispara backfill automaticamente após deploy
 
 - **Cache:**
   - Redis
 
 - **Workers assíncronos:**
-  - Celery (worker + beat)
-  - Task diária `coletar_proposicoes_diario` agendada às 02h37 (America/Sao_Paulo)
+  - Celery (broker e backend: Redis)
+  - Celery Beat para agendamento automático diário
+  - Módulos: `coleta_worker`, `metricas_worker`
+
+- **Injeção de dependência (Ports & Adapters / DI):**
+  - Ports declarados em `application/ports/` (interfaces puras — ABCs Python)
+  - Implementações concretas em `infrastructure/adapters/` e `infrastructure/repositories/`
+  - Wiring via FastAPI `Depends` em `presentation/proposicao_dependencies.py` e `presentation/dashboard_dependencies.py`
+  - Domain nunca importa infraestrutura — dependência sempre invertida
+
+- **Prefixação de IDs:**
+  - Todo `id` de proposição segue o padrão `camara:<id>` ou `senado:<id>`
+  - IDs sem prefixo são considerados inválidos
+  - Script de migração `src/update_ids_migration.py` converte registros legados
 
 - **Integrações externas:**
   - API da Câmara dos Deputados
@@ -79,7 +93,7 @@ O sistema é focado em estudantes, pesquisadores, jornalistas, cidadãos e usuá
 - **Coleta de dados:**
   - Batch diário automatizado via Celery Beat
   - Retry exponencial para falhas temporárias
-  - Logs obrigatórios de execução via `LogColetaModel`
+  - Logs obrigatórios de execução via `LogColetaModel` e `AuditoriaColetaModel`
 
 - **Testes:**
   - Pytest no backend — unitários e de integração (ver ADR-007)
@@ -113,8 +127,20 @@ O sistema é focado em estudantes, pesquisadores, jornalistas, cidadãos e usuá
 backend/src/
 ├── presentation/
 ├── application/
+│   ├── ports/
+│   └── services/
 ├── domain/
+│   ├── entities/
+│   ├── services/
+│   └── value_objects/
 └── infrastructure/
+    ├── adapters/
+    ├── cache/
+    ├── database/
+    │   ├── alembic/
+    │   └── models/
+    ├── repositories/
+    └── workers/
 
 frontend/src/
 ├── app/
@@ -126,52 +152,105 @@ frontend/src/
 
 ---
 
+## Workers e Coleta de Dados
+
+O sistema usa **Celery** com agendamento automático via **Celery Beat** (fuso: `America/Sao_Paulo`).
+
+### Tarefas agendadas
+
+| Horário | Task | Descrição |
+|---------|------|-----------|
+| 02h37 | `coletar_proposicoes_diario` | Coleta em lote da Câmara e Senado |
+| 03h00 | `recalcular_baselines_diario` | Recalcula baselines de tramitação por grupo |
+| 04h00 | `processar_metricas_todas_ativas` | Calcula IAR/IAF/IEI para proposições ativas |
+
+### Módulos
+
+- `infrastructure/workers/celery_app.py` — configuração central, beat schedule, logging estruturado JSON
+- `infrastructure/workers/coleta_worker.py` — task de coleta
+- `infrastructure/workers/metricas_worker.py` — task de métricas
+
+### Regras obrigatórias
+
+- Toda task deve registrar logs estruturados (JSON) via `json_logger.py`.
+- Falhas de API externa devem usar retry exponencial e nunca silenciar erros.
+- Nenhuma task acessa adapters externos diretamente — passa por services da camada de aplicação.
+
+---
+
 ## Arquitetura implementada — referência atual
 
 ### Backend — o que existe
 
+**Ports** (`backend/src/application/ports/`):
+`ProposicaoRepository`, `EventoTramitacaoRepository`, `FaseAnaliticaRepository`, `PeriodoFaseRepository`, `BaselineTramitacaoRepository`, `CoberturaSnapshotRepository`, `AuditoriaColetaRepository`, `LogColetaRepository`, `OrgaoLegislativoRepository`, `ApensamentoRepository`, `DashboardRepository`, `CamaraAdapter`, `SenadoAdapter`, `CacheProvider`, `EmailSenderProvider`
+
 **Application Services** (`backend/src/application/services/`):
-- `auth_service.py` — autenticação JWT, login, cadastro, logout, lockout por tentativas
 - `buscar_proposicoes_service.py` — busca com filtros e paginação
 - `detalhe_proposicao_service.py` — detalhe de proposição
 - `listar_movimentacoes_service.py` — movimentações com cache Redis; modos: COMPLETO, RESUMIDO, RELEVANTE
 - `agregar_por_fase_service.py` — agrupa eventos em períodos por fase analítica
 - `normalizar_tramitacao_service.py` — normalização de tramitações
+- `reconstruir_periodos_service.py` — reconstrói períodos por fase a partir de eventos
 - `dashboard_service.py` — métricas de dashboard com cache Redis
 - `coletar_em_lote_service.py` — orquestra coleta batch da Câmara e do Senado
-- `gerar_estimativa_service.py` — estimativa preditiva com threshold mínimo de amostra
-- `recuperacao_senha_service.py` — fluxo de recuperação de senha
+- `gerar_estimativa_service.py` — estimativa preditiva com threshold mínimo de amostra (50)
+- `obter_confiabilidade_service.py` — score de confiança para estimativas
+- `recalcular_baselines_service.py` — recalcula medianas históricas por grupo/fase
+- `processar_metricas_service.py` — calcula IAR/IAF/IEI para proposições ativas
+- `atualizar_cobertura_service.py` — atualiza snapshots de cobertura de dados
+- `backfill_emendas_service.py` — backfill de número de emendas em proposições existentes
 
 **Domain Entities** (`backend/src/domain/entities/`):
-`Proposicao`, `EventoTramitacao`, `FaseAnalitica`, `FaseCodigo`, `OrgaoLegislativo`, `Tramitacao`, `Apensamento`, `User`
+`Proposicao`, `EventoTramitacao`, `FaseAnalitica`, `FaseCodigo`, `NaturezaFase`, `PapelFluxo`, `MotivoTravamento`, `TipoEvento`, `OrgaoLegislativo`, `Tramitacao`, `Apensamento`, `BaselineTramitacao`, `CoberturaSnapshot`, `PeriodoFase`
 
 **Domain Value Objects** (`backend/src/domain/value_objects/`):
 `ModoMovimentacao` (RESUMIDO | COMPLETO | RELEVANTE), `PeriodoFase`
 
 **Domain Services** (`backend/src/domain/services/`):
-`EstimativaAprovacaoService`, `LoginAttemptService`
+`CalcularMetricasService` (IAR, IAF, IEI, classificação de atraso), `EstimativaAprovacaoService`, `HeuristicaTravamentoService`
 
 **Infrastructure Adapters** (`backend/src/infrastructure/adapters/`):
-`CamaraAdapter`, `SenadoAdapter`, `CamaraMockAdapter`, `SenadoMockAdapter`, `SecurityAdapter`, `RedisBlacklistAdapter`, `RedisLoginAttemptAdapter`, `DummyEmailSender`
+`CamaraAdapter`, `SenadoAdapter`, `CamaraMockAdapter`, `SenadoMockAdapter`, `DummyEmailSender`
 
 **Infrastructure Repositories** (`backend/src/infrastructure/repositories/`):
-`SQLProposicaoRepository`, `SQLEventoTramitacaoRepository`, `SQLFaseAnaliticaRepository`, `SQLOrgaoLegislativoRepository`, `SQLApensamentoRepository`, `SQLDashboardRepository`, `SQLUserRepository`
+`SQLProposicaoRepository`, `SQLEventoTramitacaoRepository`, `SQLFaseAnaliticaRepository`, `SQLPeriodoFaseRepository`, `SQLBaselineTramitacaoRepository`, `SQLCoberturaSnapshotRepository`, `SQLAuditoriaColetaRepository`, `SQLLogColetaRepository`, `SQLOrgaoLegislativoRepository`, `SQLApensamentoRepository`, `SQLDashboardRepository`
 
 **Database Models** (`backend/src/infrastructure/database/models/`):
-`ProposicaoModel`, `EventoTramitacaoModel`, `FaseAnaliticaModel`, `OrgaoLegislativoModel`, `ApensamentoModel`, `LogColetaModel`, `UserModel`
+`ProposicaoModel`, `EventoTramitacaoModel`, `FaseAnaliticaModel`, `PeriodoFaseModel`, `BaselineTramitacaoModel`, `CoberturaSnapshotModel`, `AuditoriaColetaModel`, `OrgaoLegislativoModel`, `ApensamentoModel`, `LogColetaModel`
+
+### Entidades principais e métricas de atraso
+
+| Entidade | Descrição |
+|----------|-----------|
+| `Proposicao` | Proposição legislativa com campos de métricas IAR/IAF/IEI |
+| `EventoTramitacao` | Eventos individuais da tramitação |
+| `FaseAnalitica` | Fases analíticas derivadas dos eventos |
+| `PeriodoFase` | Períodos de permanência por fase |
+| `BaselineTramitacao` | Mediana histórica por grupo/fase para comparação |
+| `CoberturaSnapshot` | Snapshot de cobertura de dados por coleta |
+| `AuditoriaColeta` | Registro de sucesso/falha por execução de coleta |
+| `OrgaoLegislativo` | Órgãos legislativos da Câmara e Senado |
+| `Apensamento` | Relações de apensamento entre proposições |
+
+**Campos de métricas na entidade `Proposicao`:**
+
+- `indice_atraso_relativo` — **IAR**: `dias_decorridos / baseline_esperado`; valores > 1 indicam atraso
+- `indice_atraso_fase_atual` — **IAF**: atraso específico da fase em que a proposição se encontra
+- `indice_espera_improdutiva` — **IEI**: proporção do tempo em fases sem progressão detectável
+- `status_atraso` — classificação categórica derivada do IAR (ex: "Em dia", "Atrasado", "Crítico")
+- `baseline_grupo_id` — referência ao grupo de baseline utilizado no cálculo
+- `data_calculo_metricas` — timestamp da última execução de métricas
 
 ### Endpoints disponíveis
 
 ```
-POST   /auth/register
-POST   /auth/login
-POST   /auth/logout
-POST   /auth/recuperar-senha
-POST   /auth/redefinir-senha
 GET    /health
 GET    /proposicoes
 GET    /proposicoes/{id}
 GET    /proposicoes/{id}/movimentacoes?modo=completo|resumido|relevante
+GET    /proposicoes/{id}/fases
+GET    /proposicoes/{id}/confiabilidade
 GET    /proposicoes/estimativa/{tipo}/{tema}
 GET    /dashboard/metricas
 GET    /dashboard/grafico-tipo
@@ -180,32 +259,36 @@ GET    /dashboard/grafico-status
 GET    /dashboard/gargalos
 GET    /dashboard/comparacao-temas
 GET    /dashboard/tempo-por-fase
+GET    /dashboard/transicoes-casas
+GET    /dashboard/estoque
+GET    /dashboard/handoff
+GET    /dashboard/cobertura
+GET    /dashboard/qualidade
 ```
 
 ### Frontend — o que existe
 
 **Pages** (`frontend/src/pages/`):
-`dashboard-page`, `consulta-proposicoes-page`, `detalhe-proposicao-page`, `relatorios-page`, `login-page`, `cadastro-page`, `recuperar-senha-page`
+`dashboard-page`, `detalhe-proposicao-page`
 
 **Features** (`frontend/src/features/`):
-- `auth/` — LoginForm, CadastroForm, RecuperarSenhaForm
-- `dashboard/` — DashboardComponents
-- `filtros/` — PainelFiltros
-- `relatorios/` — RelatorioComponents
-- `tramitacoes/` — CardPrevisaoIA, TimelineTramitacao
+- `filtros/` — FilterChips
+- `proposicoes/` — ProposicaoCard, PropositionsTable, EventTimeline, PhaseTimeline, BottleneckAnalytics, AIInsightsCard, DataReliability, HouseTransitDiagram, HouseTransitions, PipelineStage
 
 **Shared** (`frontend/src/shared/`):
 - `lib/api.ts` — cliente HTTP para todos os endpoints
-- `lib/hooks/use-debounce.ts`
+- `lib/hooks/useDashboard.ts`, `useProposicao.ts`, `use-debounce.ts`
 - `lib/mock-data.ts` — dados mock de fallback
+- `lib/mappers.ts` — mappers de resposta da API para tipos internos
 - `lib/utils.ts`
 - `shared/constants/index.ts` — constantes globais incluindo `DISCLAIMER_IA`
 - `shared/types/index.ts` — tipos TypeScript para todas as entidades
 - `shared/ui/index.tsx` — componentes compartilhados (Badge, Button, Spinner, EmptyState, ProposicaoCard)
+- `shared/components/` — KPICard, MetricCard, InfoTooltip, ThemeToggle
+- `shared/contexts/ThemeContext.tsx` — suporte a dark mode (`light` | `dark` | `system`)
 
 **App** (`frontend/src/app/`):
-- `providers/AuthProvider.tsx` + `AuthContext.tsx` — controle de sessão JWT
-- `router/index.tsx` — roteamento com `PrivateRoute`
+- `router/index.tsx` — roteamento sem proteção de autenticação
 - `layouts/AppLayout.tsx`
 
 ---
@@ -249,6 +332,7 @@ GET    /dashboard/tempo-por-fase
 - Destaque visual para gargalos e atrasos significativos.
 - Componentes devem manter consistência visual.
 - Navegação deve ser simples e previsível.
+- Dark mode suportado via `ThemeContext` — não remover nem contornar.
 
 ---
 
@@ -306,6 +390,12 @@ GitHub Actions já está em uso com workflows separados por path filter:
 
 - **`deploy-squad-dashboard.yml`** e **`update-squad-dashboard-data.yml`** — deploy automático do painel interno para GitHub Pages
 
+- **`scripts/db/migrate.sh`** — executado no CD após rebuild, antes de subir o backend:
+  1. `docker compose run --rm backend uv run alembic upgrade head`
+  2. `docker compose run --rm backend uv run python src/trigger_backfill.py`
+  - Deve ser executado **sempre** após deploy que contém novas migrations.
+  - Nunca executar migrations diretamente sem o script (garante ordem e backfill).
+
 Regras:
 - Não fazer merge sem CI verde.
 - Não implementar CI/CD sem antes analisar a estrutura real do projeto.
@@ -323,7 +413,7 @@ Regras:
 - **Não invente decisões arquiteturais fora do escopo definido.** Caso exista ambiguidade sobre stack, estrutura ou abordagem, pergunte antes de assumir.
 - **Respeite a arquitetura definida no projeto.**
   - Backend:
-    - Layered Architecture
+    - Layered Architecture com Ports & Adapters
     - Adapter Pattern
   - Frontend:
     - Feature-Based Architecture
@@ -332,7 +422,7 @@ Regras:
 - **Toda integração externa deve passar pela camada de infraestrutura/adapters.**
 - **Antes de qualquer implementação, leia os ADRs em `docs/adr/`.** Eles documentam decisões de stack, arquitetura e padrões que não devem ser repetidas ou revertidas sem alinhamento explícito.
 
-- **Antes de commitar código no frontend, rode `npm run lint` a partir de `frontend/`.** O resultado deve ter 0 erros. Os 2 warnings conhecidos (`exhaustive-deps` e `react-refresh/only-export-components` em `AuthProvider.tsx`) são aceitos temporariamente.
+- **Antes de commitar código no frontend, rode `npm run lint` a partir de `frontend/`.** O resultado deve ter 0 erros.
 
 - **Leia o contexto antes de modificar arquivos.** Entenda a feature, responsabilidade e impacto antes de editar.
 - **Evite duplicação de código.** Prefira abstrações reutilizáveis quando fizer sentido.
@@ -419,10 +509,10 @@ Permitir que usuários consultem proposições legislativas de forma rápida e e
 ### Frontend
 - [x] Criar estrutura da feature `filtros`
 - [x] Implementar SearchBar e painel de filtros (`PainelFiltros`)
-- [x] Implementar listagem paginada (`consulta-proposicoes-page`)
+- [x] Implementar listagem paginada
 - [x] Implementar navegação para detalhes
 - [x] Implementar estados de loading/erro/vazio
-- [x] Integrar `listarProposicoes` com API real
+- [x] Integrar com API real
 
 ### Backend
 - [x] Criar endpoint `GET /proposicoes` com query params
@@ -459,17 +549,19 @@ Permitir que o usuário visualize informações completas sobre uma proposição
 
 ### Frontend
 - [x] Criar página `detalhe-proposicao-page`
-- [x] Implementar `TimelineTramitacao`
-- [x] Implementar destaque de atraso (`temAtraso`)
+- [x] Implementar `EventTimeline` e `PhaseTimeline`
+- [x] Implementar destaque de atraso
 - [x] Implementar links externos
 - [x] Implementar estado de carregamento
 
 ### Backend
 - [x] Criar endpoint `GET /proposicoes/{id}`
 - [x] Criar endpoint `GET /proposicoes/{id}/movimentacoes?modo=completo|resumido|relevante`
-- [x] Implementar cálculo de tempo e atraso (`diasNaEtapa`, `temAtraso`)
+- [x] Criar endpoint `GET /proposicoes/{id}/fases`
+- [x] Criar endpoint `GET /proposicoes/{id}/confiabilidade`
+- [x] Implementar cálculo de tempo e atraso
 - [x] Consolidar histórico via `ListarMovimentacoesService` com cache Redis
-- [x] Criar `AgregarPorFaseService` para agrupamento por fase
+- [x] Criar `AgregarPorFaseService` e `ReconstruirPeriodosService`
 - [ ] **Pendente (#169):** Interface visual de status de atraso e explicabilidade
 
 ---
@@ -498,18 +590,27 @@ Permitir análise visual de métricas legislativas e identificação de gargalos
 
 ### Frontend
 - [x] Criar layout do dashboard (`dashboard-page`)
-- [x] Implementar cards KPI
-- [x] Implementar gráficos
-- [x] Implementar `PainelFiltros` para filtros globais
+- [x] Implementar cards KPI (`KPICard`, `MetricCard`)
+- [x] Implementar gráficos (tempo por tipo, comissão, status, fases, transições entre casas)
+- [x] Implementar dark mode (`ThemeContext` + `ThemeToggle`)
 - [ ] **Pendente (#91):** Filtros ativos refletindo nos dados do dashboard
 - [ ] **Pendente (#89):** Tempo por fase com dados reais integrados
 
 ### Backend
-- [x] Criar endpoints de métricas (`GET /dashboard/*`)
+- [x] `GET /dashboard/metricas`
+- [x] `GET /dashboard/grafico-tipo`
+- [x] `GET /dashboard/grafico-comissao`
+- [x] `GET /dashboard/grafico-status`
+- [x] `GET /dashboard/gargalos`
+- [x] `GET /dashboard/comparacao-temas`
+- [x] `GET /dashboard/tempo-por-fase`
+- [x] `GET /dashboard/transicoes-casas`
+- [x] `GET /dashboard/estoque`
+- [x] `GET /dashboard/handoff`
+- [x] `GET /dashboard/cobertura`
+- [x] `GET /dashboard/qualidade`
 - [x] Implementar `DashboardService` com agregações e cache Redis
-- [x] Configurar cache Redis
 - [x] Criar `SQLDashboardRepository`
-- [ ] **Pendente (#165–#168):** Infraestrutura, serviço e endpoints de métricas de atraso (IAR, IAF, IEI)
 
 ---
 
@@ -523,7 +624,7 @@ Exibir estimativas de tempo de aprovação baseadas em dados históricos.
 
 ### Requisitos funcionais
 
-- Exibir previsão apenas quando houver dados suficientes (threshold: 50 registros históricos)
+- Exibir previsão apenas quando houver dados suficientes (threshold: 50 registros históricos — `THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA`)
 - Exibir indicador de confiabilidade
 - Exibir disclaimer obrigatório
 
@@ -536,71 +637,52 @@ Exibir estimativas de tempo de aprovação baseadas em dados históricos.
 ## Tarefas
 
 ### Frontend
-- [x] Criar `CardPrevisaoIA` com disclaimer obrigatório (`DISCLAIMER_IA`)
+- [x] Criar `AIInsightsCard` com disclaimer obrigatório (`DISCLAIMER_IA`)
+- [x] Implementar `DataReliability` para exibir confiabilidade
 - [x] Implementar estado de ausência de previsão
 
 ### Backend
 - [x] Criar endpoint `GET /proposicoes/estimativa/{tipo}/{tema}`
 - [x] Implementar `GerarEstimativaUseCase` + `EstimativaAprovacaoService`
-- [x] Implementar score de confiança e threshold mínimo
+- [x] Implementar `ObterConfiabilidadeService` com score e threshold mínimo
 - [ ] **Pendente (#145):** Cobertura de testes para `GerarEstimativaUseCase`
 
 ---
 
 # Funcionalidade: Autenticação
 
-## Spec
-
-### Objetivo
-
-Permitir autenticação e gerenciamento de sessão de usuários.
-
-### Requisitos funcionais
-
-- Cadastro, Login, Logout, Recuperação de senha
-
-### Critérios de aceitação
-
-- Login inválido deve exibir erro claro.
-- Sessão deve expirar corretamente.
-- Logout deve invalidar sessão (token blacklist via Redis).
-- Lockout por excesso de tentativas deve ser aplicado.
-
-## Tarefas
-
-### Frontend
-- [x] Criar formulários de login, cadastro e recuperação de senha
-- [x] Implementar `AuthProvider` + `AuthContext` com controle de sessão JWT
-- [x] Implementar proteção de rotas via `PrivateRoute`
-- [ ] **Pendente:** Integrar `recuperarSenhaApi` com endpoint real (atualmente usa `delay(1200)`)
-
-### Backend
-- [x] Criar endpoints `/auth/login`, `/auth/register`, `/auth/logout`, `/auth/recuperar-senha`, `/auth/redefinir-senha`
-- [x] Implementar JWT com `jose`
-- [x] Implementar blacklist de tokens via Redis
-- [x] Implementar lockout por tentativas (`LoginAttemptService` + `RedisLoginAttemptAdapter`)
-- [x] Implementar `RecuperacaoSenhaService`
+> **Descontinuada (PR #197).** O sistema de autenticação foi removido completamente do projeto.
+> Não há rotas de login, cadastro, logout ou recuperação de senha.
+> Resquícios no código (`TokenRevogadoError`, `CredenciaisInvalidasError`, campos JWT em `config.py`)
+> são artefatos que podem ser limpos em tarefa dedicada, mas não afetam o funcionamento atual.
+> O frontend não possui mais páginas de auth nem proteção de rotas.
 
 ---
 
-# Funcionalidade: Coleta Batch
+# Funcionalidade: Coleta Batch e Métricas de Atraso
 
 ## Spec
 
 ### Objetivo
 
-Coletar proposições diariamente da Câmara e do Senado de forma automatizada, idempotente e rastreável.
+Coletar proposições diariamente da Câmara e do Senado de forma automatizada, idempotente e rastreável, e calcular métricas de atraso legislativo (IAR, IAF, IEI) para todas as proposições ativas.
 
 ## Tarefas
 
 - [x] Criar `ColetarEmLoteService` com orquestração Câmara + Senado
 - [x] Criar `CamaraAdapter` e `SenadoAdapter` com retry
 - [x] Criar `CamaraMockAdapter` e `SenadoMockAdapter` para testes
-- [x] Configurar Celery App com broker/backend Redis
-- [x] Criar `task_coletar_proposicoes_diario` (Celery Beat, 02h37 diário)
-- [x] Registrar execuções em `LogColetaModel`
+- [x] Configurar Celery App com broker/backend Redis e beat schedule
+- [x] Criar task `coletar_proposicoes_diario` (02h37 diário)
+- [x] Criar task `recalcular_baselines_diario` (03h00 diário)
+- [x] Criar task `processar_metricas_todas_ativas` (04h00 diário)
+- [x] Implementar `CalcularMetricasService` (IAR, IAF, IEI, status_atraso)
+- [x] Implementar `RecalcularBaselinesService` com medianas históricas por grupo/fase
+- [x] Implementar `ProcessarMetricasService` para batch de proposições ativas
+- [x] Registrar execuções em `LogColetaModel` e `AuditoriaColetaModel`
+- [x] Implementar prefixação de IDs: `camara:<id>` / `senado:<id>`
+- [x] Backfill de emendas via `BackfillEmendasService` + `trigger_backfill.py`
 - [ ] **Pendente (#87):** Fechar issue — worker está implementado mas issue permanece aberta
-- [ ] **Pendente (#167):** Worker de atualização de métricas de atraso
 
 ---
 
