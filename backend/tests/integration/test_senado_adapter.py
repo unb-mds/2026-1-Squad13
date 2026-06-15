@@ -8,7 +8,6 @@ from infrastructure.adapters.senado_adapter import SenadoAdapter
 @pytest.mark.asyncio
 async def test_senado_adapter_buscar_por_id_valido():
     """Verifica se o adaptador consegue buscar e converter uma matéria real do Senado."""
-    from unittest.mock import Mock
 
     adapter = SenadoAdapter()
     # ID usado no exemplo original

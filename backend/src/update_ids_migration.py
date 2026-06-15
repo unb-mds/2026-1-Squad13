@@ -1,6 +1,8 @@
-from sqlalchemy import create_engine, text
-from infrastructure.config import settings
 import logging
+
+from sqlalchemy import create_engine, text
+
+from infrastructure.config import settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
