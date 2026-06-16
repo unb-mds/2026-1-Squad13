@@ -18,6 +18,7 @@ export interface Proposicao {
   autor: string
   orgaoOrigem: string
   status: StatusProposicao
+  statusOriginal?: string
   orgaoAtual: string
   dataApresentacao: string
   dataUltimaMovimentacao: string

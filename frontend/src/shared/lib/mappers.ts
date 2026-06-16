@@ -1,4 +1,4 @@
-import type { Proposicao } from '../types';
+import type { Proposicao, StatusProposicao } from '../types';
 import type { Proposition } from '@/features/proposicoes/components/PropositionsTable';
 import type { PhaseEntry } from '@/features/proposicoes/components/PhaseTimeline';
 import type { TimelineEvent } from '@/features/proposicoes/components/EventTimeline';
@@ -21,6 +21,45 @@ export function formatarDataBr(dataStr?: string): string {
   } catch {
     return dataStr || '';
   }
+}
+
+export function normalizarStatus(statusRaw?: string): StatusProposicao {
+  if (!statusRaw) return 'Em Tramitação';
+  
+  const statusTrim = statusRaw.trim();
+  if (['Em Tramitação', 'Em Pauta', 'Aprovada', 'Sancionada', 'Vetada', 'Arquivada'].includes(statusTrim)) {
+    return statusTrim as StatusProposicao;
+  }
+
+  const raw = statusRaw.toUpperCase();
+
+  if (raw.includes("NORMA JURÍDICA") || raw.includes("SANCIONAD") || raw.includes("CONCLUÍDA")) {
+    return "Sancionada";
+  }
+
+  if (raw.includes("VETAD")) {
+    return "Vetada";
+  }
+
+  if (
+    raw.includes("REJEITAD") ||
+    raw.includes("ARQUIVAD") ||
+    raw.includes("PREJUDICAD") ||
+    raw.includes("RETIRAD") ||
+    raw.includes("APENSAD")
+  ) {
+    return "Arquivada";
+  }
+
+  if (raw.includes("APROVAD")) {
+    return "Aprovada";
+  }
+
+  if (raw.includes("PAUTA") || raw.includes("AGUARDANDO")) {
+    return "Em Pauta";
+  }
+
+  return "Em Tramitação";
 }
 
 export function mapProposicaoToProposition(p: Proposicao): Proposition {
@@ -67,6 +106,8 @@ export function mapProposicaoToProposition(p: Proposicao): Proposition {
     }
   }
 
+  const statusCanonico = normalizarStatus(p.status);
+
   return {
     id: p.codigoNormalizado || p.id,
     numero: `${p.numero}/${p.ano}`,
@@ -76,14 +117,15 @@ export function mapProposicaoToProposition(p: Proposicao): Proposition {
     faseAtual: p.orgaoAtual || "Protocolo",
     diasNaEtapa: diasNaEtapa || 0,
     diasTotais: p.tempoTotalDias || 0,
-    ultimoEventoRelevante: p.status || "Movimentação registrada",
+    ultimoEventoRelevante: p.statusOriginal || p.status || "Movimentação registrada",
     dataUltimoEvento: formatarDataBr(p.dataUltimaMovimentacao),
     autor: p.autor,
     atraso: p.temAtraso ? Math.max(0, p.tempoTotalDias - 180) : 0,
     coberturaDados: p.coberturaDados,
     confiabilidade: p.confiabilidade,
     statusTramitacao,
-    statusLabel: p.temAtraso ? "Em atraso" : p.status,
+    status: statusCanonico,
+    statusLabel: p.temAtraso ? "Em atraso" : statusCanonico,
     transitouEntreCasas: p.orgaoOrigem?.toLowerCase().includes("senado") && p.orgaoAtual?.toLowerCase().includes("camara") || p.orgaoOrigem?.toLowerCase().includes("camara") && p.orgaoAtual?.toLowerCase().includes("senado"),
   };
 }
