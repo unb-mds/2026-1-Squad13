@@ -370,54 +370,63 @@ export function EventTimeline({ events }: EventTimelineProps) {
                           )}
                         </div>
 
-                        {/* Botão para ver descrição no modo Resumo */}
-                        {filter === "resumo" && event.descricao && (
-                          <div className="mt-3 flex items-center justify-end">
-                            <button
-                              onClick={() => toggleEventExpansion(event.id)}
-                              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 focus:outline-none"
-                            >
-                              {expandedEventIds[event.id] ? "Ocultar descrição" : "Ver descrição"}
-                              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                                expandedEventIds[event.id] ? "rotate-180" : ""
-                              }`} />
-                            </button>
-                          </div>
-                        )}
+                        {/* Definição de descrição extra não-redundante */}
+                        {(() => {
+                          const hasExtraDescription = event.descricao && event.descricao.trim() !== event.titulo.trim();
 
-                        {/* Descrição - exibida no modo Todos ou se expandida individualmente no Resumo */}
-                        {(filter !== "resumo" || expandedEventIds[event.id]) && event.descricao && (
-                          <div className="mt-3 pt-3 border-t border-border">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                              Descrição Original
-                            </p>
-                            <div className="text-sm text-foreground leading-relaxed bg-secondary/30 p-3 rounded-lg">
-                              {shouldTruncate(event.descricao) && !expandedEventIds[event.id] ? (
-                                <>
-                                  {renderDescriptionWithLinks(truncateText(event.descricao))}...
+                          return (
+                            <>
+                              {/* Botão para ver descrição no modo Resumo (apenas se houver conteúdo extra) */}
+                              {filter === "resumo" && hasExtraDescription && (
+                                <div className="mt-3 flex items-center justify-end">
                                   <button
                                     onClick={() => toggleEventExpansion(event.id)}
-                                    className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center gap-0.5 focus:outline-none whitespace-nowrap"
+                                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 focus:outline-none"
                                   >
-                                    Ver mais
+                                    {expandedEventIds[event.id] ? "Ocultar descrição" : "Ver descrição"}
+                                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                                      expandedEventIds[event.id] ? "rotate-180" : ""
+                                    }`} />
                                   </button>
-                                </>
-                              ) : (
-                                <>
-                                  {renderDescriptionWithLinks(event.descricao)}
-                                  {shouldTruncate(event.descricao) && (
-                                    <button
-                                      onClick={() => toggleEventExpansion(event.id)}
-                                      className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center gap-0.5 focus:outline-none whitespace-nowrap"
-                                    >
-                                      Ver menos
-                                    </button>
-                                  )}
-                                </>
+                                </div>
                               )}
-                            </div>
-                          </div>
-                        )}
+
+                              {/* Descrição - exibida apenas se houver conteúdo extra e estiver ativada */}
+                              {(filter !== "resumo" || expandedEventIds[event.id]) && hasExtraDescription && (
+                                <div className="mt-3 pt-3 border-t border-border">
+                                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                                    Descrição Original
+                                  </p>
+                                  <div className="text-sm text-foreground leading-relaxed bg-secondary/30 p-3 rounded-lg">
+                                    {shouldTruncate(event.descricao) && !expandedEventIds[event.id] ? (
+                                      <>
+                                        {renderDescriptionWithLinks(truncateText(event.descricao))}...
+                                        <button
+                                          onClick={() => toggleEventExpansion(event.id)}
+                                          className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center gap-0.5 focus:outline-none whitespace-nowrap"
+                                        >
+                                          Ver mais
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        {renderDescriptionWithLinks(event.descricao)}
+                                        {shouldTruncate(event.descricao) && (
+                                          <button
+                                            onClick={() => toggleEventExpansion(event.id)}
+                                            className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center gap-0.5 focus:outline-none whitespace-nowrap"
+                                          >
+                                            Ver menos
+                                          </button>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
