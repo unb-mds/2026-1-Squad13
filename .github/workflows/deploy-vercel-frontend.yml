@@ -18,7 +18,7 @@ name: Deploy Frontend — Vercel
 on:
   push:
     branches:
-      - feat/migracao-infra-gratuita
+      - develop
     paths:
       - frontend/**
 
