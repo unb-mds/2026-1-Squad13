@@ -106,10 +106,19 @@ export function EventTimeline({ events }: EventTimelineProps) {
     return "border-l-border";
   };
 
-  // Contadores unificados em um único laço de repetição com useMemo
+  // Contadores unificados em um único laço de repetição com useMemo (considerando a deduplicação)
   const { resumoCount } = useMemo(() => {
     let resumo = 0;
+    const seen = new Set<string>();
+
     events.forEach((event) => {
+      // Deduplicação lógica para contagem de marcos corretos
+      const uniqueKey = `${event.data}_${event.hora || ""}_${event.orgao}_${event.titulo}_${event.descricao}`;
+      if (seen.has(uniqueKey)) {
+        return;
+      }
+      seen.add(uniqueKey);
+
       if (event.isRelevante && (
         event.flags?.mudancaFase ||
         event.flags?.transitoCasas ||
@@ -123,35 +132,61 @@ export function EventTimeline({ events }: EventTimelineProps) {
     return { resumoCount: resumo };
   }, [events]);
 
-  const todosCount = events.length;
+  // Contagem total de eventos deduplicados
+  const todosCount = useMemo(() => {
+    const seen = new Set<string>();
+    let count = 0;
+    events.forEach((event) => {
+      const uniqueKey = `${event.data}_${event.hora || ""}_${event.orgao}_${event.titulo}_${event.descricao}`;
+      if (!seen.has(uniqueKey)) {
+        seen.add(uniqueKey);
+        count++;
+      }
+    });
+    return count;
+  }, [events]);
 
-  // Filtragem unificada e otimizada com busca textual e granularidade
+  // Filtragem unificada e otimizada com busca textual, granularidade e deduplicação lógica
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
-      // Filtro de busca textual (case-insensitive)
+    const uniqueEvents: TimelineEvent[] = [];
+    const seen = new Set<string>();
+
+    events.forEach((event) => {
+      // 1. Filtro de busca textual (case-insensitive)
       if (searchQuery.trim() !== "") {
         const query = searchQuery.toLowerCase();
         const matchTitle = event.titulo?.toLowerCase().includes(query);
         const matchDesc = event.descricao?.toLowerCase().includes(query);
         const matchOrgao = event.orgao?.toLowerCase().includes(query);
         if (!matchTitle && !matchDesc && !matchOrgao) {
-          return false;
+          return;
         }
       }
 
-      // Filtro de granularidade
+      // 2. Filtro de granularidade (Resumo)
       if (filter === "resumo") {
-        if (!event.isRelevante) return false;
-        return (
+        if (!event.isRelevante) return;
+        const isMarco = (
           event.flags?.mudancaFase ||
           event.flags?.transitoCasas ||
           event.flags?.atraso ||
           event.tipoEvento === "deliberacao" ||
           event.tipoEvento === "parecer"
         );
+        if (!isMarco) return;
       }
-      return true;
+
+      // 3. Deduplicação lógica (evita cards idênticos duplicados na API/Banco de dados)
+      const uniqueKey = `${event.data}_${event.hora || ""}_${event.orgao}_${event.titulo}_${event.descricao}`;
+      if (seen.has(uniqueKey)) {
+        return;
+      }
+      seen.add(uniqueKey);
+
+      uniqueEvents.push(event);
     });
+
+    return uniqueEvents;
   }, [events, filter, searchQuery]);
 
   // Lista fatiada para a exibição (paginação)
@@ -321,8 +356,8 @@ export function EventTimeline({ events }: EventTimelineProps) {
                         filter === "resumo" ? `border-l-2 ${getResumoLeftBorder(event)}` : ""
                       }`}>
                         {/* Header */}
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div className="flex-1">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1.5">
                               <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                               <span className="text-xs font-medium text-muted-foreground">
@@ -330,10 +365,53 @@ export function EventTimeline({ events }: EventTimelineProps) {
                                 {event.hora && ` às ${event.hora}`}
                               </span>
                             </div>
-                            <h4 className="text-sm font-semibold text-foreground mb-1.5">
-                              {event.titulo}
+                            
+                            {/* Título/Descrição do Evento - com expansão inline */}
+                            <h4 className="text-sm font-semibold text-foreground mb-1.5 leading-relaxed break-words">
+                              {(() => {
+                                const isExpanded = filter !== "resumo" || expandedEventIds[event.id];
+                                
+                                if (!event.descricao) {
+                                  return event.titulo;
+                                }
+
+                                if (shouldTruncate(event.descricao)) {
+                                  if (isExpanded) {
+                                    return (
+                                      <>
+                                        {renderDescriptionWithLinks(event.descricao)}
+                                        <button
+                                          onClick={() => toggleEventExpansion(event.id)}
+                                          className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center focus:outline-none whitespace-nowrap"
+                                        >
+                                          (Ver menos)
+                                        </button>
+                                      </>
+                                    );
+                                  } else {
+                                    return (
+                                      <>
+                                        {renderDescriptionWithLinks(truncateText(event.descricao))}...
+                                        <button
+                                          onClick={() => toggleEventExpansion(event.id)}
+                                          className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center focus:outline-none whitespace-nowrap"
+                                        >
+                                          (Ver mais)
+                                        </button>
+                                      </>
+                                    );
+                                  }
+                                }
+
+                                // Se não precisa truncar, exibe a descrição completa se expandido, ou o título curto
+                                if (isExpanded) {
+                                  return renderDescriptionWithLinks(event.descricao);
+                                }
+                                return event.titulo;
+                              })()}
                             </h4>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
                               <Building2 className="w-3.5 h-3.5" />
                               {event.orgao}
                             </p>
@@ -341,7 +419,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
                           {/* Flags */}
                           {event.flags && Object.values(event.flags).some(Boolean) && (
-                            <div className="flex flex-wrap gap-1.5 items-start">
+                            <div className="flex flex-wrap gap-1.5 items-start flex-shrink-0">
                               {event.flags.mudancaFase && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-medium whitespace-nowrap">
                                   <ArrowRightLeft className="w-3 h-3" />
@@ -370,61 +448,23 @@ export function EventTimeline({ events }: EventTimelineProps) {
                           )}
                         </div>
 
-                        {/* Definição de descrição extra não-redundante */}
+                        {/* Botão de expansão no modo Resumo (apenas se for descrição não-truncável curta e não-redundante) */}
                         {(() => {
                           const hasExtraDescription = event.descricao && event.descricao.trim() !== event.titulo.trim();
-
-                          return (
-                            <>
-                              {/* Botão para ver descrição no modo Resumo (apenas se houver conteúdo extra) */}
-                              {filter === "resumo" && hasExtraDescription && (
-                                <div className="mt-3 flex items-center justify-end">
-                                  <button
-                                    onClick={() => toggleEventExpansion(event.id)}
-                                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 focus:outline-none"
-                                  >
-                                    {expandedEventIds[event.id] ? "Ocultar descrição" : "Ver descrição"}
-                                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                                      expandedEventIds[event.id] ? "rotate-180" : ""
-                                    }`} />
-                                  </button>
-                                </div>
-                              )}
-
-                              {/* Descrição - exibida apenas se houver conteúdo extra e estiver ativada */}
-                              {(filter !== "resumo" || expandedEventIds[event.id]) && hasExtraDescription && (
-                                <div className="mt-3 pt-3 border-t border-border">
-                                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                                    Descrição Original
-                                  </p>
-                                  <div className="text-sm text-foreground leading-relaxed bg-secondary/30 p-3 rounded-lg">
-                                    {shouldTruncate(event.descricao) && !expandedEventIds[event.id] ? (
-                                      <>
-                                        {renderDescriptionWithLinks(truncateText(event.descricao))}...
-                                        <button
-                                          onClick={() => toggleEventExpansion(event.id)}
-                                          className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center gap-0.5 focus:outline-none whitespace-nowrap"
-                                        >
-                                          Ver mais
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        {renderDescriptionWithLinks(event.descricao)}
-                                        {shouldTruncate(event.descricao) && (
-                                          <button
-                                            onClick={() => toggleEventExpansion(event.id)}
-                                            className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center gap-0.5 focus:outline-none whitespace-nowrap"
-                                          >
-                                            Ver menos
-                                          </button>
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </>
+                          const isTruncatable = shouldTruncate(event.descricao || "");
+                          
+                          return filter === "resumo" && hasExtraDescription && !isTruncatable && (
+                            <div className="mt-2 flex items-center justify-end">
+                              <button
+                                onClick={() => toggleEventExpansion(event.id)}
+                                className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 focus:outline-none"
+                              >
+                                {expandedEventIds[event.id] ? "Ocultar descrição" : "Ver descrição"}
+                                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                                  expandedEventIds[event.id] ? "rotate-180" : ""
+                                }`} />
+                              </button>
+                            </div>
                           );
                         })()}
                       </div>
