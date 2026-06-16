@@ -43,7 +43,7 @@ interface EventTimelineProps {
 
 export function EventTimeline({ events }: EventTimelineProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [filter, setFilter] = useState<"resumo" | "relevantes" | "todos">("resumo");
+  const [filter, setFilter] = useState<"resumo" | "todos">("resumo");
 
   const getEventIcon = (tipo: TimelineEvent["tipoEvento"]) => {
     switch (tipo) {
@@ -97,7 +97,6 @@ export function EventTimeline({ events }: EventTimelineProps) {
         event.tipoEvento === "parecer"
       );
     }
-    if (filter === "relevantes") return event.isRelevante;
     return true;
   });
 
@@ -111,7 +110,6 @@ export function EventTimeline({ events }: EventTimelineProps) {
       event.tipoEvento === "parecer"
     );
   }).length;
-  const relevantesCount = events.filter((e) => e.isRelevante).length;
   const todosCount = events.length;
 
   return (
@@ -132,7 +130,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
                 Timeline Detalhada de Eventos
               </h2>
               <span className="inline-flex items-center px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-medium">
-                {resumoCount} marcos • {relevantesCount} relevantes • {todosCount} total
+                {resumoCount} marcos • {todosCount} total
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -192,16 +190,6 @@ export function EventTimeline({ events }: EventTimelineProps) {
                 }`}
               >
                 Resumo ({resumoCount})
-              </button>
-              <button
-                onClick={() => setFilter("relevantes")}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                  filter === "relevantes"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-foreground hover:bg-secondary border border-border"
-                }`}
-              >
-                Relevantes ({relevantesCount})
               </button>
               <button
                 onClick={() => setFilter("todos")}
