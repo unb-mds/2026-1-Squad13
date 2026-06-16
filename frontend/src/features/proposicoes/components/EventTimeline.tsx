@@ -62,8 +62,8 @@ export function EventTimeline({ events }: EventTimelineProps) {
     }));
   };
 
-  const shouldTruncate = (text: string) => text && text.length > 280;
-  const truncateText = (text: string) => text.slice(0, 260);
+  const shouldTruncate = (text: string) => text && text.length > 500;
+  const truncateText = (text: string) => text.slice(0, 480);
 
   const getEventIcon = (tipo: TimelineEvent["tipoEvento"]) => {
     switch (tipo) {
