@@ -370,7 +370,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
                             <h4 className="text-sm font-semibold text-foreground mb-1.5 leading-relaxed break-words">
                               {(() => {
                                 const isExpanded = filter !== "resumo" || expandedEventIds[event.id];
-                                
+
                                 if (!event.descricao) {
                                   return event.titulo;
                                 }
@@ -403,11 +403,8 @@ export function EventTimeline({ events }: EventTimelineProps) {
                                   }
                                 }
 
-                                // Se não precisa truncar, exibe a descrição completa se expandido, ou o título curto
-                                if (isExpanded) {
-                                  return renderDescriptionWithLinks(event.descricao);
-                                }
-                                return event.titulo;
+                                // Descrições que cabem no card (<= 280 caracteres) são exibidas inteiras diretamente
+                                return renderDescriptionWithLinks(event.descricao);
                               })()}
                             </h4>
 
@@ -447,26 +444,6 @@ export function EventTimeline({ events }: EventTimelineProps) {
                             </div>
                           )}
                         </div>
-
-                        {/* Botão de expansão no modo Resumo (apenas se for descrição não-truncável curta e não-redundante) */}
-                        {(() => {
-                          const hasExtraDescription = event.descricao && event.descricao.trim() !== event.titulo.trim();
-                          const isTruncatable = shouldTruncate(event.descricao || "");
-                          
-                          return filter === "resumo" && hasExtraDescription && !isTruncatable && (
-                            <div className="mt-2 flex items-center justify-end">
-                              <button
-                                onClick={() => toggleEventExpansion(event.id)}
-                                className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 focus:outline-none"
-                              >
-                                {expandedEventIds[event.id] ? "Ocultar descrição" : "Ver descrição"}
-                                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                                  expandedEventIds[event.id] ? "rotate-180" : ""
-                                }`} />
-                              </button>
-                            </div>
-                          );
-                        })()}
                       </div>
                     </div>
                   );
