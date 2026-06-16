@@ -50,6 +50,8 @@ class ProposicaoModel(SQLModel, table=True):
     numero_emendas: int | None = Field(default=None, nullable=True)
     autor_e_poder_executivo: bool | None = Field(default=False, nullable=True)
     tema_economico: bool | None = Field(default=False, nullable=True)
+    bloco_legislativo: str | None = Field(default=None, nullable=True)
+    parecer_ccj_favoravel: bool | None = Field(default=None, nullable=True)
 
     # Armazenar lista como JSONB no Postgres para busca eficiente (@>),
     # mas mantendo JSON genérico para compatibilidade com SQLite nos testes.

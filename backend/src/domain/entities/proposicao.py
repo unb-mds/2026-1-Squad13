@@ -46,6 +46,8 @@ class Proposicao(SQLModel):
     numero_emendas: int | None = 0
     autor_e_poder_executivo: bool | None = False
     tema_economico: bool | None = False
+    bloco_legislativo: str | None = None
+    parecer_ccj_favoravel: bool | None = None
 
     def normalizar_campo_status(self):
         """Normaliza o campo status para um dos 6 valores canônicos do domínio."""
