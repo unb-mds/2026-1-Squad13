@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   FileText,
   ArrowRightLeft,
@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Calendar,
   Building2,
+  Search,
 } from "lucide-react";
 
 export interface TimelineEvent {
@@ -44,6 +45,13 @@ interface EventTimelineProps {
 export function EventTimeline({ events }: EventTimelineProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [filter, setFilter] = useState<"resumo" | "todos">("resumo");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(15);
+
+  // Reseta a paginação ao mudar o filtro ou o termo de busca
+  useEffect(() => {
+    setVisibleCount(15);
+  }, [filter, searchQuery]);
 
   const getEventIcon = (tipo: TimelineEvent["tipoEvento"]) => {
     switch (tipo) {
@@ -86,31 +94,82 @@ export function EventTimeline({ events }: EventTimelineProps) {
     return "border-l-border";
   };
 
-  const filteredEvents = events.filter((event) => {
-    if (filter === "resumo") {
-      if (!event.isRelevante) return false;
-      return (
+  // Contadores unificados em um único laço de repetição com useMemo
+  const { resumoCount } = useMemo(() => {
+    let resumo = 0;
+    events.forEach((event) => {
+      if (event.isRelevante && (
         event.flags?.mudancaFase ||
         event.flags?.transitoCasas ||
         event.flags?.atraso ||
         event.tipoEvento === "deliberacao" ||
         event.tipoEvento === "parecer"
-      );
-    }
-    return true;
-  });
+      )) {
+        resumo++;
+      }
+    });
+    return { resumoCount: resumo };
+  }, [events]);
 
-  const resumoCount = events.filter((event) => {
-    if (!event.isRelevante) return false;
-    return (
-      event.flags?.mudancaFase ||
-      event.flags?.transitoCasas ||
-      event.flags?.atraso ||
-      event.tipoEvento === "deliberacao" ||
-      event.tipoEvento === "parecer"
-    );
-  }).length;
   const todosCount = events.length;
+
+  // Filtragem unificada e otimizada com busca textual e granularidade
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
+      // Filtro de busca textual (case-insensitive)
+      if (searchQuery.trim() !== "") {
+        const query = searchQuery.toLowerCase();
+        const matchTitle = event.titulo?.toLowerCase().includes(query);
+        const matchDesc = event.descricao?.toLowerCase().includes(query);
+        const matchOrgao = event.orgao?.toLowerCase().includes(query);
+        if (!matchTitle && !matchDesc && !matchOrgao) {
+          return false;
+        }
+      }
+
+      // Filtro de granularidade
+      if (filter === "resumo") {
+        if (!event.isRelevante) return false;
+        return (
+          event.flags?.mudancaFase ||
+          event.flags?.transitoCasas ||
+          event.flags?.atraso ||
+          event.tipoEvento === "deliberacao" ||
+          event.tipoEvento === "parecer"
+        );
+      }
+      return true;
+    });
+  }, [events, filter, searchQuery]);
+
+  // Lista fatiada para a exibição (paginação)
+  const displayedEvents = useMemo(() => {
+    return filteredEvents.slice(0, visibleCount);
+  }, [filteredEvents, visibleCount]);
+
+  // Função utilitária segura para formatar links clicáveis na descrição original
+  const renderDescriptionWithLinks = (text: string) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline break-all font-medium transition-colors"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
 
   return (
     <div className={`bg-card rounded-lg overflow-hidden transition-all ${
@@ -178,8 +237,8 @@ export function EventTimeline({ events }: EventTimelineProps) {
       {/* Expanded Content */}
       {isExpanded && (
         <div className="border-t border-border">
-          {/* Filters */}
-          <div className="px-6 py-4 bg-secondary/30 border-b border-border">
+          {/* Filters and Search Bar */}
+          <div className="px-6 py-4 bg-secondary/30 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setFilter("resumo")}
@@ -202,6 +261,26 @@ export function EventTimeline({ events }: EventTimelineProps) {
                 Todos ({todosCount})
               </button>
             </div>
+
+            {/* Input de Busca */}
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Buscar na timeline..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-1.5 text-sm bg-card border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-foreground"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-2.5 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Events List */}
@@ -212,7 +291,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
               {/* Events */}
               <div className="space-y-5">
-                {filteredEvents.map((event) => {
+                {displayedEvents.map((event) => {
                   const Icon = getEventIcon(event.tipoEvento);
                   const colorClass = getEventColor(event.tipoEvento);
 
@@ -285,9 +364,9 @@ export function EventTimeline({ events }: EventTimelineProps) {
                             <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
                               Descrição Original
                             </p>
-                            <p className="text-sm text-foreground leading-relaxed bg-secondary/30 p-3 rounded-lg">
-                              {event.descricao}
-                            </p>
+                            <div className="text-sm text-foreground leading-relaxed bg-secondary/30 p-3 rounded-lg">
+                              {renderDescriptionWithLinks(event.descricao)}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -295,6 +374,21 @@ export function EventTimeline({ events }: EventTimelineProps) {
                   );
                 })}
               </div>
+
+              {/* Botão Ver Mais */}
+              {filteredEvents.length > visibleCount && (
+                <div className="flex justify-center mt-6 pt-4 border-t border-border/50">
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + 15)}
+                    className="px-4 py-2 text-sm font-medium bg-card text-foreground hover:bg-secondary border border-border rounded-lg flex items-center gap-2 transition-all shadow-sm hover:shadow"
+                  >
+                    <span>Ver mais eventos</span>
+                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full font-semibold">
+                      +{filteredEvents.length - visibleCount}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
