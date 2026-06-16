@@ -11,7 +11,7 @@ Este documento congela e oficializa as decisões de design, fluxos de usuário e
 ---
 
 ## 2. Padrão de Duplo Filtro e Visualização da Timeline
-* **Decisão:** A página de detalhes de proposições deve obrigatoriamente manter a segmentação entre a Timeline de Fases Agregadas (comportamento de colapso individual por fase) e a Timeline Detalhada de Eventos (filtros de granularidade: Resumo, Relevantes e Todos).
+* **Decisão:** A página de detalhes de proposições deve obrigatoriamente manter a segmentação entre a Timeline de Fases Agregadas (comportamento de colapso individual por fase) e a Timeline Detalhada de Eventos (filtros de granularidade: Resumo e Todos).
 * **Racional:** Oferece excelente usabilidade tanto para usuários leigos (que buscam entender a duração macro das etapas) quanto para especialistas legislativos (que analisam a íntegra dos despachos e pareceres).
 
 ---

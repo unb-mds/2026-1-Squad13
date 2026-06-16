@@ -31,13 +31,9 @@ RUN_ALL=false
 # Listas de arquivos para validações incrementais
 FRONTEND_FILES=""
 BACKEND_FILES=""
-
 for file in $CHANGED_FILES; do
-  # Lógica Backend por Camadas e Linter (.py)
-  if [[ $file == backend/src/* ]] || [[ $file == backend/tests/* ]]; then
-    if [[ $file == *.py ]]; then
-      BACKEND_FILES="$BACKEND_FILES ${file#backend/}"
-    fi
+  if [[ $file == backend/* ]] && [[ $file == *.py ]]; then
+    BACKEND_FILES="$BACKEND_FILES ${file#backend/}"
   fi
   if [[ $file == backend/src/domain/* ]] || [[ $file == backend/src/application/* ]]; then
     RUN_BACKEND_UNIT=true

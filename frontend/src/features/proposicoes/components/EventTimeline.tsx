@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   FileText,
   ArrowRightLeft,
@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Calendar,
   Building2,
+  Search,
 } from "lucide-react";
 
 export interface TimelineEvent {
@@ -43,7 +44,26 @@ interface EventTimelineProps {
 
 export function EventTimeline({ events }: EventTimelineProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [filter, setFilter] = useState<"resumo" | "relevantes" | "todos">("resumo");
+  const [filter, setFilter] = useState<"resumo" | "todos">("resumo");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(15);
+  const [expandedEventIds, setExpandedEventIds] = useState<Record<string, boolean>>({});
+
+  // Reseta a paginação e os sub-cards expandidos ao mudar o filtro ou o termo de busca
+  useEffect(() => {
+    setVisibleCount(15);
+    setExpandedEventIds({});
+  }, [filter, searchQuery]);
+
+  const toggleEventExpansion = (eventId: string) => {
+    setExpandedEventIds((prev) => ({
+      ...prev,
+      [eventId]: !prev[eventId],
+    }));
+  };
+
+  const shouldTruncate = (text: string) => text && text.length > 280;
+  const truncateText = (text: string) => text.slice(0, 260);
 
   const getEventIcon = (tipo: TimelineEvent["tipoEvento"]) => {
     switch (tipo) {
@@ -86,33 +106,117 @@ export function EventTimeline({ events }: EventTimelineProps) {
     return "border-l-border";
   };
 
-  const filteredEvents = events.filter((event) => {
-    if (filter === "resumo") {
-      if (!event.isRelevante) return false;
-      return (
+  // Contadores unificados em um único laço de repetição com useMemo (considerando a deduplicação)
+  const { resumoCount } = useMemo(() => {
+    let resumo = 0;
+    const seen = new Set<string>();
+
+    events.forEach((event) => {
+      // Deduplicação lógica para contagem de marcos corretos
+      const uniqueKey = `${event.data}_${event.hora || ""}_${event.orgao}_${event.titulo}_${event.descricao}`;
+      if (seen.has(uniqueKey)) {
+        return;
+      }
+      seen.add(uniqueKey);
+
+      if (event.isRelevante && (
         event.flags?.mudancaFase ||
         event.flags?.transitoCasas ||
         event.flags?.atraso ||
         event.tipoEvento === "deliberacao" ||
         event.tipoEvento === "parecer"
-      );
-    }
-    if (filter === "relevantes") return event.isRelevante;
-    return true;
-  });
+      )) {
+        resumo++;
+      }
+    });
+    return { resumoCount: resumo };
+  }, [events]);
 
-  const resumoCount = events.filter((event) => {
-    if (!event.isRelevante) return false;
-    return (
-      event.flags?.mudancaFase ||
-      event.flags?.transitoCasas ||
-      event.flags?.atraso ||
-      event.tipoEvento === "deliberacao" ||
-      event.tipoEvento === "parecer"
-    );
-  }).length;
-  const relevantesCount = events.filter((e) => e.isRelevante).length;
-  const todosCount = events.length;
+  // Contagem total de eventos deduplicados
+  const todosCount = useMemo(() => {
+    const seen = new Set<string>();
+    let count = 0;
+    events.forEach((event) => {
+      const uniqueKey = `${event.data}_${event.hora || ""}_${event.orgao}_${event.titulo}_${event.descricao}`;
+      if (!seen.has(uniqueKey)) {
+        seen.add(uniqueKey);
+        count++;
+      }
+    });
+    return count;
+  }, [events]);
+
+  // Filtragem unificada e otimizada com busca textual, granularidade e deduplicação lógica
+  const filteredEvents = useMemo(() => {
+    const uniqueEvents: TimelineEvent[] = [];
+    const seen = new Set<string>();
+
+    events.forEach((event) => {
+      // 1. Filtro de busca textual (case-insensitive)
+      if (searchQuery.trim() !== "") {
+        const query = searchQuery.toLowerCase();
+        const matchTitle = event.titulo?.toLowerCase().includes(query);
+        const matchDesc = event.descricao?.toLowerCase().includes(query);
+        const matchOrgao = event.orgao?.toLowerCase().includes(query);
+        if (!matchTitle && !matchDesc && !matchOrgao) {
+          return;
+        }
+      }
+
+      // 2. Filtro de granularidade (Resumo)
+      if (filter === "resumo") {
+        if (!event.isRelevante) return;
+        const isMarco = (
+          event.flags?.mudancaFase ||
+          event.flags?.transitoCasas ||
+          event.flags?.atraso ||
+          event.tipoEvento === "deliberacao" ||
+          event.tipoEvento === "parecer"
+        );
+        if (!isMarco) return;
+      }
+
+      // 3. Deduplicação lógica (evita cards idênticos duplicados na API/Banco de dados)
+      const uniqueKey = `${event.data}_${event.hora || ""}_${event.orgao}_${event.titulo}_${event.descricao}`;
+      if (seen.has(uniqueKey)) {
+        return;
+      }
+      seen.add(uniqueKey);
+
+      uniqueEvents.push(event);
+    });
+
+    return uniqueEvents;
+  }, [events, filter, searchQuery]);
+
+  // Lista fatiada para a exibição (paginação)
+  const displayedEvents = useMemo(() => {
+    return filteredEvents.slice(0, visibleCount);
+  }, [filteredEvents, visibleCount]);
+
+  // Função utilitária segura para formatar links clicáveis na descrição original
+  const renderDescriptionWithLinks = (text: string) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline break-all font-medium transition-colors"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
 
   return (
     <div className={`bg-card rounded-lg overflow-hidden transition-all ${
@@ -132,7 +236,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
                 Timeline Detalhada de Eventos
               </h2>
               <span className="inline-flex items-center px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-medium">
-                {resumoCount} marcos • {relevantesCount} relevantes • {todosCount} total
+                {resumoCount} marcos • {todosCount} total
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -180,8 +284,8 @@ export function EventTimeline({ events }: EventTimelineProps) {
       {/* Expanded Content */}
       {isExpanded && (
         <div className="border-t border-border">
-          {/* Filters */}
-          <div className="px-6 py-4 bg-secondary/30 border-b border-border">
+          {/* Filters and Search Bar */}
+          <div className="px-6 py-4 bg-secondary/30 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setFilter("resumo")}
@@ -194,16 +298,6 @@ export function EventTimeline({ events }: EventTimelineProps) {
                 Resumo ({resumoCount})
               </button>
               <button
-                onClick={() => setFilter("relevantes")}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                  filter === "relevantes"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-foreground hover:bg-secondary border border-border"
-                }`}
-              >
-                Relevantes ({relevantesCount})
-              </button>
-              <button
                 onClick={() => setFilter("todos")}
                 className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                   filter === "todos"
@@ -213,6 +307,26 @@ export function EventTimeline({ events }: EventTimelineProps) {
               >
                 Todos ({todosCount})
               </button>
+            </div>
+
+            {/* Input de Busca */}
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Buscar na timeline..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-1.5 text-sm bg-card border border-border rounded-lg placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-foreground"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-2.5 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
+                >
+                  Limpar
+                </button>
+              )}
             </div>
           </div>
 
@@ -224,7 +338,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
               {/* Events */}
               <div className="space-y-5">
-                {filteredEvents.map((event) => {
+                {displayedEvents.map((event) => {
                   const Icon = getEventIcon(event.tipoEvento);
                   const colorClass = getEventColor(event.tipoEvento);
 
@@ -242,8 +356,8 @@ export function EventTimeline({ events }: EventTimelineProps) {
                         filter === "resumo" ? `border-l-2 ${getResumoLeftBorder(event)}` : ""
                       }`}>
                         {/* Header */}
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div className="flex-1">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1.5">
                               <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                               <span className="text-xs font-medium text-muted-foreground">
@@ -251,10 +365,50 @@ export function EventTimeline({ events }: EventTimelineProps) {
                                 {event.hora && ` às ${event.hora}`}
                               </span>
                             </div>
-                            <h4 className="text-sm font-semibold text-foreground mb-1.5">
-                              {event.titulo}
+                            
+                            {/* Título/Descrição do Evento - com expansão inline */}
+                            <h4 className="text-sm font-semibold text-foreground mb-1.5 leading-relaxed break-words">
+                              {(() => {
+                                const isExpanded = filter !== "resumo" || expandedEventIds[event.id];
+
+                                if (!event.descricao) {
+                                  return event.titulo;
+                                }
+
+                                if (shouldTruncate(event.descricao)) {
+                                  if (isExpanded) {
+                                    return (
+                                      <>
+                                        {renderDescriptionWithLinks(event.descricao)}
+                                        <button
+                                          onClick={() => toggleEventExpansion(event.id)}
+                                          className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center focus:outline-none whitespace-nowrap"
+                                        >
+                                          (Ver menos)
+                                        </button>
+                                      </>
+                                    );
+                                  } else {
+                                    return (
+                                      <>
+                                        {renderDescriptionWithLinks(truncateText(event.descricao))}...
+                                        <button
+                                          onClick={() => toggleEventExpansion(event.id)}
+                                          className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center focus:outline-none whitespace-nowrap"
+                                        >
+                                          (Ver mais)
+                                        </button>
+                                      </>
+                                    );
+                                  }
+                                }
+
+                                // Descrições que cabem no card (<= 280 caracteres) são exibidas inteiras diretamente
+                                return renderDescriptionWithLinks(event.descricao);
+                              })()}
                             </h4>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
                               <Building2 className="w-3.5 h-3.5" />
                               {event.orgao}
                             </p>
@@ -262,7 +416,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
                           {/* Flags */}
                           {event.flags && Object.values(event.flags).some(Boolean) && (
-                            <div className="flex flex-wrap gap-1.5 items-start">
+                            <div className="flex flex-wrap gap-1.5 items-start flex-shrink-0">
                               {event.flags.mudancaFase && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-medium whitespace-nowrap">
                                   <ArrowRightLeft className="w-3 h-3" />
@@ -290,23 +444,26 @@ export function EventTimeline({ events }: EventTimelineProps) {
                             </div>
                           )}
                         </div>
-
-                        {/* Description - hidden in resumo mode */}
-                        {filter !== "resumo" && (
-                          <div className="mt-3 pt-3 border-t border-border">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                              Descrição Original
-                            </p>
-                            <p className="text-sm text-foreground leading-relaxed bg-secondary/30 p-3 rounded-lg">
-                              {event.descricao}
-                            </p>
-                          </div>
-                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
+
+              {/* Botão Ver Mais */}
+              {filteredEvents.length > visibleCount && (
+                <div className="flex justify-center mt-6 pt-4 border-t border-border/50">
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + 15)}
+                    className="px-4 py-2 text-sm font-medium bg-card text-foreground hover:bg-secondary border border-border rounded-lg flex items-center gap-2 transition-all shadow-sm hover:shadow"
+                  >
+                    <span>Ver mais eventos</span>
+                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full font-semibold">
+                      +{filteredEvents.length - visibleCount}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
