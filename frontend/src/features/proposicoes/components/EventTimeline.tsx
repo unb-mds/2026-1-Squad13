@@ -47,11 +47,23 @@ export function EventTimeline({ events }: EventTimelineProps) {
   const [filter, setFilter] = useState<"resumo" | "todos">("resumo");
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(15);
+  const [expandedEventIds, setExpandedEventIds] = useState<Record<string, boolean>>({});
 
-  // Reseta a paginação ao mudar o filtro ou o termo de busca
+  // Reseta a paginação e os sub-cards expandidos ao mudar o filtro ou o termo de busca
   useEffect(() => {
     setVisibleCount(15);
+    setExpandedEventIds({});
   }, [filter, searchQuery]);
+
+  const toggleEventExpansion = (eventId: string) => {
+    setExpandedEventIds((prev) => ({
+      ...prev,
+      [eventId]: !prev[eventId],
+    }));
+  };
+
+  const shouldTruncate = (text: string) => text && text.length > 280;
+  const truncateText = (text: string) => text.slice(0, 260);
 
   const getEventIcon = (tipo: TimelineEvent["tipoEvento"]) => {
     switch (tipo) {
@@ -358,14 +370,51 @@ export function EventTimeline({ events }: EventTimelineProps) {
                           )}
                         </div>
 
-                        {/* Description - hidden in resumo mode */}
-                        {filter !== "resumo" && (
+                        {/* Botão para ver descrição no modo Resumo */}
+                        {filter === "resumo" && event.descricao && (
+                          <div className="mt-3 flex items-center justify-end">
+                            <button
+                              onClick={() => toggleEventExpansion(event.id)}
+                              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 focus:outline-none"
+                            >
+                              {expandedEventIds[event.id] ? "Ocultar descrição" : "Ver descrição"}
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                                expandedEventIds[event.id] ? "rotate-180" : ""
+                              }`} />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Descrição - exibida no modo Todos ou se expandida individualmente no Resumo */}
+                        {(filter !== "resumo" || expandedEventIds[event.id]) && event.descricao && (
                           <div className="mt-3 pt-3 border-t border-border">
                             <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
                               Descrição Original
                             </p>
                             <div className="text-sm text-foreground leading-relaxed bg-secondary/30 p-3 rounded-lg">
-                              {renderDescriptionWithLinks(event.descricao)}
+                              {shouldTruncate(event.descricao) && !expandedEventIds[event.id] ? (
+                                <>
+                                  {renderDescriptionWithLinks(truncateText(event.descricao))}...
+                                  <button
+                                    onClick={() => toggleEventExpansion(event.id)}
+                                    className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center gap-0.5 focus:outline-none whitespace-nowrap"
+                                  >
+                                    Ver mais
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  {renderDescriptionWithLinks(event.descricao)}
+                                  {shouldTruncate(event.descricao) && (
+                                    <button
+                                      onClick={() => toggleEventExpansion(event.id)}
+                                      className="text-xs font-semibold text-primary hover:underline ml-1.5 inline-flex items-center gap-0.5 focus:outline-none whitespace-nowrap"
+                                    >
+                                      Ver menos
+                                    </button>
+                                  )}
+                                </>
+                              )}
                             </div>
                           </div>
                         )}
