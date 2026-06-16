@@ -1,7 +1,7 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
 from application.services.atualizar_cobertura_service import AtualizarCoberturaService
@@ -207,19 +207,26 @@ def executar_metricas(session: Session = Depends(get_session)):
 
 
 @router.post("/tarefas/reconstruir-periodos")
-def executar_reconstruir_periodos(session: Session = Depends(get_session)):
+def executar_reconstruir_periodos(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+    session: Session = Depends(get_session),
+):
     """
     Reconstrói períodos analíticos para proposições que não os possuem.
-    Autenticado via X-Internal-Token. Deve ser chamado manualmente uma
-    única vez após migração para novo banco (substitui a chamada bloqueante
-    que existia no startup — ver garantir_integridade_analitica em init_db.py).
+    Autenticado via X-Internal-Token. Deve ser chamado em lotes via
+    ?offset=&limit= (máx 100) até que "restantes" retorne 0.
+    O filtro WHERE (sem período) é aplicado antes do offset/limit, garantindo
+    que proposições já reconstruídas saiam naturalmente do conjunto.
     """
-    logger.info("Iniciando reconstrução de períodos analíticos via endpoint interno")
-
-    from sqlmodel import select
+    from sqlmodel import func, select
 
     from infrastructure.database.models.periodo_fase_model import PeriodoFaseModel
     from infrastructure.database.models.proposicao_model import ProposicaoModel
+
+    logger.info(
+        f"Iniciando reconstrução de períodos analíticos (offset={offset}, limit={limit})"
+    )
 
     periodo_repo = SQLPeriodoFaseRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
@@ -233,15 +240,24 @@ def executar_reconstruir_periodos(session: Session = Depends(get_session)):
         proposicao_repo=prop_repo,
     )
 
-    subquery = select(PeriodoFaseModel.proposicao_id)
-    statement = select(ProposicaoModel).where(ProposicaoModel.id.not_in(subquery))
-    props_faltantes = session.exec(statement).all()
+    ids_com_periodo = select(PeriodoFaseModel.proposicao_id)
+    filtro_sem_periodo = ProposicaoModel.id.not_in(ids_com_periodo)
 
-    total = len(props_faltantes)
+    total_restantes = session.exec(
+        select(func.count(ProposicaoModel.id)).where(filtro_sem_periodo)
+    ).one()
+
+    props_lote = session.exec(
+        select(ProposicaoModel)
+        .where(filtro_sem_periodo)
+        .offset(offset)
+        .limit(limit)
+    ).all()
+
     sucesso = 0
     falhas = []
 
-    for prop in props_faltantes:
+    for prop in props_lote:
         prop_id = prop.id
         try:
             reconstruir_service.reconstruir_para_proposicao(prop_id)
@@ -251,13 +267,16 @@ def executar_reconstruir_periodos(session: Session = Depends(get_session)):
             logger.error(f"Falha ao reconstruir proposição {prop_id}: {e}")
             falhas.append({"id": prop_id, "erro": str(e)})
 
+    restantes_apos_lote = max(0, total_restantes - sucesso)
+
     logger.info(
-        f"Reconstrução finalizada. Sucesso: {sucesso}/{total}. Falhas: {len(falhas)}."
+        f"Lote finalizado. Sucesso: {sucesso}/{len(props_lote)}. "
+        f"Falhas: {len(falhas)}. Restantes estimados: {restantes_apos_lote}."
     )
     return {
         "status": "sucesso" if not falhas else "parcial",
-        "total": total,
         "processadas": sucesso,
         "falhas": len(falhas),
         "detalhes_falhas": falhas,
+        "restantes": restantes_apos_lote,
     }
