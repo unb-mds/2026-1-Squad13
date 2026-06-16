@@ -389,14 +389,14 @@ class SenadoAdapter:
                         else "N/A"
                     )
 
-                    # Determine parecer_ccj_favoravel for fallback (simplified)
+                    # Determine parecer_ccj_favoravel for fallback (simplified, most recent first)
                     parecer_ccj_favoravel = None
                     historico = dados.get("HistoricoTramitacao", {}).get(
                         "Tramitacao", []
                     )
                     if isinstance(historico, dict):
                         historico = [historico]
-                    for h in historico:
+                    for h in reversed(historico):
                         unidade = (
                             h.get("UnidadeOndeTramitou", {}).get("SiglaUnidade") or ""
                         ).upper()
@@ -409,6 +409,7 @@ class SenadoAdapter:
                                 "CONTRÁR" in texto or "CONTRA" in texto
                             ):
                                 parecer_ccj_favoravel = False
+                                break
 
                     # Classify power exec and theme via Domain functions
                     autor_e_poder_executivo = identificar_autor_executivo(autor_nome)
@@ -803,12 +804,12 @@ class SenadoAdapter:
             else "N/A"
         )
 
-        # Determine parecer_ccj_favoravel from situations
+        # Determine parecer_ccj_favoravel from situations (most recent first)
         parecer_ccj_favoravel = None
         if autuacoes:
-            for aut in autuacoes:
+            for aut in reversed(autuacoes):
                 situacoes = aut.get("situacoes", [])
-                for s in situacoes:
+                for s in reversed(situacoes):
                     # No Senado, o órgão costuma estar em enteAdministrativo ou colegiado
                     orgao = ""
                     if s.get("enteAdministrativo"):
@@ -825,6 +826,9 @@ class SenadoAdapter:
                             "CONTRÁR" in desc or "CONTRA" in desc
                         ):
                             parecer_ccj_favoravel = False
+                            break
+                if parecer_ccj_favoravel is not None:
+                    break
 
         # Classify power exec and theme via Domain functions
         autor_e_poder_executivo = identificar_autor_executivo(autor_nome)
