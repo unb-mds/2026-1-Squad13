@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from pydantic import ConfigDict, field_validator
 from sqlalchemy import JSON, Column
 from sqlalchemy.dialects import postgresql
 from sqlmodel import Field, SQLModel
@@ -12,6 +13,8 @@ class ProposicaoModel(SQLModel, table=True):
     """
 
     __tablename__ = "proposicao"
+
+    model_config = ConfigDict(validate_assignment=True)
 
     id: str | None = Field(default=None, primary_key=True)
     tipo: str
@@ -52,6 +55,13 @@ class ProposicaoModel(SQLModel, table=True):
     tema_economico: bool | None = Field(default=False, nullable=True)
     bloco_legislativo: str | None = Field(default=None, nullable=True)
     parecer_ccj_favoravel: bool | None = Field(default=None, nullable=True)
+
+    @field_validator("numero_assinaturas")
+    @classmethod
+    def validar_numero_assinaturas(cls, v):
+        if v is not None and v < 0:
+            return 0
+        return v
 
     # Armazenar lista como JSONB no Postgres para busca eficiente (@>),
     # mas mantendo JSON genérico para compatibilidade com SQLite nos testes.
