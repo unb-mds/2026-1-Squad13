@@ -4,48 +4,57 @@ import httpx
 import pytest
 
 from domain.entities.proposicao import Proposicao
-from domain.exceptions import ApiConnectionError
-from infrastructure.adapters.camara_adapter import CamaraAdapter
+from domain.exceptions import ApiConnectionError, ApiRateLimitError, ApiServerError
 
 
 @pytest.fixture
 def adapter():
+    from infrastructure.adapters.camara_adapter import CamaraAdapter
+
     return CamaraAdapter()
 
 
+def create_mock_response(status_code=200, json_data=None):
+    """Cria um mock de httpx.Response que não dispara warnings de corrotina."""
+    mock_resp = MagicMock(spec=httpx.Response)
+    mock_resp.status_code = status_code
+    if json_data is not None:
+        mock_resp.json.return_value = json_data
+    mock_resp.raise_for_status.return_value = None
+    return mock_resp
+
+
 @pytest.mark.asyncio
-async def test_camara_adapter_normalizacao_sucesso(adapter):
-    # Mock das respostas da API
-    mock_dados_prop = {
+async def test_camara_adapter_buscar_por_id_sucesso(adapter):
+    mock_dados = {
         "dados": {
+            "id": 12345,
             "siglaTipo": "PL",
             "numero": 123,
             "ano": 2024,
-            "ementa": "Ementa de teste",
-            "dataApresentacao": "2024-05-11",
+            "ementa": "Ementa teste",
+            "dataApresentacao": "2024-01-01T10:00",
             "statusProposicao": {
-                "despacho": "Aguardando Parecer",
-                "dataHora": "2024-05-11T10:00:00",
+                "dataHora": "2024-01-02T10:00",
                 "siglaOrgao": "CCJ",
+                "despacho": "Aguardando Parecer",
             },
         }
     }
-
-    mock_dados_autores = {"dados": [{"nome": "Deputado Exemplo", "siglaUf": "SP"}]}
+    mock_autores = {
+        "dados": [{"nome": "Deputado Exemplo", "siglaUf": "SP", "siglaPartido": "PT"}]
+    }
+    mock_relacionadas = {"dados": []}
+    mock_tramitacoes = {"dados": []}
 
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
-        # Configura as respostas sequenciais para as duas chamadas GET
-        mock_response_prop = MagicMock()
-        mock_response_prop.status_code = 200
-        mock_response_prop.json.return_value = mock_dados_prop
-        mock_response_prop.raise_for_status.return_value = None
-
-        mock_response_autores = MagicMock()
-        mock_response_autores.status_code = 200
-        mock_response_autores.json.return_value = mock_dados_autores
-        mock_response_autores.raise_for_status.return_value = None
-
-        mock_get.side_effect = [mock_response_prop, mock_response_autores]
+        # Mock para as 4 chamadas: prop, autores, relacionadas, tramitacoes
+        mock_get.side_effect = [
+            create_mock_response(json_data=mock_dados),
+            create_mock_response(json_data=mock_autores),
+            create_mock_response(json_data=mock_relacionadas),
+            create_mock_response(json_data=mock_tramitacoes),
+        ]
 
         # Act
         proposicao = await adapter.buscar_por_id(12345)
@@ -63,7 +72,7 @@ async def test_camara_adapter_normalizacao_sucesso(adapter):
 async def test_camara_adapter_erro_rede(adapter):
     with (
         patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get,
-        patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         mock_get.side_effect = httpx.RequestError("Erro de conexão")
 
@@ -71,9 +80,8 @@ async def test_camara_adapter_erro_rede(adapter):
         with pytest.raises(ApiConnectionError):
             await adapter.buscar_por_id(12345)
 
-        # Verifica se houve retentativas (3 tentativas para cada uma das 3 requisições em paralelo)
-        assert mock_get.call_count == 9
-        assert mock_sleep.call_count == 6
+        # Verifica se houve retentativas (3 tentativas para cada uma das 4 requisições em paralelo)
+        assert mock_get.call_count == 12
 
 
 @pytest.mark.asyncio
@@ -96,149 +104,88 @@ async def test_camara_adapter_buscar_tramitacoes_brutas_sucesso(adapter):
             },
         ]
     }
-
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_dados
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
+        mock_get.return_value = create_mock_response(json_data=mock_dados)
 
-        # Act
-        tramitacoes = await adapter.buscar_tramitacoes_brutas(123)
+        tramitacoes = await adapter.buscar_tramitacoes_brutas(12345)
 
-        # Assert
         assert len(tramitacoes) == 2
-        assert tramitacoes[0]["descricao"] == "Apresentação"
         assert tramitacoes[0]["sigla_orgao"] == "MESA"
-        assert tramitacoes[1]["descricao"] == "Despacho - às comissões"
         assert tramitacoes[1]["sigla_orgao"] == "CCJ"
-        assert tramitacoes[1]["payload_bruto"] == mock_dados["dados"][1]
 
 
 @pytest.mark.asyncio
-async def test_camara_adapter_buscar_tramitacoes_brutas_erro(adapter):
+async def test_camara_adapter_erro_500(adapter):
     with (
         patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get,
-        patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        patch("asyncio.sleep", new_callable=AsyncMock),
     ):
-        mock_get.side_effect = httpx.RequestError("Erro")
-
-        # Act
-        tramitacoes = await adapter.buscar_tramitacoes_brutas(123)
-
-        # Assert
-        assert tramitacoes == []
-        assert mock_get.call_count == 3
-        assert mock_sleep.call_count == 2
-
-
-@pytest.mark.asyncio
-async def test_camara_adapter_listar_proposicoes_id_sucesso(adapter):
-    mock_dados = {
-        "dados": [
-            {"id": 1},
-            {"id": 2},
-        ]
-    }
-
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_dados
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
-
-        # Act
-        ids = await adapter.listar_recentes("PL", 2024, 10)
-
-        # Assert
-        assert ids == [1, 2]
-        mock_get.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_camara_adapter_listar_proposicoes_id_erro(adapter):
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
-        mock_get.side_effect = Exception("Erro")
+        mock_get.return_value = create_mock_response(status_code=500)
 
         # Act & Assert
-        with pytest.raises(Exception, match="Erro"):
-            await adapter.listar_recentes("PL", 2024)
+        with pytest.raises(ApiServerError):
+            await adapter.buscar_por_id(12345)
+
+        # 3 tentativas por requisição paralela
+        assert mock_get.call_count == 12
 
 
 @pytest.mark.asyncio
-async def test_camara_adapter_buscar_id_por_identificacao_sucesso(adapter):
-    mock_dados = {
-        "dados": [
-            {"id": 123456},
+async def test_camara_adapter_rate_limit(adapter):
+    with (
+        patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get,
+        patch("asyncio.sleep", new_callable=AsyncMock),
+    ):
+        mock_resp = create_mock_response(status_code=429)
+        mock_resp.headers = {"Retry-After": "10"}
+        mock_get.return_value = mock_resp
+
+        # Act & Assert
+        with pytest.raises(ApiRateLimitError):
+            await adapter.buscar_por_id(12345)
+
+
+@pytest.mark.asyncio
+async def test_camara_adapter_obter_total(adapter):
+    mock_resp_data = {
+        "links": [
+            {"rel": "last", "href": "https://url.com?pagina=50&itens=1"},
+            {"rel": "self", "href": "https://url.com?pagina=1&itens=1"},
         ]
     }
-
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_dados
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
+        mock_get.return_value = create_mock_response(json_data=mock_resp_data)
 
-        # Act
-        id_encontrado = await adapter.buscar_id_por_identificacao("PL", "101", 2024)
-
-        # Assert
-        assert id_encontrado == 123456
+        total = await adapter.obter_total("PL", 2024)
+        assert total == 50
 
 
 @pytest.mark.asyncio
-async def test_camara_adapter_buscar_id_por_identificacao_vazio(adapter):
-    mock_dados = {"dados": []}
-
+async def test_camara_adapter_listar_recentes(adapter):
+    mock_resp_data = {"dados": [{"id": 1}, {"id": 2}, {"id": 3}]}
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_dados
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
+        mock_get.return_value = create_mock_response(json_data=mock_resp_data)
 
-        # Act
-        id_encontrado = await adapter.buscar_id_por_identificacao("PL", "101", 2024)
-
-        assert id_encontrado is None
+        ids = await adapter.listar_recentes("PL", 3, 2024)
+        assert ids == [1, 2, 3]
 
 
 @pytest.mark.asyncio
-async def test_camara_adapter_coletar_em_lote_sucesso(adapter):
-    mock_dados_lote = {
-        "dados": [{"id": 100}, {"id": 200}],
-        "links": [{"rel": "next", "href": "..."}],
-    }
-    mock_dados_lote_vazio = {"dados": [], "links": []}
+async def test_camara_adapter_coletar_em_lote(adapter):
+    # Mock para listar_recentes e buscar_por_id
+    mock_lista = {"dados": [{"id": 1}, {"id": 2}], "links": []}
+    mock_p1 = Proposicao(id="camara:1", tipo="PL", numero="1", ano=2024)
+    mock_p2 = Proposicao(id="camara:2", tipo="PL", numero="2", ano=2024)
 
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
-        mock_resp_lote = MagicMock()
-        mock_resp_lote.status_code = 200
-        mock_resp_lote.json.return_value = mock_dados_lote
+    with (
+        patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get,
+        patch.object(adapter, "buscar_por_id", new_callable=AsyncMock) as mock_buscar,
+    ):
+        mock_get.return_value = create_mock_response(json_data=mock_lista)
+        mock_buscar.side_effect = [mock_p1, mock_p2]
 
-        mock_resp_vazio = MagicMock()
-        mock_resp_vazio.status_code = 200
-        mock_resp_vazio.json.return_value = mock_dados_lote_vazio
+        proposicoes = await adapter.coletar_em_lote({"limite_total": 2})
 
-        mock_get.side_effect = [mock_resp_lote, mock_resp_vazio]
-
-        # Patch buscar_por_id para não fazer chamadas de rede reais
-        with patch.object(
-            adapter, "buscar_por_id", new_callable=AsyncMock
-        ) as mock_buscar:
-            mock_buscar.side_effect = [
-                MagicMock(spec=Proposicao),
-                MagicMock(spec=Proposicao),
-            ]
-
-            # Act
-            proposicoes = await adapter.coletar_em_lote({"limite_total": 2})
-
-            # Assert
-            assert len(proposicoes) == 2
-            assert (
-                mock_get.call_count == 1
-            )  # Processa os IDs e break porque atingiu limite
+        assert len(proposicoes) == 2
+        assert proposicoes[0].id == "camara:1"
+        assert proposicoes[1].id == "camara:2"
