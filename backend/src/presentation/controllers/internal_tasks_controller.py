@@ -204,3 +204,58 @@ def executar_metricas(session: Session = Depends(get_session)):
 
     logger.info(f"Métricas via endpoint interno finalizadas. Resumo: {resumo}")
     return {"status": "sucesso", "resumo": resumo}
+
+
+@router.post("/tarefas/reconstruir-periodos")
+def executar_reconstruir_periodos(session: Session = Depends(get_session)):
+    """
+    Reconstrói períodos analíticos para proposições que não os possuem.
+    Autenticado via X-Internal-Token. Deve ser chamado manualmente uma
+    única vez após migração para novo banco (substitui a chamada bloqueante
+    que existia no startup — ver garantir_integridade_analitica em init_db.py).
+    """
+    logger.info("Iniciando reconstrução de períodos analíticos via endpoint interno")
+
+    from sqlmodel import select
+
+    from infrastructure.database.models.periodo_fase_model import PeriodoFaseModel
+    from infrastructure.database.models.proposicao_model import ProposicaoModel
+
+    periodo_repo = SQLPeriodoFaseRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    fase_repo = SQLFaseAnaliticaRepository(session)
+    prop_repo = SQLProposicaoRepository(session)
+
+    reconstruir_service = ReconstruirPeriodosService(
+        periodo_repo=periodo_repo,
+        evento_repo=evento_repo,
+        fase_repo=fase_repo,
+        proposicao_repo=prop_repo,
+    )
+
+    subquery = select(PeriodoFaseModel.proposicao_id)
+    statement = select(ProposicaoModel).where(ProposicaoModel.id.not_in(subquery))
+    props_faltantes = session.exec(statement).all()
+
+    total = len(props_faltantes)
+    sucesso = 0
+    falhas = []
+
+    for prop in props_faltantes:
+        try:
+            reconstruir_service.reconstruir_para_proposicao(prop.id)
+            sucesso += 1
+        except Exception as e:
+            logger.error(f"Falha ao reconstruir proposição {prop.id}: {e}")
+            falhas.append({"id": prop.id, "erro": str(e)})
+
+    logger.info(
+        f"Reconstrução finalizada. Sucesso: {sucesso}/{total}. Falhas: {len(falhas)}."
+    )
+    return {
+        "status": "sucesso" if not falhas else "parcial",
+        "total": total,
+        "processadas": sucesso,
+        "falhas": len(falhas),
+        "detalhes_falhas": falhas,
+    }

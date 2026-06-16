@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     # Startup: executado quando a aplicação inicia
     logger.info("🚀 Iniciando e verificando banco de dados...")
     try:
-        init_db.run()
+        init_db.run_sem_integridade()
         logger.info("✅ Banco de dados pronto!")
         # Inicializa pool de conexões Redis
         init_redis()
