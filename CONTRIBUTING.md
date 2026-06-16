@@ -108,8 +108,6 @@ npm run lint          # reporta erros e avisos
 npm run lint -- --fix # corrige automaticamente o que for possível
 ```
 
-Execute o lint antes de abrir o PR. O CI ainda não inclui esse passo automaticamente — ele será adicionado em breve.
-
 Regras ativas:
 
 - Regras recomendadas de JavaScript (`@eslint/js`)
