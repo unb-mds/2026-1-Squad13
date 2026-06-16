@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     TENTATIVAS_MAXIMAS: int = 5
     BLOQUEIO_MINUTOS: int = 15
 
+    # Token secreto para endpoints internos (GitHub Actions cron)
+    INTERNAL_API_SECRET: str = ""
+
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
