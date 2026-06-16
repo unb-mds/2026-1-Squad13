@@ -118,14 +118,17 @@ class CamaraAdapter:
                 )
                 task_tramitacoes = self._get_with_retry(_client, url_tramitacoes)
 
-                res_prop, res_autores, res_relacionadas, res_tramitacoes = (
-                    await asyncio.gather(
-                        task_prop,
-                        task_autores,
-                        task_relacionadas,
-                        task_tramitacoes,
-                        return_exceptions=True,
-                    )
+                (
+                    res_prop,
+                    res_autores,
+                    res_relacionadas,
+                    res_tramitacoes,
+                ) = await asyncio.gather(
+                    task_prop,
+                    task_autores,
+                    task_relacionadas,
+                    task_tramitacoes,
+                    return_exceptions=True,
                 )
 
                 if isinstance(res_prop, Exception):
@@ -151,7 +154,9 @@ class CamaraAdapter:
                     autores_dados[0].get("siglaUf", "N/A") if autores_dados else "N/A"
                 )
                 bloco_legislativo = (
-                    autores_dados[0].get("siglaPartido", "N/A") if autores_dados else "N/A"
+                    autores_dados[0].get("siglaPartido", "N/A")
+                    if autores_dados
+                    else "N/A"
                 )
 
                 status_info = dados.get("statusProposicao", {})
@@ -205,7 +210,9 @@ class CamaraAdapter:
                             if "PARECER" in despacho and "FAVOR" in despacho:
                                 parecer_ccj_favoravel = True
                                 break
-                            elif "PARECER" in despacho and ("CONTRÁR" in despacho or "CONTRA" in despacho):
+                            elif "PARECER" in despacho and (
+                                "CONTRÁR" in despacho or "CONTRA" in despacho
+                            ):
                                 parecer_ccj_favoravel = False
                                 # Não para, pois pode haver um parecer favorável posterior
 
