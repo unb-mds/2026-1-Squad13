@@ -1,0 +1,26 @@
+name: Cron — Coleta Diária
+
+on:
+  schedule:
+    # 02h37 BRT = 05h37 UTC
+    - cron: "37 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  coleta:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar coleta diária
+        run: |
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_BACKEND_URL }}/internal/tarefas/coleta" \
+            -H "X-Internal-Token: ${{ secrets.INTERNAL_API_SECRET }}" \
+            --max-time 300)
+
+          echo "HTTP status: $HTTP_STATUS"
+          cat /tmp/response.json
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "Coleta falhou com HTTP $HTTP_STATUS"
+            exit 1
+          fi

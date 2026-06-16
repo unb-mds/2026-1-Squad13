@@ -9,6 +9,7 @@ from infrastructure.database import close_redis, init_redis
 from presentation.controllers import (
     dashboard_controller,
     health_controller,
+    internal_tasks_controller,
     proposicao_controller,
 )
 from src import init_db
@@ -61,3 +62,4 @@ def root():
 app.include_router(proposicao_controller.router)
 app.include_router(dashboard_controller.router)
 app.include_router(health_controller.router)
+app.include_router(internal_tasks_controller.router)
