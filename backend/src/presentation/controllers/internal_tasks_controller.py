@@ -242,12 +242,14 @@ def executar_reconstruir_periodos(session: Session = Depends(get_session)):
     falhas = []
 
     for prop in props_faltantes:
+        prop_id = prop.id
         try:
-            reconstruir_service.reconstruir_para_proposicao(prop.id)
+            reconstruir_service.reconstruir_para_proposicao(prop_id)
             sucesso += 1
         except Exception as e:
-            logger.error(f"Falha ao reconstruir proposição {prop.id}: {e}")
-            falhas.append({"id": prop.id, "erro": str(e)})
+            session.rollback()
+            logger.error(f"Falha ao reconstruir proposição {prop_id}: {e}")
+            falhas.append({"id": prop_id, "erro": str(e)})
 
     logger.info(
         f"Reconstrução finalizada. Sucesso: {sucesso}/{total}. Falhas: {len(falhas)}."
