@@ -198,11 +198,11 @@ class CamaraAdapter:
                 ementa_texto = dados.get("ementa", "") or ""
                 tema_economico = classificar_tema_economico(ementa_texto)
 
-                # Determine parecer_ccj_favoravel from tramitacoes
+                # Determine parecer_ccj_favoravel from tramitacoes (most recent first)
                 parecer_ccj_favoravel = None
                 if not isinstance(res_tramitacoes, Exception):
                     tramitacoes_dados = res_tramitacoes.json().get("dados", [])
-                    for t in tramitacoes_dados:
+                    for t in reversed(tramitacoes_dados):
                         sigla_orgao = (t.get("siglaOrgao") or "").upper()
                         if sigla_orgao in ["CCJ", "CCJR"]:
                             despacho = (t.get("despacho") or "").upper()
@@ -214,7 +214,7 @@ class CamaraAdapter:
                                 "CONTRÁR" in despacho or "CONTRA" in despacho
                             ):
                                 parecer_ccj_favoravel = False
-                                # Não para, pois pode haver um parecer favorável posterior
+                                break
 
                 return Proposicao(
                     id=f"camara:{id_proposicao}",
