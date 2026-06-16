@@ -381,6 +381,25 @@ class SenadoAdapter:
                         if autores_lista
                         else (1 if autor_nome and autor_nome != "Não informado" else 0)
                     )
+                    bloco_legislativo = (
+                        autores_lista[0].get("IdentificacaoParlamentar", {}).get("SiglaPartidoParlamentar", "N/A")
+                        if autores_lista and isinstance(autores_lista[0], dict) else "N/A"
+                    )
+
+                    # Determine parecer_ccj_favoravel for fallback (simplified)
+                    parecer_ccj_favoravel = None
+                    historico = dados.get("HistoricoTramitacao", {}).get("Tramitacao", [])
+                    if isinstance(historico, dict):
+                        historico = [historico]
+                    for h in historico:
+                        unidade = (h.get("UnidadeOndeTramitou", {}).get("SiglaUnidade") or "").upper()
+                        if unidade == "CCJ":
+                            texto = (h.get("TextoTramitacao") or "").upper()
+                            if "PARECER" in texto and "FAVOR" in texto:
+                                parecer_ccj_favoravel = True
+                                break
+                            elif "PARECER" in texto and ("CONTRÁR" in texto or "CONTRA" in texto):
+                                parecer_ccj_favoravel = False
 
                     # Classify power exec and theme via Domain functions
                     autor_e_poder_executivo = identificar_autor_executivo(autor_nome)
@@ -406,6 +425,8 @@ class SenadoAdapter:
                         numero_emendas=numero_emendas,
                         autor_e_poder_executivo=autor_e_poder_executivo,
                         tema_economico=tema_economico,
+                        bloco_legislativo=bloco_legislativo,
+                        parecer_ccj_favoravel=parecer_ccj_favoravel,
                     )
                 elif (
                     "DetalheMateria" in dados_brutos
@@ -767,6 +788,30 @@ class SenadoAdapter:
         numero_assinaturas = (
             len(autoria) if isinstance(autoria, list) else (1 if autoria else 0)
         )
+        bloco_legislativo = (
+            autoria[0].get("partido", "N/A") if autoria and isinstance(autoria, list) else "N/A"
+        )
+
+        # Determine parecer_ccj_favoravel from situations
+        parecer_ccj_favoravel = None
+        if autuacoes:
+            for aut in autuacoes:
+                situacoes = aut.get("situacoes", [])
+                for s in situacoes:
+                    # No Senado, o órgão costuma estar em enteAdministrativo ou colegiado
+                    orgao = ""
+                    if s.get("enteAdministrativo"):
+                        orgao = (s["enteAdministrativo"].get("sigla") or "").upper()
+                    elif s.get("colegiado"):
+                        orgao = (s["colegiado"].get("sigla") or "").upper()
+
+                    if orgao == "CCJ":
+                        desc = (s.get("descricao") or "").upper()
+                        if "PARECER" in desc and "FAVOR" in desc:
+                            parecer_ccj_favoravel = True
+                            break
+                        elif "PARECER" in desc and ("CONTRÁR" in desc or "CONTRA" in desc):
+                            parecer_ccj_favoravel = False
 
         # Classify power exec and theme via Domain functions
         autor_e_poder_executivo = identificar_autor_executivo(autor_nome)
@@ -792,4 +837,6 @@ class SenadoAdapter:
             numero_emendas=numero_emendas,
             autor_e_poder_executivo=autor_e_poder_executivo,
             tema_economico=tema_economico,
+            bloco_legislativo=bloco_legislativo,
+            parecer_ccj_favoravel=parecer_ccj_favoravel,
         )
