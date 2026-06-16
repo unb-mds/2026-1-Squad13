@@ -89,8 +89,72 @@ class ListarMovimentacoesService:
     ) -> list[PeriodoFase] | list[EventoTramitacao]:
         """
         Retorna a lista de eventos normalizados para a proposição solicitada.
-        Se não existirem no cache, busca na API, normaliza e salva.
+        Garante tratamento concorrente e Lock Redis se os dados não estiverem no cache local.
         """
+        real_id = proposicao_id
+        if "-" in proposicao_id:
+            partes = proposicao_id.split("-")
+            if len(partes) == 3:
+                tipo, numero, ano_str = partes
+                try:
+                    ano = int(ano_str)
+                    p = self.proposicao_repo.buscar_por_codigo(tipo, numero, ano)
+                    if p:
+                        real_id = str(p.id)
+                except ValueError:
+                    pass
+
+        somente_relevantes = modo == ModoMovimentacao.RELEVANTE
+        eventos = self.evento_repo.buscar_por_proposicao(
+            real_id, somente_relevantes=somente_relevantes
+        )
+
+        ja_esta_no_cache = len(eventos) > 0 or (
+            somente_relevantes and self.evento_repo.existe_algum_evento(real_id)
+        )
+
+        if ja_esta_no_cache:
+            return await self._executar_interno(real_id, modo, client)
+
+        # Se não está no cache, adquire o lock
+        lock_adquirido = False
+        lock_key = f"lock:importacao:movimentacoes:{real_id}"
+
+        if self.cache_provider:
+            lock_adquirido = self.cache_provider.set_nx(lock_key, "1", ttl_seconds=30)
+            if not lock_adquirido:
+                # Outra requisição concorrente já está importando os dados.
+                # Aguarda de forma assíncrona até que apareçam no banco local.
+                import asyncio
+
+                tentativas = 30  # 15 segundos max timeout
+                for _ in range(tentativas):
+                    await asyncio.sleep(0.5)
+                    eventos = self.evento_repo.buscar_por_proposicao(
+                        real_id, somente_relevantes=somente_relevantes
+                    )
+                    ja_esta_no_cache = len(eventos) > 0 or (
+                        somente_relevantes
+                        and self.evento_repo.existe_algum_evento(real_id)
+                    )
+                    if ja_esta_no_cache:
+                        break
+
+                if ja_esta_no_cache:
+                    return await self._executar_interno(real_id, modo, client)
+
+        try:
+            return await self._executar_interno(real_id, modo, client)
+        finally:
+            if lock_adquirido and self.cache_provider:
+                self.cache_provider.delete(lock_key)
+
+    async def _executar_interno(
+        self,
+        proposicao_id: str,
+        modo: ModoMovimentacao = ModoMovimentacao.RESUMIDO,
+        client: httpx.AsyncClient | None = None,
+    ) -> list[PeriodoFase] | list[EventoTramitacao]:
         proposicao = None
         # 0. Resolução de slug se necessário (PL-1-2024)
         real_id = proposicao_id
