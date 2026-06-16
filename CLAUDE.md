@@ -65,10 +65,11 @@ O sistema é focado em estudantes, pesquisadores, jornalistas, cidadãos e usuá
 - **Cache:**
   - Redis
 
-- **Workers assíncronos:**
-  - Celery (broker e backend: Redis)
-  - Celery Beat para agendamento automático diário
+- **Workers assíncronos (desenvolvimento local):**
+  - Celery (broker e backend: Redis) — usado exclusivamente em desenvolvimento local via Docker Compose
+  - Celery Beat para agendamento automático diário — **não usado em produção**
   - Módulos: `coleta_worker`, `metricas_worker`
+  - Em produção, o agendamento é feito via GitHub Actions cron (ver seção "Infraestrutura e Deploy")
 
 - **Injeção de dependência (Ports & Adapters / DI):**
   - Ports declarados em `application/ports/` (interfaces puras — ABCs Python)
@@ -91,7 +92,7 @@ O sistema é focado em estudantes, pesquisadores, jornalistas, cidadãos e usuá
   - Redis para cache de consultas pesadas
 
 - **Coleta de dados:**
-  - Batch diário automatizado via Celery Beat
+  - Batch diário automatizado via GitHub Actions cron em produção (local: Celery Beat)
   - Retry exponencial para falhas temporárias
   - Logs obrigatórios de execução via `LogColetaModel` e `AuditoriaColetaModel`
 
@@ -106,7 +107,7 @@ O sistema é focado em estudantes, pesquisadores, jornalistas, cidadãos e usuá
 
 - **Containerização:**
   - Docker
-  - Docker Compose para ambiente local (postgres, redis, pgadmin, backend, frontend, celery_worker, celery_beat)
+  - Docker Compose para ambiente local (postgres, redis, pgadmin, backend, frontend, celery_worker, celery_beat) — os serviços `celery_worker` e `celery_beat` existem apenas para desenvolvimento local; produção não usa Celery
 
 - **Gerenciamento de dependências:**
   - npm no frontend
@@ -154,17 +155,21 @@ frontend/src/
 
 ## Workers e Coleta de Dados
 
-O sistema usa **Celery** com agendamento automático via **Celery Beat** (fuso: `America/Sao_Paulo`).
+Em **produção**, o agendamento é feito via **GitHub Actions cron** (sem Celery). Os workflows chamam endpoints internos protegidos por `X-Internal-Token`. Em **desenvolvimento local**, os mesmos módulos são acionados via Celery Beat através do Docker Compose.
 
-### Tarefas agendadas
+### Tarefas agendadas (produção: GitHub Actions cron, fuso BRT)
 
-| Horário | Task | Descrição |
-|---------|------|-----------|
-| 02h37 | `coletar_proposicoes_diario` | Coleta em lote da Câmara e Senado |
-| 03h00 | `recalcular_baselines_diario` | Recalcula baselines de tramitação por grupo |
-| 04h00 | `processar_metricas_todas_ativas` | Calcula IAR/IAF/IEI para proposições ativas |
+| Horário BRT | Workflow | Endpoint chamado | Descrição |
+|-------------|----------|-----------------|-----------|
+| 02h37 | `cron-coleta.yml` | `POST /internal/tarefas/coleta` | Coleta em lote da Câmara e Senado |
+| 03h00 | `cron-baselines.yml` | `POST /internal/tarefas/baselines` | Recalcula baselines de tramitação por grupo |
+| 04h00 | `cron-metricas.yml` | `POST /internal/tarefas/metricas` | Calcula IAR/IAF/IEI para proposições ativas |
 
-### Módulos
+### Endpoint de manutenção paginada
+
+`POST /internal/tarefas/reconstruir-periodos` — reconstrói períodos por fase a partir dos eventos persistidos. Aceita query params `offset` e `limit` (máximo 100 por chamada). É uma ferramenta de manutenção pontual, **não** uma rota de uso recorrente.
+
+### Módulos (desenvolvimento local)
 
 - `infrastructure/workers/celery_app.py` — configuração central, beat schedule, logging estruturado JSON
 - `infrastructure/workers/coleta_worker.py` — task de coleta
@@ -175,6 +180,7 @@ O sistema usa **Celery** com agendamento automático via **Celery Beat** (fuso: 
 - Toda task deve registrar logs estruturados (JSON) via `json_logger.py`.
 - Falhas de API externa devem usar retry exponencial e nunca silenciar erros.
 - Nenhuma task acessa adapters externos diretamente — passa por services da camada de aplicação.
+- Endpoints internos (`/internal/...`) são protegidos por `X-Internal-Token` e nunca devem ser expostos publicamente.
 
 ---
 
@@ -264,7 +270,13 @@ GET    /dashboard/estoque
 GET    /dashboard/handoff
 GET    /dashboard/cobertura
 GET    /dashboard/qualidade
+POST   /internal/tarefas/coleta
+POST   /internal/tarefas/baselines
+POST   /internal/tarefas/metricas
+POST   /internal/tarefas/reconstruir-periodos   (manutenção paginada; offset/limit; máx 100/chamada)
 ```
+
+> Endpoints `/internal/...` são protegidos por cabeçalho `X-Internal-Token` e chamados exclusivamente pelos workflows de cron do GitHub Actions.
 
 ### Frontend — o que existe
 
@@ -374,6 +386,32 @@ GET    /dashboard/qualidade
 - Commits, push e abertura de PR são sempre feitos manualmente pelo usuário.
 - Ao finalizar cada tarefa, Claude Code deve informar: path da worktree ativa, branch atual, resultado de `git status`, diff final e comandos exatos para execução manual.
 
+## Infraestrutura e Deploy
+
+### Ambientes
+
+| Componente | Serviço | Detalhes |
+|------------|---------|----------|
+| **Backend** | Render Web Service (free tier) | Auto-deploy nativo a cada commit na branch `develop` (sem workflow no repositório) |
+| **Banco de dados** | Supabase PostgreSQL | Região São Paulo; conexão via Transaction Pooler porta 6543 em produção |
+| **Cache** | Upstash Redis | Conexão TLS obrigatória |
+| **Frontend** | Vercel | Deploy via `deploy-vercel-frontend.yml` usando Vercel CLI (não integração nativa — permissão de organização GitHub é restrita ao professor da disciplina) |
+| **Scheduler** | GitHub Actions cron | Substitui Celery Beat em produção (`cron-coleta.yml`, `cron-baselines.yml`, `cron-metricas.yml`) |
+
+### Scheduler — workflows de cron
+
+| Horário BRT | Workflow | Descrição |
+|-------------|----------|-----------|
+| 02h37 | `cron-coleta.yml` | Coleta em lote da Câmara e Senado |
+| 03h00 | `cron-baselines.yml` | Recalcula baselines de tramitação |
+| 04h00 | `cron-metricas.yml` | Calcula IAR/IAF/IEI para proposições ativas |
+
+Os workflows chamam endpoints internos protegidos por `X-Internal-Token` — nunca Celery tasks diretamente.
+
+> **Desenvolvimento local:** `docker-compose.yml` e os serviços `celery_worker`/`celery_beat` são mantidos exclusivamente para ambiente local. Produção não usa Celery.
+
+---
+
 ## CI/CD — Estado atual
 
 GitHub Actions já está em uso com workflows separados por path filter:
@@ -385,16 +423,19 @@ GitHub Actions já está em uso com workflows separados por path filter:
   - Passos: `uv sync` → Ruff → `py_compile src/main.py` → pytest
   - Redis provisionado como service no CI (`redis:alpine`)
 
-- **`cd-homologacao.yml`** — **deploy automático para VM GCP via SSH** a cada push na branch `develop` com mudanças em `backend/**`, `frontend/**`, `docker-compose.yml` ou `.env.example`
-  - Executa `git pull origin develop && docker compose up -d --build` na VM remota
+- **Render (backend)** — auto-deploy nativo a cada commit na branch `develop`; não há workflow dedicado no repositório
+
+- **`deploy-vercel-frontend.yml`** — deploy do frontend na Vercel via Vercel CLI a cada push na branch `develop` com mudanças em `frontend/**`
+
+- **`cron-coleta.yml`**, **`cron-baselines.yml`**, **`cron-metricas.yml`** — workflows de cron que acionam os endpoints internos do backend para coleta e processamento diário (ver seção "Infraestrutura e Deploy")
 
 - **`deploy-squad-dashboard.yml`** e **`update-squad-dashboard-data.yml`** — deploy automático do painel interno para GitHub Pages
 
-- **`scripts/db/migrate.sh`** — executado no CD após rebuild, antes de subir o backend:
+- **`scripts/db/migrate.sh`** — executa migrations Alembic:
   1. `docker compose run --rm backend uv run alembic upgrade head`
   2. `docker compose run --rm backend uv run python src/trigger_backfill.py`
-  - Deve ser executado **sempre** após deploy que contém novas migrations.
-  - Nunca executar migrations diretamente sem o script (garante ordem e backfill).
+  - Em produção (Render + Supabase), as migrations são aplicadas automaticamente: `init_db.run_sem_integridade()` executa `alembic upgrade head` no lifespan do FastAPI a cada startup do serviço, antes da porta HTTP ser aberta.
+  - O backfill (`trigger_backfill.py`) e a reconstrução de períodos para proposições legadas (`POST /internal/tarefas/reconstruir-periodos`) **não** são automáticos em produção — são ferramentas de manutenção pontual, chamadas manualmente quando necessário.
 
 Regras:
 - Não fazer merge sem CI verde.
