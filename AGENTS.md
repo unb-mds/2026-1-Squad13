@@ -1,75 +1,67 @@
-# AGENTS.md - Diretrizes Operacionais e Constituição do Repositório
+# AGENTS.md - Diretrizes Operacionais do LexTrack
 
-Este documento unifica e consolida o guia de contexto, regras inegociáveis e boas práticas para todos os agentes de Inteligência Artificial (incluindo Claude Code, Gemini, Antigravity, etc.) atuando no LexTrack.
+Este documento é a fonte única de verdade para todos os agentes de Inteligência Artificial atuando no LexTrack.
 
-## 1. Objetivo do Projeto
-O **LexTrack** (Monitoramento de Tempo de Tramitação de Leis) é uma plataforma web para análise de eficiência do processo legislativo brasileiro (foco em PL e PEC). O sistema permite buscar proposições, acompanhar tramitações, identificar gargalos institucionais, visualizar métricas analíticas e previsões estatísticas de tempo de aprovação. Desenvolvido em contexto acadêmico, preza pelo equilíbrio entre funcionalidade real e boas práticas de engenharia de software.
+## 1. Visão Geral e Modo de Atuação
+* **Objetivo:** O **LexTrack** monitora tempos de tramitação de proposições (PL e PEC) no Congresso para identificar gargalos e prever a eficiência legislativa.
+* **Modo Pedagógico:** Como projeto acadêmico, aja como mentor:
+  - **Porquê:** Explique os trade-offs de design e escolhas conceituais.
+  - **Incremental:** Planeje antes de alterar; priorize simplicidade.
+  - **Contexto:** Nunca envie código isolado sem explicar a motivação e as dependências envolvidas.
 
-## 2. Perfil Pedagógico
-Como este é um projeto acadêmico, os agentes devem agir como mentores e seguir estas diretrizes ao interagir ou propor modificações:
-*   **Explique o "Porquê":** Explique sempre a fundamentação conceitual, trade-offs de design e alternativas analisadas.
-*   **Mudanças Incrementais:** Sempre analise, planeje (com aprovação) e depois implemente. Simplicidade deve prevalecer sobre complexidade prematura.
-*   **Contexto de Código:** Nunca entregue blocos de código prontos sem o devido contexto e explicação das alterações feitas.
+## 2. Regras Globais Inegociáveis
+1. **Padrão de IDs:** Todo ID de proposição deve seguir obrigatoriamente o padrão `camara:<id>` ou `senado:<id>`. IDs sem prefixo são inválidos.
+2. **JWT Descontinuado:** Não recrie fluxos de login/autenticação. O sistema é público (removido no PR #197).
+3. **Transparência de Estimativas:** Toda previsão gerada por modelos preditivos deve vir acompanhada do disclaimer (`DISCLAIMER_IA`) visível, indicando se tratar de previsão estatística sem valor jurídico.
 
-## 3. Regras Inegociáveis (Constituição)
+## 3. Fluxo de Versionamento e Commits
+* **Criação de Branches:** Sempre sugira/crie uma nova branch a partir de `develop` para cada foco de implementação (`feat/<nome>`, `fix/<nome>`, `docs/<nome>`, `refactor/<nome>`).
+* **Commits Dinâmicos e Atômicos:** Se o usuário solicitar a realização de commits, execute-os diretamente. Divida as alterações em commits atômicos (focados e auto-contidos), com mensagens em inglês (tipo) e descrição em português (descrição imperativa). Ex: `feat: adiciona calculo de IAR`.
+* **Push sob Solicitação:** Se o usuário solicitar a realização do `git push`, execute-o diretamente. 
+* **Validação Pre-Push Hook:** O repositório conta com um hook de validação inteligente no push (configurado por `./scripts/dev/setup-hooks.sh`, localizado em `.git/hooks/pre-push`). Esse hook roda testes e linters incrementais de forma automática antes que o envio ao repositório remoto seja concluído.
+* **Fluxo de Integração:** 
+  - Feature branch -> merge em `develop` (via PR).
+  - Periodicamente, um PR de release consolida a `develop` estável na `main`.
 
-### Arquitetura e Engenharia de Software
-1.  **Layered Architecture:** O backend segue rigorosamente a estrutura em camadas: `presentation` → `application` → `domain` → `infrastructure`. Nenhuma camada pode acessar outra pulando níveis.
-2.  **Domínio Isolado:** O domínio ([backend/src/domain/](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/)) deve ser completamente puro e isolado de frameworks, banco de dados ou requisições HTTP. Dependências devem ser sempre invertidas (infraestrutura importa o domínio).
-3.  **Ports & Adapters (Adapters & Repositories):** Toda integração externa (APIs da Câmara/Senado, banco de dados, cache) passa obrigatoriamente por interfaces declaradas como Ports na camada de `application`. As classes concretas ficam em `infrastructure`.
-4.  **Resiliência:** Tratar dados incompletos ou corrompidos e falhas de APIs externas temporárias (Câmara/Senado) de forma elegante sem quebrar o sistema.
-5.  **Frontend Feature-Based:** O frontend não deve conter regras de negócio complexas. Os componentes devem ser divididos por features ([frontend/src/features/](file:///home/caio_martins/2026-1-Squad13/frontend/src/features/)) e o layout por páginas ([frontend/src/pages/](file:///home/caio_martins/2026-1-Squad13/frontend/src/pages/)).
+## 4. Ciclo de Vida de Issues e PRs (Conforme Skills)
+* **Keyword em PRs:** Em Pull Requests para `develop`, use `Ref #XYZ` ou `Related #XYZ`. Nunca use palavras-chave de fechamento automático (`Closes #XYZ`, `Fixes #XYZ`) para evitar fechamento prematuro.
+* **Transições de Status das Issues:**
+  - **PR Aberto:** Transicionar para `status:review`.
+  - **Merge na `develop`:** Alterar para `status:done` (manter a issue aberta).
+  - **Merge na `main`:** Fechar (**Close**) a issue definitivamente.
 
-### Confiabilidade e Experiência do Usuário
-6.  **Disponibilidade e Cache:** Não depender de chamadas em tempo real em fluxos críticos do usuário; prefira dados persistidos ou cacheados via Redis.
-7.  **Estados de Interface:** Sempre forneça feedback visual para carregamento (`loading`), erros e ausência de dados (`empty states`), usando atributos ARIA apropriados.
-8.  **Transparência e Previsão:** Previsões geradas por heurísticas/modelos preditivos devem exibir explicitamente que se tratam de estimativas estatísticas, sem garantias jurídicas. O disclaimer (`DISCLAIMER_IA`) deve estar sempre visível.
+## 5. Scripts Utilitários (Evite Comandos Avulsos)
+Sempre prefira usar os scripts centrais do repositório para evitar duplicação de contexto e garantir alinhamento com a Integração Contínua (CI):
+* **Rodar Validação Completa (Linter + Testes):** `./scripts/ci/test.sh` (Script principal que aciona os testes do backend e frontend).
+* **Subir infraestrutura de Dev:** `./scripts/dev/up.sh` (Use com `--no-workers` caso não precise do Celery).
+* **Derrubar infraestrutura de Dev:** `./scripts/dev/down.sh`
+* **Aplicar Migrações de BD:** `./scripts/db/migrate.sh`
+* **Inicializar Banco vazio:** `./scripts/db/init.sh`
+* **Iniciar Workers de fila:** `./scripts/dev/workers.sh`
+* **Popular Banco de Dados:** `./scripts/dev/seed.sh`
 
-## 4. Stack Principal
+## 6. Definition of Done (DoD)
+Antes de declarar qualquer tarefa concluída, o agente deve garantir:
+1. Executar o script `./scripts/ci/test.sh` localmente e obter sucesso absoluto (zero erros).
+2. Não violar limites de acoplamento das camadas do backend.
+3. Prover testes unitários e de integração relevantes na pasta do módulo alterado.
+4. Validar se a modificação necessita de migração de banco de dados e gerá-la de forma correta.
 
-*   **Backend:** [FastAPI](file:///home/caio_martins/2026-1-Squad13/backend/) + [SQLModel](https://sqlmodel.tiangolo.com) + [uv](https://github.com/astral-sh/uv) (gerenciador de pacotes e virtualenv) + [Ruff](https://github.com/astral-sh/ruff) + [Pytest](https://docs.pytest.org).
-    *   Estrutura de arquivos: [backend/src/](file:///home/caio_martins/2026-1-Squad13/backend/src/)
-*   **Frontend:** [React 18](file:///home/caio_martins/2026-1-Squad13/frontend/) + [Vite](https://vitejs.dev) + [TypeScript](https://www.typescriptlang.org) + [Tailwind CSS 3](https://tailwindcss.com) + [Vitest](https://vitest.dev).
-    *   Estrutura de arquivos: [frontend/src/](file:///home/caio_martins/2026-1-Squad13/frontend/src/)
-*   **Banco de Dados & Cache:** [PostgreSQL](file:///home/caio_martins/2026-1-Squad13/docker-compose.yml) (migrações com Alembic via [scripts/db/migrate.sh](file:///home/caio_martins/2026-1-Squad13/scripts/db/migrate.sh)) + [Redis](file:///home/caio_martins/2026-1-Squad13/docker-compose.yml).
-*   **Workers & Agendamento:** [Celery](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/workers/celery_app.py) + Celery Beat (Redis como Broker/Backend).
-*   **Métricas de Desenvolvimento:** Squad Dashboard independente ([squad-dashboard/](file:///home/caio_martins/2026-1-Squad13/squad-dashboard/)).
+## 7. Guias Operacionais Locais (Delegados)
+As diretrizes e comandos específicos de cada área estão localizadas em seus respectivos subdiretórios:
+* **Backend (Camadas, SQLModel, FastAPI):** [backend/AGENTS.md](file:///home/caio/2026-1-Squad13/backend/AGENTS.md)
+* **Frontend (React, Componentes, UX/ARIA):** [frontend/AGENTS.md](file:///home/caio/2026-1-Squad13/frontend/AGENTS.md)
+* **Squad Dashboard (Métricas de Desenvolvimento):** [squad-dashboard/AGENTS.md](file:///home/caio/2026-1-Squad13/squad-dashboard/AGENTS.md)
 
-## 5. Convenções Obrigatórias
+## 8. Skills de Infraestrutura (Gatilhos de Uso)
+Utilize as skills disponíveis na pasta `.agents/skills/` conforme o contexto da tarefa:
+* [architecture-compliance-checker](file:///home/caio/2026-1-Squad13/.agents/skills/architecture-compliance-checker/SKILL.md) -> Use ao editar/criar arquivos no backend para checar regras de importação.
+* [db-migration-governor](file:///home/caio/2026-1-Squad13/.agents/skills/db-migration-governor/SKILL.md) -> Use quando models do SQLModel forem modificados para auditar esquemas e migrations.
+* [test-coverage-enforcer](file:///home/caio/2026-1-Squad13/.agents/skills/test-coverage-enforcer/SKILL.md) -> Use para validar se novas features do backend possuem cobertura mínima de testes.
+* [frontend-governance](file:///home/caio/2026-1-Squad13/.agents/skills/frontend-governance/SKILL.md) -> Use para validação de componentes visuais, conformidade de design tokens e UX.
+* [pr-manager](file:///home/caio/2026-1-Squad13/.agents/skills/pr-manager/SKILL.md) / [github-issue-governor](file:///home/caio/2026-1-Squad13/.agents/skills/github-issue-governor/SKILL.md) -> Use para gestão e compliance no fluxo de PRs e issues.
 
-*   **Prefixação de IDs:** Todo ID de proposição deve seguir o padrão `camara:<id>` ou `senado:<id>`. IDs sem prefixo são inválidos.
-*   **Versionamento e Branches:**
-    *   Nunca faça commits ou merges diretamente na branch `main`.
-    *   Use o padrão de branches: `feat/<nome>`, `fix/<nome>`, `docs/<nome>`, `refactor/<nome>`.
-*   **Mensagens de Commit (Conventional Commits):**
-    *   Tipo em inglês (`feat`, `fix`, `chore`, `refactor`).
-    *   Descrição em português no imperativo (ex: `feat: adiciona calculo de IAR`).
-*   **Fluxo de Issues e Pull Requests:**
-    *   Toda nova necessidade precisa de uma Issue associada.
-    *   No merge de PRs na branch `develop`, as issues associadas devem ser marcadas com a label `status:done` e permanecer abertas. O fechamento definitivo (`Close`) ocorre somente quando integradas na `main`.
-    *   Não realize merge sem CI/CD verde.
-
-## 6. Rigor de Implementação (Anti-Erro)
-Para garantir sucesso nas implementações de primeira tentativa ("First-Pass"), siga rigorosamente:
-1.  **Inspecione antes de Instanciar:** Leia a assinatura do método `__init__` no arquivo de origem antes de usar fábricas ou instanciar serviços/repositórios. Nunca assuma nomes de parâmetros (ex: `repository` vs `repo`).
-2.  **Integridade de Novos Módulos:** Ao criar um arquivo, garanta que todos os tipos e imports necessários estejam presentes. Execute `ruff check <arquivo>` imediatamente após criar ou editar arquivos Python.
-3.  **Validação de Dependências:** Ao realizar tarefas interdependentes, releia os arquivos modificados para atualizar seu mapa da estrutura, em vez de confiar apenas no histórico de chat.
-
-## 7. Funcionalidades Descontinuadas
-*   **Autenticação (JWT):** O sistema de autenticação e proteção de rotas foi descontinuado e completamente removido no PR #197. Não reimplementar fluxos de login, cadastro, logout ou recuperação de senha.
-
-## 8. Ferramentas e Configurações Específicas dos Agentes
-*   **Claude Code / Agentes de Terminal:** Não executam `git commit`, `git push` ou criação de PR de forma automática (a menos que explicitamente solicitado pelo usuário). Ao finalizar as tarefas, devem exibir o path da worktree ativa, a branch atual, o resultado do `git status`, o diff final e os comandos recomendados para execução manual do desenvolvedor.
-
-## 9. Skills e Plugins de Infraestrutura
-O repositório disponibiliza ferramentas de governança e validação de compliance sob a forma de `Skills` (ver pasta [.agents/skills/](file:///home/caio_martins/2026-1-Squad13/.agents/skills/)):
-*   `architecture-compliance-checker` para validar limites arquiteturais.
-*   `db-migration-governor` para monitoramento de models e migrations SQLModel.
-*   `test-coverage-enforcer` para verificar cobertura de testes.
-*   `frontend-governance` para validações de UX e tokens Tailwind.
-
-## 10. O Que Evitar
-*   Respostas genéricas ou superficiais.
-*   Introdução de novas dependências sem justificativa clara.
-*   Refatorações em larga escala sem um MVP funcional testável.
-*   Abstrações enterprise prematuras.
+## 9. Links de Referência
+* [README.md](file:///home/caio/2026-1-Squad13/README.md)
+* [ARCHITECTURE.md](file:///home/caio/2026-1-Squad13/ARCHITECTURE.md)
+* [tech-stack.md](file:///home/caio/2026-1-Squad13/docs/tech-stack.md)
