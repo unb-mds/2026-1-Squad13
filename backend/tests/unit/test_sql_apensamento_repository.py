@@ -14,6 +14,8 @@ def session_fixture():
     with Session(engine) as session:
         yield session
 
+    engine.dispose()
+
 
 def test_salvar_e_buscar_apensamento(session):
     repo = SQLApensamentoRepository(session)
