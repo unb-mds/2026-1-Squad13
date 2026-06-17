@@ -357,3 +357,77 @@ async def test_degradacao_senado_emendas_graceful(adapter):
         proposicao2 = await adapter.buscar_por_id(54321, cache=cache)
         assert proposicao2 is not None
         assert proposicao2.numero_emendas == 0
+
+
+@pytest.mark.asyncio
+async def test_listar_recentes_com_codigo_materia_nao_numerico(adapter):
+    """Bug C: IDs com sufixos alfabéticos (ex: '0113A') não devem crashar listar_recentes."""
+    mock_dados = [
+        {"codigoMateria": "0113A"},
+        {"codigoMateria": 200},
+        {"id": "999B"},
+    ]
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_dados
+        mock_get.return_value = mock_response
+
+        ids = await adapter.listar_recentes("PL", 10)
+
+        # '0113A' → extrai 113 via regex, 200 → 200, '999B' → extrai 999
+        assert 113 in ids
+        assert 200 in ids
+        assert 999 in ids
+        assert len(ids) == 3
+
+
+@pytest.mark.asyncio
+async def test_listar_recentes_com_valor_totalmente_nao_numerico(adapter):
+    """Bug C: Valores completamente não-numéricos devem ser ignorados silenciosamente."""
+    mock_dados = [
+        {"codigoMateria": "ABC"},
+        {"codigoMateria": 100},
+    ]
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_dados
+        mock_get.return_value = mock_response
+
+        ids = await adapter.listar_recentes("PEC", 10)
+
+        # 'ABC' não tem prefixo numérico → ignorado, 100 → 100
+        assert ids == [100]
+
+
+@pytest.mark.asyncio
+async def test_coletar_em_lote_com_id_nao_numerico(adapter):
+    """Bug C: coletar_em_lote trata IDs não-numéricos sem crashar."""
+    mock_dados = [
+        {"codigoMateria": "0042B"},
+        {"codigoMateria": 300},
+    ]
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_dados
+        mock_get.return_value = mock_response
+
+        with patch.object(
+            adapter, "buscar_por_id", new_callable=AsyncMock
+        ) as mock_buscar:
+            mock_buscar.side_effect = [
+                MagicMock(spec=Proposicao),
+                MagicMock(spec=Proposicao),
+            ]
+
+            proposicoes = await adapter.coletar_em_lote({"limite_total": 10})
+
+            assert len(proposicoes) == 2
+            # buscar_por_id deve ter sido chamado com os IDs numéricos extraídos
+            mock_buscar.assert_any_call(42)
+            mock_buscar.assert_any_call(300)

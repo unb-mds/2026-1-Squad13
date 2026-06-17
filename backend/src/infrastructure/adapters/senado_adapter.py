@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 
 import httpx
 
@@ -552,10 +553,27 @@ class SenadoAdapter:
 
             ids = []
             for m in dados:
-                if "codigoMateria" in m:
-                    ids.append(int(m["codigoMateria"]))
-                elif "id" in m:
-                    ids.append(int(m["id"]))
+                try:
+                    if "codigoMateria" in m:
+                        val = str(m["codigoMateria"])
+                        ids.append(
+                            int(val)
+                            if val.isdigit()
+                            else int(re.match(r"^(\d+)", val).group(1))
+                        )
+                    elif "id" in m:
+                        val = str(m["id"])
+                        ids.append(
+                            int(val)
+                            if val.isdigit()
+                            else int(re.match(r"^(\d+)", val).group(1))
+                        )
+                except (ValueError, TypeError, AttributeError):
+                    raw = m.get("codigoMateria") or m.get("id")
+                    logger.warning(
+                        f"ID não-numérico ignorado em listar_recentes: {raw}"
+                    )
+                    continue
 
             # Aplica paginação simulada na lista completa
             start_offset = (pagina - 1) * quantidade
@@ -716,10 +734,27 @@ class SenadoAdapter:
                     dados = [dados] if dados else []
 
                 for m in dados:
-                    if "codigoMateria" in m:
-                        ids_coletados.append(int(m["codigoMateria"]))
-                    elif "id" in m:
-                        ids_coletados.append(int(m["id"]))
+                    try:
+                        if "codigoMateria" in m:
+                            val = str(m["codigoMateria"])
+                            ids_coletados.append(
+                                int(val)
+                                if val.isdigit()
+                                else int(re.match(r"^(\d+)", val).group(1))
+                            )
+                        elif "id" in m:
+                            val = str(m["id"])
+                            ids_coletados.append(
+                                int(val)
+                                if val.isdigit()
+                                else int(re.match(r"^(\d+)", val).group(1))
+                            )
+                    except (ValueError, TypeError, AttributeError):
+                        raw = m.get("codigoMateria") or m.get("id")
+                        logger.warning(
+                            f"ID não-numérico ignorado em coletar_em_lote: {raw}"
+                        )
+                        continue
 
                     if len(ids_coletados) >= limite:
                         break
