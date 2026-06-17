@@ -491,3 +491,112 @@ async def test_cache_crossover_com_valor_prefixado_nao_levanta_valueerror(
 
     # Assert
     assert resultado == []
+
+
+@pytest.mark.asyncio
+async def test_executar_usa_lock_e_libera_no_finally(mocks):
+    # Arrange
+    from unittest.mock import call
+
+    cache_provider_mock = MagicMock()
+    cache_provider_mock.set_nx.return_value = True  # adquiriu lock
+
+    mocks["evento_repo"].buscar_por_proposicao.return_value = []
+
+    # Proposição mock
+    prop_mock = Mock()
+    prop_mock.orgao_origem = "Câmara dos Deputados"
+    prop_mock.tipo = "REC"
+    prop_mock.numero = "1"
+    prop_mock.ano = 2024
+    prop_mock.data_encerramento = None
+    mocks["proposicao_repo"].buscar_por_id.return_value = prop_mock
+
+    # Service com cache_provider
+    service_with_cache = ListarMovimentacoesService(
+        evento_repo=mocks["evento_repo"],
+        proposicao_repo=mocks["proposicao_repo"],
+        fase_repo=mocks["fase_repo"],
+        orgao_repo=mocks["orgao_repo"],
+        camara_adapter=mocks["camara_adapter"],
+        senado_adapter=mocks["senado_adapter"],
+        cache_provider=cache_provider_mock,
+    )
+
+    # Act
+    with patch(
+        "application.services.listar_movimentacoes_service.NormalizarTramitacaoService"
+    ) as MockNormalizar:
+        MockNormalizar.return_value.normalizar.return_value = []
+        await service_with_cache.executar("123", modo=ModoMovimentacao.COMPLETO)
+
+    # Assert
+    cache_provider_mock.set_nx.assert_called_once_with(
+        "lock:importacao:movimentacoes:123", "1", ttl_seconds=30
+    )
+    cache_provider_mock.set.assert_has_calls(
+        [
+            call("status:importacao:movimentacoes:123", "em_progresso", ttl_seconds=60),
+            call("status:importacao:movimentacoes:123", "concluido", ttl_seconds=5),
+        ]
+    )
+    cache_provider_mock.delete.assert_called_once_with(
+        "lock:importacao:movimentacoes:123"
+    )
+
+
+@pytest.mark.asyncio
+async def test_executar_concorrente_aguarda_outra_importar_e_retorna_do_cache(mocks):
+    # Arrange
+    cache_provider_mock = MagicMock()
+    cache_provider_mock.set_nx.return_value = False  # lock indisponível
+
+    # O status retorna "em_progresso" na primeira verificação e "concluido" na segunda
+    cache_provider_mock.get.side_effect = ["em_progresso", "concluido"]
+
+    # Simulação dos eventos salvos
+    evento_salvo = EventoTramitacao(
+        proposicao_id="123",
+        data_evento="2024-01-01",
+        sequencia=1,
+        sigla_orgao="CCJ",
+        descricao_original="Teste",
+        tipo_evento=TipoEvento.DESPACHO.value,
+    )
+
+    # Chamada inicial fora do lock: [] (cache miss)
+    # Chamada ao final do loop de aguardar (dentro de _executar_interno): [evento_salvo]
+    mocks["evento_repo"].buscar_por_proposicao.side_effect = [
+        [],  # Busca fora do lock no início
+        [evento_salvo],  # Busca final pós-polling no _executar_interno
+    ]
+
+    service_with_cache = ListarMovimentacoesService(
+        evento_repo=mocks["evento_repo"],
+        proposicao_repo=mocks["proposicao_repo"],
+        fase_repo=mocks["fase_repo"],
+        orgao_repo=mocks["orgao_repo"],
+        camara_adapter=mocks["camara_adapter"],
+        senado_adapter=mocks["senado_adapter"],
+        cache_provider=cache_provider_mock,
+    )
+
+    # Act
+    with patch("asyncio.sleep", AsyncMock()) as mock_sleep:
+        resultado = await service_with_cache.executar(
+            "123", modo=ModoMovimentacao.COMPLETO
+        )
+
+    # Assert
+    assert resultado == [evento_salvo]
+    assert mock_sleep.call_count == 2
+    assert cache_provider_mock.get.call_count == 2
+    cache_provider_mock.get.assert_called_with("status:importacao:movimentacoes:123")
+
+    # Valida que o banco de dados só foi consultado para verificar se estava no cache
+    # no início e depois apenas uma vez para ler o resultado final (total de 2 chamadas,
+    # nenhuma consulta SQL concorrente dentro de um loop).
+    assert mocks["evento_repo"].buscar_por_proposicao.call_count == 2
+    mocks["camara_adapter"].buscar_tramitacoes_brutas.assert_not_called()
+    mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_not_called()
+    cache_provider_mock.delete.assert_not_called()
