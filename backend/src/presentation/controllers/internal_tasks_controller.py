@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 
@@ -52,6 +53,15 @@ router = APIRouter(
 )
 
 
+_LUA_RELEASE_LOCK = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+    return redis.call('del', KEYS[1])
+else
+    return 0
+end
+"""
+
+
 @router.post("/tarefas/coleta")
 async def executar_coleta(session: Session = Depends(get_session)):
     """
@@ -60,10 +70,25 @@ async def executar_coleta(session: Session = Depends(get_session)):
     """
     job_id = str(uuid.uuid4())
     nome_job = "coleta_diaria"
-    logger.info(f"Iniciando coleta via endpoint interno (job_id: {job_id})")
 
     auditoria_repo = SQLAuditoriaColetaRepository(session)
+    redis_raw = get_redis_client()
+    cache_provider = RedisClient(redis_raw)
+
+    # Fix 3 — lock anti-sobreposição (TTL 1200s = 20 min)
+    token = str(uuid.uuid4())
+    chave_lock = "coleta:lock:coleta_diaria"
+    if not cache_provider.set_nx(chave_lock, token, ttl_seconds=1200):
+        logger.warning("Coleta diária já em execução. Bloqueando sobreposição.")
+        return {"status": "overlap_bloqueado"}
+
+    # Fix 4 — recuperar execuções travadas da rodada anterior
+    travadas = auditoria_repo.marcar_travadas_como_timeout(nome_job, minutos=30)
+    if travadas:
+        logger.warning(f"{travadas} execução(ões) travada(s) marcada(s) como timeout.")
+
     auditoria_repo.registrar_inicio(job_id, nome_job)
+    logger.info(f"Iniciando coleta via endpoint interno (job_id: {job_id})")
 
     repository = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
@@ -76,9 +101,6 @@ async def executar_coleta(session: Session = Depends(get_session)):
 
     camara_adapter = CamaraAdapter()
     senado_adapter = SenadoAdapter()
-
-    redis_raw = get_redis_client()
-    cache_provider = RedisClient(redis_raw)
 
     reconstruir_service = ReconstruirPeriodosService(
         periodo_repo=periodo_repo,
@@ -106,10 +128,20 @@ async def executar_coleta(session: Session = Depends(get_session)):
         cache_provider=cache_provider,
     )
 
-    try:
-        resumo = await service.executar_coleta_diaria()
+    # Fix 1 — variáveis de estado para o finally (garante registrar_fim sempre executado)
+    status_para_registrar = "falha"
+    itens_para_registrar = 0
+    erro_para_registrar: str | None = None
+    resumo_para_retorno: dict = {}
 
-        itens_processados = resumo.get("camara", {}).get(
+    try:
+        # Fix 2 — timeout global de 240s (margem de 60s antes do cron do GA matar)
+        resumo = await asyncio.wait_for(
+            service.executar_coleta_diaria(), timeout=240
+        )
+        resumo_para_retorno = resumo
+
+        itens_para_registrar = resumo.get("camara", {}).get(
             "itens_coletados", 0
         ) + resumo.get("senado", {}).get("itens_coletados", 0)
 
@@ -117,16 +149,16 @@ async def executar_coleta(session: Session = Depends(get_session)):
         senado_status = resumo.get("senado", {}).get("status")
 
         if camara_status == "sucesso" and senado_status == "sucesso":
-            status_geral = "sucesso"
-            erro_msg = None
+            status_para_registrar = "sucesso"
         elif camara_status == "falha" and senado_status == "falha":
-            status_geral = "falha"
-            erro_msg = f"Falha na Camara ({resumo['camara']['erro']}) e Senado ({resumo['senado']['erro']})"
+            status_para_registrar = "falha"
+            erro_para_registrar = (
+                f"Falha na Camara ({resumo['camara']['erro']}) "
+                f"e Senado ({resumo['senado']['erro']})"
+            )
         else:
-            status_geral = "parcial"
-            erro_msg = f"Camara: {camara_status}. Senado: {senado_status}."
-
-        auditoria_repo.registrar_fim(job_id, status_geral, itens_processados, erro_msg)
+            status_para_registrar = "parcial"
+            erro_para_registrar = f"Camara: {camara_status}. Senado: {senado_status}."
 
         try:
             cache_provider.invalidate("dashboard:")
@@ -136,12 +168,31 @@ async def executar_coleta(session: Session = Depends(get_session)):
             )
 
         logger.info(f"Coleta via endpoint interno finalizada. Resumo: {resumo}")
-        return {"job_id": job_id, "status": status_geral, "resumo": resumo}
+        return {
+            "job_id": job_id,
+            "status": status_para_registrar,
+            "resumo": resumo_para_retorno,
+        }
+
+    except TimeoutError:
+        erro_para_registrar = "timeout interno de 240s excedido"
+        logger.error(f"Timeout na coleta via endpoint interno (job_id: {job_id})")
+        raise
 
     except Exception as e:
-        auditoria_repo.registrar_fim(job_id, "falha", 0, str(e))
+        erro_para_registrar = str(e)
         logger.exception(f"Erro na coleta via endpoint interno (job_id: {job_id})")
         raise
+
+    finally:
+        # Fix 1 — registrar_fim garantido mesmo em morte por exceção não capturada
+        auditoria_repo.registrar_fim(
+            job_id, status_para_registrar, itens_para_registrar, erro_para_registrar
+        )
+        try:
+            cache_provider.eval_lua(_LUA_RELEASE_LOCK, [chave_lock], [token])
+        except Exception as lock_err:
+            logger.error(f"Erro ao liberar o lock da coleta diária: {lock_err}")
 
 
 @router.post("/tarefas/baselines")

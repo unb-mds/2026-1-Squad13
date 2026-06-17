@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session, select
 
@@ -55,6 +55,30 @@ class SQLAuditoriaColetaRepository(AuditoriaColetaRepositoryPort):
             log.mensagem_erro = mensagem_erro
             self.session.add(log)
             self.session.commit()
+
+    def marcar_travadas_como_timeout(self, nome_job: str, minutos: int = 30) -> int:
+        """
+        Marca como 'timeout' registros com status='executando' há mais de X minutos.
+        Chamado antes de registrar_inicio para limpar fantasmas de processos mortos.
+        """
+        cutoff = datetime.now(UTC) - timedelta(minutes=minutos)
+        statement = select(AuditoriaColetaModel).where(
+            AuditoriaColetaModel.nome_job == nome_job,
+            AuditoriaColetaModel.status == "executando",
+            AuditoriaColetaModel.data_inicio < cutoff,
+        )
+        travados = self.session.exec(statement).all()
+        agora = datetime.now(UTC)
+        for registro in travados:
+            registro.status = "timeout"
+            registro.data_fim = agora
+            registro.mensagem_erro = (
+                "Processo externo encerrou a execução anterior sem registrar fim."
+            )
+            self.session.add(registro)
+        if travados:
+            self.session.commit()
+        return len(travados)
 
     def obter_ultima_execucao(
         self, nome_job: str | None = None
