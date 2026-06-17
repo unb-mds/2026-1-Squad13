@@ -64,6 +64,8 @@ def session_fixture():
         prop_repo.salvar(p2)
         yield session
 
+    engine.dispose()
+
 
 def _criar_evento(
     proposicao_id: str = "123",

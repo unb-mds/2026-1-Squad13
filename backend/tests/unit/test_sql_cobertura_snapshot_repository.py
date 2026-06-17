@@ -21,6 +21,8 @@ def session_fixture():
     with Session(engine) as session:
         yield session
 
+    engine.dispose()
+
 
 def test_salvar_e_buscar_snapshot(session: Session):
     repo = SQLCoberturaSnapshotRepository(session)

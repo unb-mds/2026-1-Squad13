@@ -34,6 +34,8 @@ def session_fixture():
         session.commit()
         yield session
 
+    engine.dispose()
+
 
 def test_processar_metricas_fluxo_completo(session: Session):
     # Arrange

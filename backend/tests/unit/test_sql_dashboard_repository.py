@@ -14,6 +14,8 @@ def session_fixture():
     with Session(engine) as session:
         yield session
 
+    engine.dispose()
+
 
 def test_obter_metricas_gerais(session: Session):
     repo = SQLDashboardRepository(session)

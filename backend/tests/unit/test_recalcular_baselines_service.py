@@ -33,6 +33,8 @@ def session_fixture():
         session.commit()
         yield session
 
+    engine.dispose()
+
 
 def test_recalcular_baselines_sem_massa_suficiente(session: Session):
     # Arrange
