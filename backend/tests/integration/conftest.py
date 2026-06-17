@@ -19,7 +19,8 @@ def engine():
         poolclass=StaticPool,
     )
     SQLModel.metadata.create_all(engine)
-    return engine
+    yield engine
+    engine.dispose()
 
 
 @pytest.fixture(autouse=True)

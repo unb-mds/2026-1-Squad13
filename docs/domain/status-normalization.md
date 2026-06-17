@@ -56,9 +56,9 @@ graph TD
     CE --> TE
 ```
 
-* **Domínio Isolado (`src/domain/`):** Contém os enums `FaseCodigo` e `TipoEvento`, a entidade de domínio `EventoTramitacao` e as funções puras de classificação (`classificar_evento.py`). Não importa se os dados vieram do banco PostgreSQL ou da rede; as regras de transição de estado são 100% determinísticas e testáveis de forma isolada.
-* **Aplicação (`src/application/`):** Contém os serviços de orquestração (`NormalizarTramitacaoService`, `AgregarPorFaseService`, `ListarMovimentacoesService`). Eles controlam o fluxo de dados, aplicam algoritmos de suavização, calculam métricas de tempo de permanência e interagem com a persistência por meio de repositórios.
-* **Infraestrutura (`src/infrastructure/`):** Contém os adaptadores HTTP de APIs externas (`CamaraAdapter`, `SenadoAdapter`) e os repositórios baseados em banco de dados (`SQLModel`/`SQLAlchemy`).
+* **Domínio Isolado (`src/domain/`):** Contém os enums [FaseCodigo](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/entities/fase_codigo.py) e [TipoEvento](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/entities/tipo_evento.py), a entidade [EventoTramitacao](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/entities/evento_tramitacao.py) e as regras de classificação no módulo [classificar_evento.py](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/classificar_evento.py). Não importa de onde vieram os dados, as regras são determinísticas e testadas isoladamente.
+* **Aplicação (`src/application/`):** Contém os serviços de orquestração [NormalizarTramitacaoService](file:///home/caio_martins/2026-1-Squad13/backend/src/application/services/normalizar_tramitacao_service.py), [AgregarPorFaseService](file:///home/caio_martins/2026-1-Squad13/backend/src/application/services/agregar_por_fase_service.py) e [ListarMovimentacoesService](file:///home/caio_martins/2026-1-Squad13/backend/src/application/services/listar_movimentacoes_service.py).
+* **Infraestrutura (`src/infrastructure/`):** Contém adaptadores de rede de APIs externas e repositórios baseados em banco de dados.
 
 ---
 
@@ -66,7 +66,7 @@ graph TD
 
 Uma das decisões de design mais elegantes no backend do nosso projeto é o **desacoplamento completo entre a Entidade de Domínio Pura e o Modelo Físico de Banco de Dados**, mesmo ambos utilizando a biblioteca `SQLModel`.
 
-### A) A Entidade de Domínio Pura (`domain/entities/evento_tramitacao.py`)
+### A) A Entidade de Domínio Pura ([evento_tramitacao.py](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/entities/evento_tramitacao.py))
 Representa a verdade do negócio. Não contém tags SQL, chaves estrangeiras físicas de banco ou definições de tabela. Ela serve como contrato puro de representação lógica e lida com as validações de dados por meio do Pydantic:
 
 ```python
@@ -90,7 +90,7 @@ class EventoTramitacao(SQLModel):
     payload_bruto: Optional[dict] = None
 ```
 
-### B) O Modelo Físico de Banco de Dados (`infrastructure/database/models/evento_tramitacao_model.py`)
+### B) O Modelo Físico de Banco de Dados ([evento_tramitacao_model.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/database/models/evento_tramitacao_model.py))
 Mapeia a entidade no banco de dados relacional. Contém as restrições físicas de integridade referencial (`foreign_key`), os metadados do ORM (`table=True`, `Column(JSON)`) e os **índices físicos de alto desempenho**:
 
 ```python

@@ -88,10 +88,3 @@ Os subtipos refinam a análise dos ritos sem fracionar a normalização das 8 fa
 - `veto_parcial` (Veto Parcial / Art. 66, §4º, CF88): O projeto é sancionado, com veto de partes/artigos, que aguardam votação do veto.
 
 ---
-
-## 3. Rubrica de Validação de Especialista (UnB)
-
-Ao assinar este documento digitalmente, o especialista atesta a precisão jurídica da normalização de dados e sua aderência às regras do RICD e da CF88:
-
-**Especialista UnB Responsável:**
-Prof. Dr. Ricardo Rodrigues | ricardo.rodrigues@unb.br | 2026-06-09

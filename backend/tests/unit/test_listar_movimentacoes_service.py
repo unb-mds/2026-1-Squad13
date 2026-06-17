@@ -401,6 +401,99 @@ def test_extrair_id_numerico(service):
 
 
 @pytest.mark.asyncio
+@patch("application.services.listar_movimentacoes_service.NormalizarTramitacaoService")
+async def test_cache_crossover_com_valor_corrompido_nao_levanta_valueerror(
+    MockNormalizar, mocks
+):
+    """
+    Bug A: Garante que valores corrompidos no cache Redis (não-numéricos)
+    não levantam ValueError ao serem lidos no fluxo de crossover.
+    """
+    # Arrange — cache retorna valor corrompido (não conversível para int)
+    cache = MagicMock()
+    cache.get.return_value = "valor_corrompido"
+
+    service = ListarMovimentacoesService(
+        evento_repo=mocks["evento_repo"],
+        proposicao_repo=mocks["proposicao_repo"],
+        fase_repo=mocks["fase_repo"],
+        orgao_repo=mocks["orgao_repo"],
+        camara_adapter=mocks["camara_adapter"],
+        senado_adapter=mocks["senado_adapter"],
+        cache_provider=cache,
+    )
+
+    prop_mock = Mock()
+    prop_mock.id = "camara:999"
+    prop_mock.tipo = "PL"
+    prop_mock.numero = "1"
+    prop_mock.ano = 2024
+    prop_mock.orgao_origem = "Câmara dos Deputados"
+    prop_mock.nome_canonico = "PL 1/2024"
+    prop_mock.tags = []
+    prop_mock.data_encerramento = None
+
+    mocks["evento_repo"].buscar_por_proposicao.return_value = []
+    mocks["evento_repo"].existe_algum_evento.return_value = False
+    mocks["proposicao_repo"].buscar_por_id.return_value = prop_mock
+    mocks["camara_adapter"].buscar_tramitacoes_brutas.return_value = []
+    mocks["senado_adapter"].buscar_tramitacoes_brutas.return_value = []
+
+    # Act — deve executar sem ValueError
+    resultado = await service.executar("camara:999", modo=ModoMovimentacao.COMPLETO)
+
+    # Assert — retornou sem crash, cache foi consultado
+    assert resultado == []
+    cache.get.assert_called()
+
+
+@pytest.mark.asyncio
+@patch("application.services.listar_movimentacoes_service.NormalizarTramitacaoService")
+async def test_cache_crossover_com_valor_prefixado_nao_levanta_valueerror(
+    MockNormalizar, mocks
+):
+    """
+    Bug A: Garante que um valor prefixado no cache (ex: 'senado:12345')
+    é tratado como numérico válido sem levantar ValueError.
+    """
+    cache = MagicMock()
+    cache.get.return_value = "senado:12345"
+
+    service = ListarMovimentacoesService(
+        evento_repo=mocks["evento_repo"],
+        proposicao_repo=mocks["proposicao_repo"],
+        fase_repo=mocks["fase_repo"],
+        orgao_repo=mocks["orgao_repo"],
+        camara_adapter=mocks["camara_adapter"],
+        senado_adapter=mocks["senado_adapter"],
+        cache_provider=cache,
+    )
+
+    prop_mock = Mock()
+    prop_mock.id = "camara:999"
+    prop_mock.tipo = "PL"
+    prop_mock.numero = "1"
+    prop_mock.ano = 2024
+    prop_mock.orgao_origem = "Câmara dos Deputados"
+    prop_mock.nome_canonico = "PL 1/2024"
+    prop_mock.tags = []
+    prop_mock.data_encerramento = None
+
+    mocks["evento_repo"].buscar_por_proposicao.return_value = []
+    mocks["evento_repo"].existe_algum_evento.return_value = False
+    mocks["proposicao_repo"].buscar_por_id.return_value = prop_mock
+    mocks["camara_adapter"].buscar_tramitacoes_brutas.return_value = []
+    mocks["senado_adapter"].buscar_tramitacoes_brutas.return_value = []
+    mocks["senado_adapter"].buscar_id_por_identificacao.return_value = None
+
+    # Act — deve executar sem ValueError, extraindo 12345 do prefixo
+    resultado = await service.executar("camara:999", modo=ModoMovimentacao.COMPLETO)
+
+    # Assert
+    assert resultado == []
+
+
+@pytest.mark.asyncio
 async def test_executar_usa_lock_e_libera_no_finally(mocks):
     # Arrange
     cache_provider_mock = MagicMock()

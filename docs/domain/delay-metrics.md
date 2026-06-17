@@ -10,6 +10,10 @@ A implementação atende três superfícies principais:
 - **Aba de Proposições**: Filtros por status, ordenação e badges visuais.
 - **Detalhamento**: Explicação do motivo do atraso (fase crítica) e comparação com baselines.
 
+### Referências de Código
+*   **Regras de Domínio (Cálculo)**: [CalcularMetricasService](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/services/calcular_metricas_service.py)
+*   **Orquestração de Baseline**: [RecalcularBaselinesService](file:///home/caio_martins/2026-1-Squad13/backend/src/application/services/recalcular_baselines_service.py)
+
 ---
 
 ## 2. Métricas Oficiais
@@ -79,7 +83,7 @@ Dado que a dimensão `tema` não é utilizada estruturalmente na fase atual, o f
 
 ## 5. Modelo de Dados
 
-### 5.1. Extensão da Tabela `proposicao`
+### 5.1. Extensão da Tabela `proposicao` ([ProposicaoModel](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/database/models/proposicao_model.py))
 Campos para persistência das métricas calculadas:
 * `indice_atraso_relativo` (numeric)
 * `indice_atraso_fase_atual` (numeric)
@@ -90,7 +94,7 @@ Campos para persistência das métricas calculadas:
 * `baseline_grupo_id` (string)
 * `data_calculo_metricas` (datetime)
 
-### 5.2. Tabela `baseline_tramitacao`
+### 5.2. Tabela `baseline_tramitacao` ([BaselineTramitacaoModel](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/database/models/baseline_tramitacao_model.py))
 Tabela que armazena tanto sementes fixas quanto cálculos dinâmicos:
 
 | Campo | Descrição |

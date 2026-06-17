@@ -9,6 +9,7 @@ from infrastructure.database import close_redis, init_redis
 from presentation.controllers import (
     dashboard_controller,
     health_controller,
+    internal_tasks_controller,
     proposicao_controller,
 )
 from src import init_db
@@ -27,7 +28,7 @@ async def lifespan(app: FastAPI):
     # Startup: executado quando a aplicação inicia
     logger.info("🚀 Iniciando e verificando banco de dados...")
     try:
-        init_db.run()
+        init_db.run_sem_integridade()
         logger.info("✅ Banco de dados pronto!")
         # Inicializa pool de conexões Redis
         init_redis()
@@ -46,6 +47,7 @@ app = FastAPI(title="Monitor Legislativo API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=r"^https://lextrack-frontend-.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -61,3 +63,4 @@ def root():
 app.include_router(proposicao_controller.router)
 app.include_router(dashboard_controller.router)
 app.include_router(health_controller.router)
+app.include_router(internal_tasks_controller.router)

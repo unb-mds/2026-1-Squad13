@@ -179,6 +179,25 @@ def run():
     logger.info("✨ [init_db] Inicialização completa!")
 
 
+def run_sem_integridade():
+    """
+    Startup rápido: executa apenas migrações e seeds idempotentes.
+    garantir_integridade_analitica() foi removida daqui porque bloqueia
+    a abertura da porta HTTP ao processar centenas de proposições via rede
+    (Supabase pooler). Dispare manualmente via
+    POST /internal/tarefas/reconstruir-periodos após o primeiro deploy.
+    Melhoria futura: adicionar flag de controle no banco para tornar a
+    reconstrução automática segura (ADR a definir).
+    """
+    logger.info(
+        "🚀 [init_db] Iniciando processo de inicialização (sem integridade analítica)..."
+    )
+    run_migrations()
+    seed_lookup_tables()
+    seed_bootstrap_baselines()
+    logger.info("✨ [init_db] Inicialização completa!")
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     run()

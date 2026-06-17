@@ -78,7 +78,7 @@ O repositório possui workflows separados por área, disparados apenas quando os
 
 Arquivo: `.github/workflows/frontend.yml`
 
-- Roda em todo PR para `main` que altere `frontend/`
+- Roda em todo PR para `main` e/ou `develop` que altere `frontend/`
 - Instala dependências: `npm ci`
 - Verifica build: `npm run build`
 
@@ -86,7 +86,7 @@ Arquivo: `.github/workflows/frontend.yml`
 
 Arquivo: `.github/workflows/backend.yml`
 
-- Roda em todo PR para `main` ou `develop` que altere `backend/`
+- Roda em todo PR para `main` e/ou `develop` que altere `backend/`
 - Instala dependências: `uv sync`
 - Verifica código: Ruff (lint) + pytest (testes unitários e de integração)
 
@@ -107,8 +107,6 @@ cd frontend
 npm run lint          # reporta erros e avisos
 npm run lint -- --fix # corrige automaticamente o que for possível
 ```
-
-Execute o lint antes de abrir o PR. O CI ainda não inclui esse passo automaticamente — ele será adicionado em breve.
 
 Regras ativas:
 
