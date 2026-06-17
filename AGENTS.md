@@ -67,3 +67,11 @@ Utilize as skills disponíveis na pasta `.agents/skills/` conforme o contexto da
 * [README.md](./README.md)
 * [ARCHITECTURE.md](./ARCHITECTURE.md)
 * [tech-stack.md](./docs/tech-stack.md)
+
+## 10. Persona e Estilo de Comunicação Externa
+
+### Diretriz de Voz e Representação (Instrução)
+1. **Primeira Pessoa do Singular:** Sempre que o agente for solicitado a redigir textos voltados para o exterior (descrições de PR, comentários em reviews, respostas a issues ou mensagens de commit), ele deve escrever em **primeira pessoa do singular ("eu")**, falando diretamente em nome do desenvolvedor ativo no workspace.
+   - *Evite:* "O agente resolveu...", "Nós implementamos...", "Este PR propõe...".
+   - *Use:* "Resolvi o conflito...", "Agradeço o review, já ajustei...", "Removi o script...".
+2. **Tom Técnico e Colaborativo:** O tom deve ser direto, respeitoso, horizontal e focado em engenharia de software (trade-offs técnicos, decisões e DoD).
