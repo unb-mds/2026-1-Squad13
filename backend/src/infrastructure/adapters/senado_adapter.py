@@ -403,7 +403,9 @@ class SenadoAdapter:
                         if unidade == "CCJ":
                             texto = (h.get("TextoTramitacao") or "").upper()
                             if "PARECER" in texto and (
-                                "DESFAVORÁVEL" in texto or "CONTRÁR" in texto or "CONTRA" in texto
+                                "DESFAVORÁVEL" in texto
+                                or "CONTRÁR" in texto
+                                or "CONTRA" in texto
                             ):
                                 parecer_ccj_favoravel = False
                                 break
@@ -820,7 +822,9 @@ class SenadoAdapter:
                     if orgao == "CCJ":
                         desc = (s.get("descricao") or "").upper()
                         if "PARECER" in desc and (
-                            "DESFAVORÁVEL" in desc or "CONTRÁR" in desc or "CONTRA" in desc
+                            "DESFAVORÁVEL" in desc
+                            or "CONTRÁR" in desc
+                            or "CONTRA" in desc
                         ):
                             parecer_ccj_favoravel = False
                             break
