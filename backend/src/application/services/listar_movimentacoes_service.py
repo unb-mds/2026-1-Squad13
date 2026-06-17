@@ -243,7 +243,9 @@ class ListarMovimentacoesService:
                         cached_val = self.cache_provider.get(cache_key)
                         if cached_val is not None:
                             id_senado = (
-                                None if cached_val == "nenhum" else int(cached_val)
+                                None
+                                if cached_val == "nenhum"
+                                else (self._extrair_id_numerico(cached_val) or None)
                             )
                             logger.info(
                                 f"⚡ ID correspondente no Senado obtido via cache: {id_senado}"
@@ -317,7 +319,9 @@ class ListarMovimentacoesService:
                         cached_val = self.cache_provider.get(cache_key)
                         if cached_val is not None:
                             id_camara = (
-                                None if cached_val == "nenhum" else int(cached_val)
+                                None
+                                if cached_val == "nenhum"
+                                else (self._extrair_id_numerico(cached_val) or None)
                             )
                             logger.info(
                                 f"⚡ ID correspondente na Câmara obtido via cache: {id_camara}"

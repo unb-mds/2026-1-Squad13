@@ -34,7 +34,11 @@ from ..config import settings
 
 # O motor de conexão (Engine)
 # echo=False por padrão para evitar poluição de logs; use logging.getLogger('sqlalchemy.engine') para debug
-engine = create_engine(settings.database_url, echo=False)
+engine = create_engine(
+    settings.database_url,
+    echo=False,
+    connect_args={"prepare_threshold": None},
+)
 
 
 def init_db():

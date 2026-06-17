@@ -18,6 +18,8 @@ def session_fixture():
     with Session(engine) as session:
         yield session
 
+    engine.dispose()
+
 
 def test_registrar_inicio_e_fim(session: Session):
     repo = SQLAuditoriaColetaRepository(session)

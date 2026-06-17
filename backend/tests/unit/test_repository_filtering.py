@@ -45,6 +45,8 @@ def session_fixture():
         repo.salvar(p2)
         yield session
 
+    engine.dispose()
+
 
 def test_filtrar_por_status(session: Session):
     repo = SQLProposicaoRepository(session)

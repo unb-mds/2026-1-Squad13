@@ -15,6 +15,8 @@ def session_fixture():
     with Session(engine) as session:
         yield session
 
+    engine.dispose()
+
 
 def test_salvar_proposicao(session: Session):
     # Arrange (Organizar)

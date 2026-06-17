@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 
 import httpx
 
@@ -402,13 +403,15 @@ class SenadoAdapter:
                         ).upper()
                         if unidade == "CCJ":
                             texto = (h.get("TextoTramitacao") or "").upper()
-                            if "PARECER" in texto and "FAVOR" in texto:
-                                parecer_ccj_favoravel = True
-                                break
-                            elif "PARECER" in texto and (
-                                "CONTRÁR" in texto or "CONTRA" in texto
+                            if "PARECER" in texto and (
+                                "DESFAVORÁVEL" in texto
+                                or "CONTRÁR" in texto
+                                or "CONTRA" in texto
                             ):
                                 parecer_ccj_favoravel = False
+                                break
+                            elif "PARECER" in texto and "FAVORÁVEL" in texto:
+                                parecer_ccj_favoravel = True
                                 break
 
                     # Classify power exec and theme via Domain functions
@@ -552,10 +555,24 @@ class SenadoAdapter:
 
             ids = []
             for m in dados:
-                if "codigoMateria" in m:
-                    ids.append(int(m["codigoMateria"]))
-                elif "id" in m:
-                    ids.append(int(m["id"]))
+                try:
+                    raw_id = m.get("codigoMateria") or m.get("id")
+                    if raw_id is not None:
+                        val = str(raw_id)
+                        if val.isdigit():
+                            ids.append(int(val))
+                        else:
+                            # Tenta extrair apenas o prefixo numérico (ex: "0113A" -> 113)
+                            match = re.match(r"^(\d+)", val)
+                            if match:
+                                ids.append(int(match.group(1)))
+                            else:
+                                logger.warning(f"ID não-numérico ignorado: {val}")
+                except (ValueError, TypeError, AttributeError) as e:
+                    logger.warning(
+                        f"Erro ao processar ID {m.get('codigoMateria') or m.get('id')}: {e}"
+                    )
+                    continue
 
             # Aplica paginação simulada na lista completa
             start_offset = (pagina - 1) * quantidade
@@ -716,10 +733,24 @@ class SenadoAdapter:
                     dados = [dados] if dados else []
 
                 for m in dados:
-                    if "codigoMateria" in m:
-                        ids_coletados.append(int(m["codigoMateria"]))
-                    elif "id" in m:
-                        ids_coletados.append(int(m["id"]))
+                    try:
+                        raw_id = m.get("codigoMateria") or m.get("id")
+                        if raw_id is not None:
+                            val = str(raw_id)
+                            if val.isdigit():
+                                ids_coletados.append(int(val))
+                            else:
+                                # Tenta extrair apenas o prefixo numérico (ex: "0113A" -> 42)
+                                match = re.match(r"^(\d+)", val)
+                                if match:
+                                    ids_coletados.append(int(match.group(1)))
+                                else:
+                                    logger.warning(f"ID não-numérico ignorado: {val}")
+                    except (ValueError, TypeError, AttributeError) as e:
+                        logger.warning(
+                            f"Erro ao processar ID {m.get('codigoMateria') or m.get('id')}: {e}"
+                        )
+                        continue
 
                     if len(ids_coletados) >= limite:
                         break
@@ -819,13 +850,15 @@ class SenadoAdapter:
 
                     if orgao == "CCJ":
                         desc = (s.get("descricao") or "").upper()
-                        if "PARECER" in desc and "FAVOR" in desc:
-                            parecer_ccj_favoravel = True
-                            break
-                        elif "PARECER" in desc and (
-                            "CONTRÁR" in desc or "CONTRA" in desc
+                        if "PARECER" in desc and (
+                            "DESFAVORÁVEL" in desc
+                            or "CONTRÁR" in desc
+                            or "CONTRA" in desc
                         ):
                             parecer_ccj_favoravel = False
+                            break
+                        elif "PARECER" in desc and "FAVORÁVEL" in desc:
+                            parecer_ccj_favoravel = True
                             break
                 if parecer_ccj_favoravel is not None:
                     break
