@@ -402,13 +402,13 @@ class SenadoAdapter:
                         ).upper()
                         if unidade == "CCJ":
                             texto = (h.get("TextoTramitacao") or "").upper()
-                            if "PARECER" in texto and "FAVOR" in texto:
-                                parecer_ccj_favoravel = True
-                                break
-                            elif "PARECER" in texto and (
-                                "CONTRÁR" in texto or "CONTRA" in texto
+                            if "PARECER" in texto and (
+                                "DESFAVORÁVEL" in texto or "CONTRÁR" in texto or "CONTRA" in texto
                             ):
                                 parecer_ccj_favoravel = False
+                                break
+                            elif "PARECER" in texto and "FAVORÁVEL" in texto:
+                                parecer_ccj_favoravel = True
                                 break
 
                     # Classify power exec and theme via Domain functions
@@ -819,13 +819,13 @@ class SenadoAdapter:
 
                     if orgao == "CCJ":
                         desc = (s.get("descricao") or "").upper()
-                        if "PARECER" in desc and "FAVOR" in desc:
-                            parecer_ccj_favoravel = True
-                            break
-                        elif "PARECER" in desc and (
-                            "CONTRÁR" in desc or "CONTRA" in desc
+                        if "PARECER" in desc and (
+                            "DESFAVORÁVEL" in desc or "CONTRÁR" in desc or "CONTRA" in desc
                         ):
                             parecer_ccj_favoravel = False
+                            break
+                        elif "PARECER" in desc and "FAVORÁVEL" in desc:
+                            parecer_ccj_favoravel = True
                             break
                 if parecer_ccj_favoravel is not None:
                     break
