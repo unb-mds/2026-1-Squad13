@@ -29,6 +29,8 @@ def session_fixture():
     with Session(engine) as session:
         yield session
 
+    engine.dispose()
+
 
 def test_seed_orgaos_insere_3_registros(session: Session):
     repo = SQLOrgaoLegislativoRepository(session)

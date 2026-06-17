@@ -188,3 +188,28 @@ def test_cobertura_dados_inclui_emendas():
     cobertura_com_dado = p.cobertura_dados
 
     assert cobertura_com_dado > cobertura_sem_dado
+
+
+def test_numero_assinaturas_nao_pode_ser_negativo():
+    """Valida que o número de assinaturas é >= 0."""
+    p = Proposicao(tipo="PL", numero="1", ano=2024, numero_assinaturas=-5)
+    assert p.numero_assinaturas == 0
+
+    p.numero_assinaturas = -10
+    assert p.numero_assinaturas == 0
+
+    p.numero_assinaturas = 5
+    assert p.numero_assinaturas == 5
+
+
+def test_novos_campos_preditivos_presentes():
+    """Valida que os campos bloco_legislativo e parecer_ccj_favoravel estão na entidade."""
+    p = Proposicao(
+        tipo="PL",
+        numero="1",
+        ano=2024,
+        bloco_legislativo="Bloco X",
+        parecer_ccj_favoravel=True,
+    )
+    assert p.bloco_legislativo == "Bloco X"
+    assert p.parecer_ccj_favoravel is True

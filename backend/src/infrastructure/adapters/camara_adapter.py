@@ -105,19 +105,30 @@ class CamaraAdapter:
     ) -> Proposicao | None:
         url_proposicao = f"{self.base_url}/proposicoes/{id_proposicao}"
         url_autores = f"{url_proposicao}/autores"
+        url_tramitacoes = f"{url_proposicao}/tramitacoes"
 
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
             try:
-                # Dispara as três requisições em paralelo
+                # Dispara as quatro requisições em paralelo
                 task_prop = self._get_with_retry(_client, url_proposicao)
                 task_autores = self._get_with_retry(_client, url_autores)
                 task_relacionadas = self._get_with_retry(
                     _client, f"{url_proposicao}/relacionadas"
                 )
+                task_tramitacoes = self._get_with_retry(_client, url_tramitacoes)
 
-                res_prop, res_autores, res_relacionadas = await asyncio.gather(
-                    task_prop, task_autores, task_relacionadas, return_exceptions=True
+                (
+                    res_prop,
+                    res_autores,
+                    res_relacionadas,
+                    res_tramitacoes,
+                ) = await asyncio.gather(
+                    task_prop,
+                    task_autores,
+                    task_relacionadas,
+                    task_tramitacoes,
+                    return_exceptions=True,
                 )
 
                 if isinstance(res_prop, Exception):
@@ -141,6 +152,11 @@ class CamaraAdapter:
                 autor_principal = nomes[0] if nomes else "Não informado"
                 uf_autor = (
                     autores_dados[0].get("siglaUf", "N/A") if autores_dados else "N/A"
+                )
+                bloco_legislativo = (
+                    autores_dados[0].get("siglaPartido", "N/A")
+                    if autores_dados
+                    else "N/A"
                 )
 
                 status_info = dados.get("statusProposicao", {})
@@ -182,6 +198,24 @@ class CamaraAdapter:
                 ementa_texto = dados.get("ementa", "") or ""
                 tema_economico = classificar_tema_economico(ementa_texto)
 
+                # Determine parecer_ccj_favoravel from tramitacoes (most recent first)
+                parecer_ccj_favoravel = None
+                if not isinstance(res_tramitacoes, Exception):
+                    tramitacoes_dados = res_tramitacoes.json().get("dados", [])
+                    for t in reversed(tramitacoes_dados):
+                        sigla_orgao = (t.get("siglaOrgao") or "").upper()
+                        if sigla_orgao in ["CCJ", "CCJR"]:
+                            despacho = (t.get("despacho") or "").upper()
+                            # Heurística simples: busca por "PARECER" e "FAVORÁVEL"
+                            if "PARECER" in despacho and (
+                                "DESFAVORÁVEL" in despacho or "CONTRÁR" in despacho or "CONTRA" in despacho
+                            ):
+                                parecer_ccj_favoravel = False
+                                break
+                            elif "PARECER" in despacho and "FAVORÁVEL" in despacho:
+                                parecer_ccj_favoravel = True
+                                break
+
                 return Proposicao(
                     id=f"camara:{id_proposicao}",
                     tipo=dados.get("siglaTipo", ""),
@@ -204,6 +238,8 @@ class CamaraAdapter:
                     numero_emendas=numero_emendas,
                     autor_e_poder_executivo=autor_e_poder_executivo,
                     tema_economico=tema_economico,
+                    bloco_legislativo=bloco_legislativo,
+                    parecer_ccj_favoravel=parecer_ccj_favoravel,
                 )
 
             except httpx.ConnectError:
