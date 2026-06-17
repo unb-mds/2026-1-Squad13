@@ -30,3 +30,10 @@ class AuditoriaColetaRepositoryPort(Protocol):
         Recupera o registro da última execução (opcionalmente filtrando por nome).
         """
         ...
+
+    def marcar_travadas_como_timeout(self, nome_job: str, minutos: int = 30) -> int:
+        """
+        Localiza registros com status='executando' há mais de X minutos e os marca
+        como 'timeout'. Retorna o número de registros atualizados.
+        """
+        ...
