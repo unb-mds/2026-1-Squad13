@@ -1,0 +1,26 @@
+name: Cron — Processamento de Métricas
+
+on:
+  schedule:
+    # 04h00 BRT = 07h00 UTC
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+jobs:
+  metricas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar processamento de métricas
+        run: |
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_BACKEND_URL }}/internal/tarefas/metricas" \
+            -H "X-Internal-Token: ${{ secrets.INTERNAL_API_SECRET }}" \
+            --max-time 120)
+
+          echo "HTTP status: $HTTP_STATUS"
+          cat /tmp/response.json
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "Métricas falharam com HTTP $HTTP_STATUS"
+            exit 1
+          fi

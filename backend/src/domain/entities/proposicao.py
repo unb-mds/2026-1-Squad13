@@ -1,5 +1,6 @@
 from datetime import date, datetime
 
+from pydantic import ConfigDict, field_validator
 from sqlmodel import SQLModel
 
 from domain.constants import LIMITE_DIAS_ATRASO
@@ -11,6 +12,8 @@ class Proposicao(SQLModel):
     Representa uma Proposição Legislativa (PL, PEC, etc).
     Não possui dependências diretas de persistência (table=True).
     """
+
+    model_config = ConfigDict(validate_assignment=True)
 
     id: str | None = None
     tipo: str | None = None
@@ -46,6 +49,15 @@ class Proposicao(SQLModel):
     numero_emendas: int | None = 0
     autor_e_poder_executivo: bool | None = False
     tema_economico: bool | None = False
+    bloco_legislativo: str | None = None
+    parecer_ccj_favoravel: bool | None = None
+
+    @field_validator("numero_assinaturas")
+    @classmethod
+    def validar_numero_assinaturas(cls, v):
+        if v is not None and v < 0:
+            return 0
+        return v
 
     def normalizar_campo_status(self):
         """Normaliza o campo status para um dos 6 valores canônicos do domínio."""

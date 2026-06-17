@@ -14,6 +14,7 @@ def session():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+    engine.dispose()
 
 
 def test_upsert_em_lote_idempotencia(session):

@@ -73,6 +73,8 @@ def session_fixture():
         repo.salvar(p2)
         yield session
 
+    engine.dispose()
+
 
 def test_obter_metricas_dashboard_sem_cache(session: Session):
     repo = SQLProposicaoRepository(session)

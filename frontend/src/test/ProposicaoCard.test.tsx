@@ -38,7 +38,7 @@ const proposicaoBase: Proposicao = {
 describe('ProposicaoCard', () => {
   it('renderiza informações básicas corretamente', () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ProposicaoCard proposicao={proposicaoBase} />
       </MemoryRouter>
     )
@@ -52,7 +52,7 @@ describe('ProposicaoCard', () => {
     const propComAtraso = { ...proposicaoBase, atrasoCritico: true }
     
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ProposicaoCard proposicao={propComAtraso} />
       </MemoryRouter>
     )
@@ -62,7 +62,7 @@ describe('ProposicaoCard', () => {
 
   it('não exibe badge de Atraso Crítico quando a propriedade está inativa', () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ProposicaoCard proposicao={proposicaoBase} />
       </MemoryRouter>
     )

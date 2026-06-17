@@ -26,6 +26,8 @@ def session_fixture():
     with Session(engine) as session:
         yield session
 
+    engine.dispose()
+
 
 def test_seed_fases_insere_8_registros(session: Session):
     repo = SQLFaseAnaliticaRepository(session)
