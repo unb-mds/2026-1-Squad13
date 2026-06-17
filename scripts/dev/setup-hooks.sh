@@ -20,7 +20,7 @@ echo -e "${BLUE}🛡️ Git Hook: Validação de Impacto (Rápida + Segura)...${
 
 # Tenta identificar o branch remoto para comparar
 BASE_REF=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "origin/develop")
-CHANGED_FILES=$(git diff --name-only "$BASE_REF..HEAD")
+CHANGED_FILES=$(git diff --diff-filter=d --name-only "$BASE_REF..HEAD")
 
 # Flags de controle
 RUN_BACKEND_UNIT=false
