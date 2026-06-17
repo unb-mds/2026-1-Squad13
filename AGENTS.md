@@ -13,6 +13,7 @@ Este documento é a fonte única de verdade para todos os agentes de Inteligênc
 1. **Padrão de IDs:** Todo ID de proposição deve seguir obrigatoriamente o padrão `camara:<id>` ou `senado:<id>`. IDs sem prefixo são inválidos.
 2. **JWT Descontinuado:** Não recrie fluxos de login/autenticação. O sistema é público (removido no PR #197).
 3. **Transparência de Estimativas:** Toda previsão gerada por modelos preditivos deve vir acompanhada do disclaimer (`DISCLAIMER_IA`) visível, indicando se tratar de previsão estatística sem valor jurídico.
+4. **Links Relativos Obrigatórios:** É expressamente proibido o uso de caminhos absolutos do sistema local (ex: `file:///home/` ou `/home/usuario/`) em qualquer arquivo de documentação. Todos os links internos para pastas ou arquivos do repositório devem usar links markdown relativos (ex: `[texto](./caminho/do/arquivo.md)`).
 
 ## 3. Fluxo de Versionamento e Commits
 * **Criação de Branches:** Sempre sugira/crie uma nova branch a partir de `develop` para cada foco de implementação (`feat/<nome>`, `fix/<nome>`, `docs/<nome>`, `refactor/<nome>`).
@@ -49,19 +50,19 @@ Antes de declarar qualquer tarefa concluída, o agente deve garantir:
 
 ## 7. Guias Operacionais Locais (Delegados)
 As diretrizes e comandos específicos de cada área estão localizadas em seus respectivos subdiretórios:
-* **Backend (Camadas, SQLModel, FastAPI):** [backend/AGENTS.md](file:///home/caio/2026-1-Squad13/backend/AGENTS.md)
-* **Frontend (React, Componentes, UX/ARIA):** [frontend/AGENTS.md](file:///home/caio/2026-1-Squad13/frontend/AGENTS.md)
-* **Squad Dashboard (Métricas de Desenvolvimento):** [squad-dashboard/AGENTS.md](file:///home/caio/2026-1-Squad13/squad-dashboard/AGENTS.md)
+* **Backend (Camadas, SQLModel, FastAPI):** [backend/AGENTS.md](./backend/AGENTS.md)
+* **Frontend (React, Componentes, UX/ARIA):** [frontend/AGENTS.md](./frontend/AGENTS.md)
+* **Squad Dashboard (Métricas de Desenvolvimento):** [squad-dashboard/AGENTS.md](./squad-dashboard/AGENTS.md)
 
 ## 8. Skills de Infraestrutura (Gatilhos de Uso)
 Utilize as skills disponíveis na pasta `.agents/skills/` conforme o contexto da tarefa:
-* [architecture-compliance-checker](file:///home/caio/2026-1-Squad13/.agents/skills/architecture-compliance-checker/SKILL.md) -> Use ao editar/criar arquivos no backend para checar regras de importação.
-* [db-migration-governor](file:///home/caio/2026-1-Squad13/.agents/skills/db-migration-governor/SKILL.md) -> Use quando models do SQLModel forem modificados para auditar esquemas e migrations.
-* [test-coverage-enforcer](file:///home/caio/2026-1-Squad13/.agents/skills/test-coverage-enforcer/SKILL.md) -> Use para validar se novas features do backend possuem cobertura mínima de testes.
-* [frontend-governance](file:///home/caio/2026-1-Squad13/.agents/skills/frontend-governance/SKILL.md) -> Use para validação de componentes visuais, conformidade de design tokens e UX.
-* [pr-manager](file:///home/caio/2026-1-Squad13/.agents/skills/pr-manager/SKILL.md) / [github-issue-governor](file:///home/caio/2026-1-Squad13/.agents/skills/github-issue-governor/SKILL.md) -> Use para gestão e compliance no fluxo de PRs e issues.
+* [architecture-compliance-checker](./.agents/skills/architecture-compliance-checker/SKILL.md) -> Use ao editar/criar arquivos no backend para checar regras de importação.
+* [db-migration-governor](./.agents/skills/db-migration-governor/SKILL.md) -> Use quando models do SQLModel forem modificados para auditar esquemas e migrations.
+* [test-coverage-enforcer](./.agents/skills/test-coverage-enforcer/SKILL.md) -> Use para validar se novas features do backend possuem cobertura mínima de testes.
+* [frontend-governance](./.agents/skills/frontend-governance/SKILL.md) -> Use para validação de componentes visuais, conformidade de design tokens e UX.
+* [pr-manager](./.agents/skills/pr-manager/SKILL.md) / [github-issue-governor](./.agents/skills/github-issue-governor/SKILL.md) -> Use para gestão e compliance no fluxo de PRs e issues.
 
 ## 9. Links de Referência
-* [README.md](file:///home/caio/2026-1-Squad13/README.md)
-* [ARCHITECTURE.md](file:///home/caio/2026-1-Squad13/ARCHITECTURE.md)
-* [tech-stack.md](file:///home/caio/2026-1-Squad13/docs/tech-stack.md)
+* [README.md](./README.md)
+* [ARCHITECTURE.md](./ARCHITECTURE.md)
+* [tech-stack.md](./docs/tech-stack.md)
