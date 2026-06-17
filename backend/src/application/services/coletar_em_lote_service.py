@@ -226,23 +226,21 @@ class ColetarEmLoteService:
 
                     async def fetch_prop(id_p, sem=sem_grupo, adapt=adapter, f=fonte):
                         async with sem:
-                            try:
-                                p = await adapt.buscar_por_id(id_p, client=client)
-                                if p:
-                                    return p
-                            except Exception as e:
-                                logger.warning(
-                                    f"Erro ao buscar proposição {id_p} na {f.upper()}: {e}"
-                                )
-                            return None
+                            return await adapt.buscar_por_id(id_p, client=client)
 
                     tasks_props = [fetch_prop(id_p) for id_p in ids_unicos]
                     results_props = await asyncio.gather(
                         *tasks_props, return_exceptions=True
                     )
-                    proposicoes_coletadas = [
-                        r for r in results_props if isinstance(r, Proposicao)
-                    ]
+
+                    proposicoes_coletadas = []
+                    for idx, res in enumerate(results_props):
+                        if isinstance(res, Proposicao):
+                            proposicoes_coletadas.append(res)
+                        elif isinstance(res, Exception):
+                            logger.error(
+                                f"❌ Falha na busca detalhada da proposição {ids_unicos[idx]} na {fonte.upper()}: {res}"
+                            )
 
                     if proposicoes_coletadas:
                         # Processa e persiste no banco
@@ -300,11 +298,7 @@ class ColetarEmLoteService:
             batch = proposicoes[i : i + batch_size]
             tasks = []
             for prop in batch:
-                # O real_id no banco pode ser diferente do id da API se houve normalização,
-                # mas aqui usamos o ID que acabamos de salvar.
-                tasks.append(
-                    self.listar_movimentacoes_service.executar(prop.id, client=client)
-                )
+                tasks.append(self._processar_uma_proposicao(prop, client))
 
             resultados = await asyncio.gather(*tasks, return_exceptions=True)
             for idx, res in enumerate(resultados):
@@ -317,12 +311,55 @@ class ColetarEmLoteService:
                         )
                     else:
                         logger.error(
-                            f"Erro inesperado ao processar movimentações para a proposição {batch[idx].id}: {res}",
+                            f"❌ Falha na coleta de {batch[idx].id}: {res}",
                             exc_info=res,
                         )
             logger.info(
                 f"Processados eventos para {min(i + batch_size, len(proposicoes))}/{len(proposicoes)} proposições."
             )
+
+    async def _processar_uma_proposicao(
+        self, prop: Proposicao, client: httpx.AsyncClient
+    ):
+        """Coleta eventos para uma única proposição com isolamento transacional e validação de ID."""
+        # 1. Validação de ID (prefixo obrigatório para evitar FK violation)
+        if ":" not in str(prop.id):
+            logger.warning(
+                f"⚠️ Proposição com ID inválido (sem prefixo): {prop.id}. Ignorando eventos para evitar FK violation."
+            )
+            return None
+
+        try:
+            return await self.listar_movimentacoes_service.executar(
+                prop.id, client=client
+            )
+        except Exception as e:
+            # Se houve erro de banco (ex: FK violation), a sessão fica corrompida
+            # e precisa de rollback para que as outras tarefas paralelas não falhem.
+            from sqlalchemy.exc import IntegrityError
+
+            err_msg = str(e)
+            is_db_error = isinstance(e, IntegrityError) or any(
+                term in err_msg or term in type(e).__name__
+                for term in [
+                    "IntegrityError",
+                    "PendingRollbackError",
+                    "ForeignKeyViolation",
+                    "flush",
+                ]
+            )
+
+            if is_db_error:
+                logger.error(
+                    f"❌ Erro de banco ao processar {prop.id}: {err_msg}. Realizando rollback da sessão."
+                )
+                if hasattr(self.repository, "session"):
+                    try:
+                        self.repository.session.rollback()
+                    except Exception as rb_err:
+                        logger.error(f"Falha crítica ao tentar rollback: {rb_err}")
+
+            raise e
 
     def _registrar_log(self, fonte: str, status: str, itens: int, erro: str = None):
         """Registra o log de execução no banco de dados."""
