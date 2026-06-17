@@ -72,7 +72,7 @@ def test_app_lifespan():
     # O uso do context manager 'with' dispara o lifespan
     # Mockamos o init_db.run para evitar o custo de migrações e seeds pesados
     # apenas neste teste que valida se o app sobe e desce corretamente.
-    with patch("main.init_db.run") as mock_run:
+    with patch("main.init_db.run_sem_integridade") as mock_run:
         with TestClient(app) as client:
             response = client.get("/")
             assert response.status_code == 200
