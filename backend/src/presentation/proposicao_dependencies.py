@@ -1,3 +1,4 @@
+import redis
 from fastapi import Depends
 from sqlmodel import Session
 
@@ -13,7 +14,8 @@ from application.services.obter_confiabilidade_service import (
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from infrastructure.adapters.camara_adapter import CamaraAdapter
 from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.database import get_session
+from infrastructure.cache.redis_client import RedisClient
+from infrastructure.database import get_redis_client, get_session
 from infrastructure.repositories.sql_apensamento_repository import (
     SQLApensamentoRepository,
 )
@@ -68,11 +70,18 @@ def get_reconstruir_periodos_service(
     )
 
 
+def get_cache_provider(
+    redis_raw: redis.Redis = Depends(get_redis_client),
+) -> RedisClient:
+    return RedisClient(redis_raw)
+
+
 def get_listar_movimentacoes_service(
     session: Session = Depends(get_session),
     reconstruir_service: ReconstruirPeriodosService = Depends(
         get_reconstruir_periodos_service
     ),
+    cache_provider: RedisClient = Depends(get_cache_provider),
 ) -> ListarMovimentacoesService:
     # Este serviço precisa de múltiplos repositórios e adapters
     evento_repo = SQLEventoTramitacaoRepository(session)
@@ -90,6 +99,7 @@ def get_listar_movimentacoes_service(
         senado_adapter=SenadoAdapter(),
         apensamento_repo=apensamento_repo,
         reconstruir_service=reconstruir_service,
+        cache_provider=cache_provider,
     )
 
 
