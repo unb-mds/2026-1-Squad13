@@ -189,7 +189,9 @@ def run_sem_integridade():
     Melhoria futura: adicionar flag de controle no banco para tornar a
     reconstrução automática segura (ADR a definir).
     """
-    logger.info("🚀 [init_db] Iniciando processo de inicialização (sem integridade analítica)...")
+    logger.info(
+        "🚀 [init_db] Iniciando processo de inicialização (sem integridade analítica)..."
+    )
     run_migrations()
     seed_lookup_tables()
     seed_bootstrap_baselines()
