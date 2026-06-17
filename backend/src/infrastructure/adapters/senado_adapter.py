@@ -554,24 +554,21 @@ class SenadoAdapter:
             ids = []
             for m in dados:
                 try:
-                    if "codigoMateria" in m:
-                        val = str(m["codigoMateria"])
-                        ids.append(
-                            int(val)
-                            if val.isdigit()
-                            else int(re.match(r"^(\d+)", val).group(1))
-                        )
-                    elif "id" in m:
-                        val = str(m["id"])
-                        ids.append(
-                            int(val)
-                            if val.isdigit()
-                            else int(re.match(r"^(\d+)", val).group(1))
-                        )
-                except (ValueError, TypeError, AttributeError):
-                    raw = m.get("codigoMateria") or m.get("id")
+                    raw_id = m.get("codigoMateria") or m.get("id")
+                    if raw_id is not None:
+                        val = str(raw_id)
+                        if val.isdigit():
+                            ids.append(int(val))
+                        else:
+                            # Tenta extrair apenas o prefixo numérico (ex: "0113A" -> 113)
+                            match = re.match(r"^(\d+)", val)
+                            if match:
+                                ids.append(int(match.group(1)))
+                            else:
+                                logger.warning(f"ID não-numérico ignorado: {val}")
+                except (ValueError, TypeError, AttributeError) as e:
                     logger.warning(
-                        f"ID não-numérico ignorado em listar_recentes: {raw}"
+                        f"Erro ao processar ID {m.get('codigoMateria') or m.get('id')}: {e}"
                     )
                     continue
 
@@ -735,24 +732,21 @@ class SenadoAdapter:
 
                 for m in dados:
                     try:
-                        if "codigoMateria" in m:
-                            val = str(m["codigoMateria"])
-                            ids_coletados.append(
-                                int(val)
-                                if val.isdigit()
-                                else int(re.match(r"^(\d+)", val).group(1))
-                            )
-                        elif "id" in m:
-                            val = str(m["id"])
-                            ids_coletados.append(
-                                int(val)
-                                if val.isdigit()
-                                else int(re.match(r"^(\d+)", val).group(1))
-                            )
-                    except (ValueError, TypeError, AttributeError):
-                        raw = m.get("codigoMateria") or m.get("id")
+                        raw_id = m.get("codigoMateria") or m.get("id")
+                        if raw_id is not None:
+                            val = str(raw_id)
+                            if val.isdigit():
+                                ids_coletados.append(int(val))
+                            else:
+                                # Tenta extrair apenas o prefixo numérico (ex: "0113A" -> 42)
+                                match = re.match(r"^(\d+)", val)
+                                if match:
+                                    ids_coletados.append(int(match.group(1)))
+                                else:
+                                    logger.warning(f"ID não-numérico ignorado: {val}")
+                    except (ValueError, TypeError, AttributeError) as e:
                         logger.warning(
-                            f"ID não-numérico ignorado em coletar_em_lote: {raw}"
+                            f"Erro ao processar ID {m.get('codigoMateria') or m.get('id')}: {e}"
                         )
                         continue
 

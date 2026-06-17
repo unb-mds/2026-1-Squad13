@@ -109,9 +109,9 @@ async def executar_coleta(session: Session = Depends(get_session)):
     try:
         resumo = await service.executar_coleta_diaria()
 
-        itens_processados = resumo.get("camara", {}).get("itens_coletados", 0) + resumo.get(
-            "senado", {}
-        ).get("itens_coletados", 0)
+        itens_processados = resumo.get("camara", {}).get(
+            "itens_coletados", 0
+        ) + resumo.get("senado", {}).get("itens_coletados", 0)
 
         camara_status = resumo.get("camara", {}).get("status")
         senado_status = resumo.get("senado", {}).get("status")
@@ -131,7 +131,9 @@ async def executar_coleta(session: Session = Depends(get_session)):
         try:
             cache_provider.invalidate("dashboard:")
         except Exception as cache_err:
-            logger.error(f"Falha ao invalidar cache do dashboard após coleta: {cache_err}")
+            logger.error(
+                f"Falha ao invalidar cache do dashboard após coleta: {cache_err}"
+            )
 
         logger.info(f"Coleta via endpoint interno finalizada. Resumo: {resumo}")
         return {"job_id": job_id, "status": status_geral, "resumo": resumo}
@@ -248,10 +250,7 @@ def executar_reconstruir_periodos(
     ).one()
 
     props_lote = session.exec(
-        select(ProposicaoModel)
-        .where(filtro_sem_periodo)
-        .offset(offset)
-        .limit(limit)
+        select(ProposicaoModel).where(filtro_sem_periodo).offset(offset).limit(limit)
     ).all()
 
     sucesso = 0
