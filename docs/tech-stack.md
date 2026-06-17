@@ -9,8 +9,8 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 - **Backend:** Python + FastAPI + SQLModel + Pydantic
 - **Frontend:** React + Vite + TypeScript + Tailwind CSS
 - **Banco de dados:** [PostgreSQL](adr/ADR-002-postgresql.md) — **Implementado** e operacional via Docker
-- **Cache + Celery broker:** [Redis](adr/ADR-006-redis-cache.md) (Planejado para R2)
-- **Worker & agendamento:** Celery + Celery Beat (Planejado para R2)
+- **Cache + Celery broker:** [Redis](adr/ADR-006-redis-cache.md) — **Implementado** e operacional via Docker
+- **Worker & agendamento:** Celery + Celery Beat — **Implementado** e operacional via Docker
 - **Contêineres:** Docker Compose
 - **CI/CD:** GitHub Actions
 
@@ -53,7 +53,7 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 - **Por que usamos:** [ADR-006: Redis Cache](docs/adr/ADR-006-redis-cache.md)
   - Cache de respostas pesadas para consultas rápidas.
   - Broker do Celery para o worker de coleta [ADR-004: Batch Coleta](docs/adr/ADR-004-batch-coleta.md).
-- **Camada na arquitetura:** Infraestrutura (`src/infrastructure/cache/`).
+- **Camada na arquitetura:** Infraestrutura (implementação no [redis_client.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/cache/redis_client.py)).
 
 ---
 
@@ -62,7 +62,7 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 - **O que é:** biblioteca de tarefas de background agendadas.
 - **Por que usamos:** [ADR-004: Batch diário](docs/adr/ADR-004-batch-coleta.md)
   - Executa coleta das APIs da Câmara/Senado em batch diário às 02h.
-- **Camada na arquitetura:** Infraestrutura (`src/infrastructure/workers/`).
+- **Camada na arquitetura:** Infraestrutura (agendamento no [celery_app.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/workers/celery_app.py), workers no [coleta_worker.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/workers/coleta_worker.py) e [metricas_worker.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/workers/metricas_worker.py)).
 
 ---
 
@@ -96,5 +96,4 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 Veja também:
 
 - [Arquitetura completa](../ARCHITECTURE.md)
-- [Cheat Sheet de comandos](cheat-sheet.md)
 - [README.md](../README.md)

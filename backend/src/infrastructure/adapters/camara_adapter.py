@@ -208,7 +208,9 @@ class CamaraAdapter:
                             despacho = (t.get("despacho") or "").upper()
                             # Heurística simples: busca por "PARECER" e "FAVORÁVEL"
                             if "PARECER" in despacho and (
-                                "DESFAVORÁVEL" in despacho or "CONTRÁR" in despacho or "CONTRA" in despacho
+                                "DESFAVORÁVEL" in despacho
+                                or "CONTRÁR" in despacho
+                                or "CONTRA" in despacho
                             ):
                                 parecer_ccj_favoravel = False
                                 break
