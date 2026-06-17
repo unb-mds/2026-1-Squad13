@@ -207,13 +207,13 @@ class CamaraAdapter:
                         if sigla_orgao in ["CCJ", "CCJR"]:
                             despacho = (t.get("despacho") or "").upper()
                             # Heurística simples: busca por "PARECER" e "FAVORÁVEL"
-                            if "PARECER" in despacho and "FAVOR" in despacho:
-                                parecer_ccj_favoravel = True
-                                break
-                            elif "PARECER" in despacho and (
-                                "CONTRÁR" in despacho or "CONTRA" in despacho
+                            if "PARECER" in despacho and (
+                                "DESFAVORÁVEL" in despacho or "CONTRÁR" in despacho or "CONTRA" in despacho
                             ):
                                 parecer_ccj_favoravel = False
+                                break
+                            elif "PARECER" in despacho and "FAVORÁVEL" in despacho:
+                                parecer_ccj_favoravel = True
                                 break
 
                 return Proposicao(
