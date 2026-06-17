@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 
 import httpx
 
@@ -554,10 +555,24 @@ class SenadoAdapter:
 
             ids = []
             for m in dados:
-                if "codigoMateria" in m:
-                    ids.append(int(m["codigoMateria"]))
-                elif "id" in m:
-                    ids.append(int(m["id"]))
+                try:
+                    raw_id = m.get("codigoMateria") or m.get("id")
+                    if raw_id is not None:
+                        val = str(raw_id)
+                        if val.isdigit():
+                            ids.append(int(val))
+                        else:
+                            # Tenta extrair apenas o prefixo numérico (ex: "0113A" -> 113)
+                            match = re.match(r"^(\d+)", val)
+                            if match:
+                                ids.append(int(match.group(1)))
+                            else:
+                                logger.warning(f"ID não-numérico ignorado: {val}")
+                except (ValueError, TypeError, AttributeError) as e:
+                    logger.warning(
+                        f"Erro ao processar ID {m.get('codigoMateria') or m.get('id')}: {e}"
+                    )
+                    continue
 
             # Aplica paginação simulada na lista completa
             start_offset = (pagina - 1) * quantidade
@@ -718,10 +733,24 @@ class SenadoAdapter:
                     dados = [dados] if dados else []
 
                 for m in dados:
-                    if "codigoMateria" in m:
-                        ids_coletados.append(int(m["codigoMateria"]))
-                    elif "id" in m:
-                        ids_coletados.append(int(m["id"]))
+                    try:
+                        raw_id = m.get("codigoMateria") or m.get("id")
+                        if raw_id is not None:
+                            val = str(raw_id)
+                            if val.isdigit():
+                                ids_coletados.append(int(val))
+                            else:
+                                # Tenta extrair apenas o prefixo numérico (ex: "0113A" -> 42)
+                                match = re.match(r"^(\d+)", val)
+                                if match:
+                                    ids_coletados.append(int(match.group(1)))
+                                else:
+                                    logger.warning(f"ID não-numérico ignorado: {val}")
+                    except (ValueError, TypeError, AttributeError) as e:
+                        logger.warning(
+                            f"Erro ao processar ID {m.get('codigoMateria') or m.get('id')}: {e}"
+                        )
+                        continue
 
                     if len(ids_coletados) >= limite:
                         break
