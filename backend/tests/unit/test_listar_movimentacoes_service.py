@@ -496,6 +496,8 @@ async def test_cache_crossover_com_valor_prefixado_nao_levanta_valueerror(
 @pytest.mark.asyncio
 async def test_executar_usa_lock_e_libera_no_finally(mocks):
     # Arrange
+    from unittest.mock import call
+
     cache_provider_mock = MagicMock()
     cache_provider_mock.set_nx.return_value = True  # adquiriu lock
 
@@ -532,6 +534,12 @@ async def test_executar_usa_lock_e_libera_no_finally(mocks):
     cache_provider_mock.set_nx.assert_called_once_with(
         "lock:importacao:movimentacoes:123", "1", ttl_seconds=30
     )
+    cache_provider_mock.set.assert_has_calls(
+        [
+            call("status:importacao:movimentacoes:123", "em_progresso", ttl_seconds=60),
+            call("status:importacao:movimentacoes:123", "concluido", ttl_seconds=5),
+        ]
+    )
     cache_provider_mock.delete.assert_called_once_with(
         "lock:importacao:movimentacoes:123"
     )
@@ -543,8 +551,10 @@ async def test_executar_concorrente_aguarda_outra_importar_e_retorna_do_cache(mo
     cache_provider_mock = MagicMock()
     cache_provider_mock.set_nx.return_value = False  # lock indisponível
 
-    # No início, o cache está vazio
-    # No loop de aguardar, simulamos que na segunda tentativa o banco agora tem dados
+    # O status retorna "em_progresso" na primeira verificação e "concluido" na segunda
+    cache_provider_mock.get.side_effect = ["em_progresso", "concluido"]
+
+    # Simulação dos eventos salvos
     evento_salvo = EventoTramitacao(
         proposicao_id="123",
         data_evento="2024-01-01",
@@ -554,15 +564,11 @@ async def test_executar_concorrente_aguarda_outra_importar_e_retorna_do_cache(mo
         tipo_evento=TipoEvento.DESPACHO.value,
     )
 
-    # Chamada 1 (inicial em executar): []
-    # Chamada 2 (dentro do loop de aguardar): []
-    # Chamada 3 (dentro do loop de aguardar): [evento_salvo]
-    # Chamada 4 (dentro de _executar_interno): [evento_salvo]
+    # Chamada inicial fora do lock: [] (cache miss)
+    # Chamada ao final do loop de aguardar (dentro de _executar_interno): [evento_salvo]
     mocks["evento_repo"].buscar_por_proposicao.side_effect = [
-        [],  # Checagem inicial fora do lock
-        [],  # Primeira checagem no loop
-        [evento_salvo],  # Segunda checagem no loop (achou!)
-        [evento_salvo],  # Chamada dentro do método interno
+        [],  # Busca fora do lock no início
+        [evento_salvo],  # Busca final pós-polling no _executar_interno
     ]
 
     service_with_cache = ListarMovimentacoesService(
@@ -584,6 +590,13 @@ async def test_executar_concorrente_aguarda_outra_importar_e_retorna_do_cache(mo
     # Assert
     assert resultado == [evento_salvo]
     assert mock_sleep.call_count == 2
+    assert cache_provider_mock.get.call_count == 2
+    cache_provider_mock.get.assert_called_with("status:importacao:movimentacoes:123")
+
+    # Valida que o banco de dados só foi consultado para verificar se estava no cache
+    # no início e depois apenas uma vez para ler o resultado final (total de 2 chamadas,
+    # nenhuma consulta SQL concorrente dentro de um loop).
+    assert mocks["evento_repo"].buscar_por_proposicao.call_count == 2
     mocks["camara_adapter"].buscar_tramitacoes_brutas.assert_not_called()
     mocks["senado_adapter"].buscar_tramitacoes_brutas.assert_not_called()
     cache_provider_mock.delete.assert_not_called()

@@ -119,32 +119,33 @@ class ListarMovimentacoesService:
         # Se não está no cache, adquire o lock
         lock_adquirido = False
         lock_key = f"lock:importacao:movimentacoes:{real_id}"
+        status_key = f"status:importacao:movimentacoes:{real_id}"
 
         if self.cache_provider:
             lock_adquirido = self.cache_provider.set_nx(lock_key, "1", ttl_seconds=30)
-            if not lock_adquirido:
+            if lock_adquirido:
+                # Registra o início da importação concorrente no Redis
+                self.cache_provider.set(status_key, "em_progresso", ttl_seconds=60)
+            else:
                 # Outra requisição concorrente já está importando os dados.
-                # Aguarda de forma assíncrona até que apareçam no banco local.
+                # Aguarda de forma assíncrona até que o status no Redis mude para concluído.
                 import asyncio
 
                 tentativas = 30  # 15 segundos max timeout
                 for _ in range(tentativas):
                     await asyncio.sleep(0.5)
-                    eventos = self.evento_repo.buscar_por_proposicao(
-                        real_id, somente_relevantes=somente_relevantes
-                    )
-                    ja_esta_no_cache = len(eventos) > 0 or (
-                        somente_relevantes
-                        and self.evento_repo.existe_algum_evento(real_id)
-                    )
-                    if ja_esta_no_cache:
+                    status = self.cache_provider.get(status_key)
+                    if status == "concluido" or status is None:
                         break
 
-                if ja_esta_no_cache:
-                    return await self._executar_interno(real_id, modo, client)
+                return await self._executar_interno(real_id, modo, client)
 
         try:
-            return await self._executar_interno(real_id, modo, client)
+            resultado = await self._executar_interno(real_id, modo, client)
+            if lock_adquirido and self.cache_provider:
+                # Sinaliza que os dados foram salvos no PostgreSQL local
+                self.cache_provider.set(status_key, "concluido", ttl_seconds=5)
+            return resultado
         finally:
             if lock_adquirido and self.cache_provider:
                 self.cache_provider.delete(lock_key)
