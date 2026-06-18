@@ -179,16 +179,37 @@ async def executar_coleta(session: Session = Depends(get_session)):
         logger.error(f"Timeout na coleta via endpoint interno (job_id: {job_id})")
         raise
 
+    except asyncio.CancelledError:
+        erro_para_registrar = "request cancelado externamente (CancelledError)"
+        logger.error(f"CancelledError na coleta via endpoint interno (job_id: {job_id})")
+        raise
+
     except Exception as e:
         erro_para_registrar = str(e)
         logger.exception(f"Erro na coleta via endpoint interno (job_id: {job_id})")
         raise
 
     finally:
-        # Fix 1 — registrar_fim garantido mesmo em morte por exceção não capturada
-        auditoria_repo.registrar_fim(
-            job_id, status_para_registrar, itens_para_registrar, erro_para_registrar
-        )
+        try:
+            auditoria_repo.registrar_fim(
+                job_id, status_para_registrar, itens_para_registrar, erro_para_registrar
+            )
+        except Exception as fim_err:
+            logger.error(
+                f"Falha ao registrar_fim, tentando após rollback (job_id: {job_id}): {fim_err}"
+            )
+            try:
+                session.rollback()
+                auditoria_repo.registrar_fim(
+                    job_id,
+                    status_para_registrar,
+                    itens_para_registrar,
+                    erro_para_registrar,
+                )
+            except Exception as fim_err2:
+                logger.critical(
+                    f"Falha crítica ao registrar_fim mesmo após rollback (job_id: {job_id}): {fim_err2}"
+                )
         try:
             cache_provider.eval_lua(_LUA_RELEASE_LOCK, [chave_lock], [token])
         except Exception as lock_err:
