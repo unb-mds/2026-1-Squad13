@@ -202,8 +202,8 @@ export async function obterHandoff(filtros?: Partial<FiltrosProposicao>): Promis
   return await response.json()
 }
 
-export async function obterCobertura(): Promise<CoberturaMetricaResponse[]> {
-  const response = await fetch(`${API_BASE}/dashboard/cobertura`)
+export async function obterCobertura(filtros?: Partial<FiltrosProposicao>): Promise<CoberturaMetricaResponse[]> {
+  const response = await fetch(`${API_BASE}/dashboard/cobertura${_filtrosParaParams(filtros)}`)
   if (!response.ok) throw new Error('Falha ao buscar cobertura da base')
   return await response.json()
 }
