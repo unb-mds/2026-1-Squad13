@@ -127,24 +127,64 @@ class AtualizarCoberturaService:
             "data_atualizacao": snapshot.data_atualizacao if snapshot else None,
         }
 
-    def obter_todas_metricas_cobertura(self) -> list[dict]:
+    def obter_todas_metricas_cobertura(self, filtros: dict | None = None) -> list[dict]:
         """
         Calcula e retorna a métrica de cobertura para todos os snapshots registrados.
 
         Para cada snapshot, o `total_local` é filtrado pelo `orgao_origem` correspondente
         à `fonte` do snapshot — garantindo que Câmara e Senado sejam contados separadamente.
+        Aplica os filtros do dashboard dinamicamente se fornecidos.
         """
         snapshots = self.cobertura_repo.buscar_todos()
+
+        # 1. Filtra a lista de snapshots com base nos filtros estruturais do dashboard
+        if filtros:
+            tipo_filtro = filtros.get("tipo")
+            if tipo_filtro:
+                snapshots = [
+                    s
+                    for s in snapshots
+                    if s.tipo_proposicao.lower() == tipo_filtro.lower()
+                ]
+
+            orgao_filtro = filtros.get("orgao_origem")
+            if orgao_filtro:
+                fonte_filtro = _normalizar_fonte(orgao_filtro)
+                if fonte_filtro:
+                    snapshots = [
+                        s
+                        for s in snapshots
+                        if _normalizar_fonte(s.fonte) == fonte_filtro
+                    ]
+
+            data_inicio = filtros.get("data_inicio")
+            if data_inicio:
+                try:
+                    ano_inicio = datetime.fromisoformat(data_inicio).year
+                    snapshots = [s for s in snapshots if s.ano >= ano_inicio]
+                except Exception:
+                    pass
+
+            data_fim = filtros.get("data_fim")
+            if data_fim:
+                try:
+                    ano_fim = datetime.fromisoformat(data_fim).year
+                    snapshots = [s for s in snapshots if s.ano <= ano_fim]
+                except Exception:
+                    pass
+
         resultados = []
         for snapshot in snapshots:
             fonte_normalizada = _normalizar_fonte(snapshot.fonte)
             orgao_nome = _ORGAO_NOME_POR_FONTE.get(fonte_normalizada)
 
-            total_local = self.proposicao_repo.contar(
-                tipo=snapshot.tipo_proposicao,
-                ano=snapshot.ano,
-                orgao_origem=orgao_nome,
-            )
+            # Prepara os filtros de contagem mesclando os do dashboard com os estruturais do snapshot
+            filtros_contagem = (filtros or {}).copy()
+            filtros_contagem["tipo"] = snapshot.tipo_proposicao
+            filtros_contagem["ano"] = snapshot.ano
+            filtros_contagem["orgao_origem"] = orgao_nome
+
+            total_local = self.proposicao_repo.contar(**filtros_contagem)
             percentual = (
                 (total_local / snapshot.total_api_oficial * 100)
                 if snapshot.total_api_oficial > 0
