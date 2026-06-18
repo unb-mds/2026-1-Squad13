@@ -36,11 +36,13 @@ Este documento é a fonte única de verdade para todos os agentes de Inteligênc
 Sempre prefira usar os scripts centrais do repositório para evitar duplicação de contexto e garantir alinhamento com a Integração Contínua (CI):
 * **Rodar Validação Completa (Linter + Testes):** `./scripts/ci/test.sh` (Script principal que aciona os testes do backend e frontend).
 * **Subir infraestrutura de Dev:** `./scripts/dev/up.sh` (Use com `--no-workers` caso não precise do Celery).
+  > ⚠️ **Execute este script novamente após qualquer `git pull`.** O `up.sh` usa `--build` internamente, reconstruindo as imagens Docker com o código atualizado. Rodar `docker compose up -d` diretamente **não** reconstrói as imagens — os containers (incluindo os workers do Celery) continuariam executando o código antigo, sem refletir as mudanças do repositório.
 * **Derrubar infraestrutura de Dev:** `./scripts/dev/down.sh`
 * **Aplicar Migrações de BD:** `./scripts/db/migrate.sh`
 * **Inicializar Banco vazio:** `./scripts/db/init.sh`
 * **Iniciar Workers de fila:** `./scripts/dev/workers.sh`
 * **Popular Banco de Dados:** `./scripts/dev/seed.sh`
+
 
 ## 6. Definition of Done (DoD)
 Antes de declarar qualquer tarefa concluída, o agente deve garantir:

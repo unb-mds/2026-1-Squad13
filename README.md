@@ -27,6 +27,11 @@ Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend, Frontend e Worke
 - **Backend:** http://localhost:8000
 - **Docs (Swagger):** http://localhost:8000/docs
 
+> ⚠️ **Após qualquer `git pull`, execute este script novamente.**
+> O `up.sh` usa `--build` internamente, o que reconstrói as imagens Docker com o código atualizado.
+> Simplesmente rodar `docker compose up -d` **não** reconstrói as imagens — os containers continuariam
+> executando o código antigo, sem refletir as mudanças do repositório (incluindo workers do Celery).
+
 ### 2. Encerrar o Ambiente
 Para desligar tudo e limpar recursos (redes e containers órfãos):
 ```bash
