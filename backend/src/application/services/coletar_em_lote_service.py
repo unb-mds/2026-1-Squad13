@@ -153,7 +153,10 @@ class ColetarEmLoteService:
             gaps.sort(key=lambda x: x["ano"], reverse=True)
 
             # Cota global máxima de proposições por rodada para evitar timeouts nas APIs
-            COTA_GLOBAL_MAX = 40
+            # Reduzido de 40 para 20 em 2026-06-17: mitigação de OOM kill
+            # observado no Render free tier (512MB) durante execuções de
+            # coleta. Ver investigação de footprint de memória do mesmo dia.
+            COTA_GLOBAL_MAX = 20
             total_planejado = 0
             tarefas_execucao = []
 
