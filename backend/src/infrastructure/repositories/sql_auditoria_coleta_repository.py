@@ -44,6 +44,13 @@ class SQLAuditoriaColetaRepository(AuditoriaColetaRepositoryPort):
         """
         Registra a conclusão (sucesso ou falha) de um background job.
         """
+        # Garante sessão limpa independente de estado anterior —
+        # sessão é exclusiva desta request (injetada via Depends),
+        # sem risco de descartar mudanças de outros contextos.
+        try:
+            self.session.rollback()
+        except Exception:
+            pass
         statement = select(AuditoriaColetaModel).where(
             AuditoriaColetaModel.job_id == job_id
         )
