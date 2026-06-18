@@ -156,12 +156,8 @@ def mock_deps_coleta():
         patch(
             "presentation.controllers.internal_tasks_controller.SQLCoberturaSnapshotRepository"
         ),
-        patch(
-            "presentation.controllers.internal_tasks_controller.CamaraAdapter"
-        ),
-        patch(
-            "presentation.controllers.internal_tasks_controller.SenadoAdapter"
-        ),
+        patch("presentation.controllers.internal_tasks_controller.CamaraAdapter"),
+        patch("presentation.controllers.internal_tasks_controller.SenadoAdapter"),
         patch(
             "presentation.controllers.internal_tasks_controller.ReconstruirPeriodosService"
         ),
