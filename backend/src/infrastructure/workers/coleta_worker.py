@@ -255,6 +255,13 @@ def task_preencher_lacunas(self):
     try:
         resumo = asyncio.run(_run())
         logger.info(f"Gap-filler finalizado. Resumo: {resumo}")
+        try:
+            cache.invalidate("dashboard:")
+            logger.info("⚡ Cache do dashboard invalidado após sucesso do Gap-filler.")
+        except Exception as cache_err:
+            logger.error(
+                f"Falha ao invalidar cache do dashboard no Gap-filler: {cache_err}"
+            )
         return resumo
     except Exception as exc:
         delay = 120 * (2**self.request.retries)
