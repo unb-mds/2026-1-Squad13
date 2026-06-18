@@ -134,7 +134,7 @@ export function useDashboard(filtros: FiltrosProposicao) {
           obterTransicoesCasas(filtros),
           obterEstoque(filtros),
           obterHandoff(filtros),
-          obterCobertura(),
+          obterCobertura(filtros),
           obterQualidade(filtros)
         ]);
 
