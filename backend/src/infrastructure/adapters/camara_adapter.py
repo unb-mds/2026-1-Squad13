@@ -4,6 +4,7 @@ from typing import Optional, List
 from domain.entities.proposicao import Proposicao
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from infrastructure.adapters.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +15,9 @@ class CamaraAdapter:
     Documentação: https://dadosabertos.camara.leg.br/swagger/recursos.html
     """
 
-    def __init__(self):
+    def __init__(self, redis_client=None):
         self.base_url = "https://dadosabertos.camara.leg.br/api/v2"
+        self.circuit_breaker = CircuitBreaker("camara", redis_client)
         self.session = requests.Session()
 
         # Configuração de retry para resiliência (5 tentativas com backoff exponencial)
@@ -30,16 +32,33 @@ class CamaraAdapter:
         self.session.mount("http://", adapter)
         self.timeout = 20  # Timeout aumentado para lidar com lentidão eventual
 
+    def _get(self, url: str, **kwargs) -> requests.Response:
+        """Wraps session.get com circuit breaker."""
+        self.circuit_breaker.before_call()
+        try:
+            resp = self.session.get(url, **kwargs)
+            self.circuit_breaker.on_success()
+            return resp
+        except CircuitBreakerOpenError:
+            raise
+        except requests.exceptions.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code >= 500:
+                self.circuit_breaker.on_failure()
+            raise
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            self.circuit_breaker.on_failure()
+            raise
+
     def buscar_por_id(self, id_proposicao: int) -> Optional[Proposicao]:
         url_proposicao = f"{self.base_url}/proposicoes/{id_proposicao}"
         url_autores = f"{url_proposicao}/autores"
 
         try:
-            resp_prop = self.session.get(url_proposicao, timeout=self.timeout)
+            resp_prop = self._get(url_proposicao, timeout=self.timeout)
             resp_prop.raise_for_status()
             dados = resp_prop.json()["dados"]
 
-            resp_autores = self.session.get(url_autores, timeout=self.timeout)
+            resp_autores = self._get(url_autores, timeout=self.timeout)
             resp_autores.raise_for_status()
             autores_dados = resp_autores.json()["dados"]
 
@@ -104,7 +123,7 @@ class CamaraAdapter:
         if ano:
             params["ano"] = ano
         try:
-            resp = self.session.get(url, params=params, timeout=self.timeout)
+            resp = self._get(url, params=params, timeout=self.timeout)
             resp.raise_for_status()
             dados = resp.json()["dados"]
             return [d["id"] for d in dados]
@@ -120,7 +139,7 @@ class CamaraAdapter:
         """
         url = f"{self.base_url}/proposicoes/{id_proposicao}/tramitacoes"
         try:
-            resp = self.session.get(url, timeout=self.timeout)
+            resp = self._get(url, timeout=self.timeout)
             resp.raise_for_status()
             dados = resp.json()["dados"]
 

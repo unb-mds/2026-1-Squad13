@@ -4,6 +4,7 @@ from typing import Optional, List
 from domain.entities.proposicao import Proposicao
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from infrastructure.adapters.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +15,9 @@ class SenadoAdapter:
     Documentação: https://legis.senado.leg.br/dadosabertos/docs/
     """
 
-    def __init__(self):
+    def __init__(self, redis_client=None):
         self.base_url = "https://legis.senado.leg.br/dadosabertos"
+        self.circuit_breaker = CircuitBreaker("senado", redis_client)
         self.session = requests.Session()
 
         # Configuração de retry para resiliência (5 tentativas com backoff exponencial)
@@ -30,6 +32,23 @@ class SenadoAdapter:
         self.session.mount("http://", adapter)
         self.timeout = 25  # Timeout aumentado para lidar com lentidão da API
 
+    def _get(self, url: str, **kwargs) -> requests.Response:
+        """Wraps session.get com circuit breaker."""
+        self.circuit_breaker.before_call()
+        try:
+            resp = self.session.get(url, **kwargs)
+            self.circuit_breaker.on_success()
+            return resp
+        except CircuitBreakerOpenError:
+            raise
+        except requests.exceptions.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code >= 500:
+                self.circuit_breaker.on_failure()
+            raise
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            self.circuit_breaker.on_failure()
+            raise
+
     def buscar_por_id(self, id_materia: int) -> Optional[Proposicao]:
         """
         Busca detalhes de uma matéria legislativa no Senado.
@@ -40,10 +59,10 @@ class SenadoAdapter:
         headers = {"Accept": "application/json"}
 
         try:
-            resp = self.session.get(url, headers=headers, timeout=self.timeout)
+            resp = self._get(url, headers=headers, timeout=self.timeout)
             if resp.status_code == 404:
                 url = f"{self.base_url}/processo/{id_materia}?v=1"
-                resp = self.session.get(url, headers=headers, timeout=self.timeout)
+                resp = self._get(url, headers=headers, timeout=self.timeout)
 
             resp.raise_for_status()
             dados_brutos = resp.json()
@@ -61,7 +80,7 @@ class SenadoAdapter:
                 id_processo = identificacao_obj.get("IdentificacaoProcesso")
                 if id_processo:
                     try:
-                        resp_proc = self.session.get(
+                        resp_proc = self._get(
                             f"{self.base_url}/processo/{id_processo}?v=1",
                             headers=headers,
                             timeout=10,
@@ -100,7 +119,7 @@ class SenadoAdapter:
                 and "Materia" not in dados_brutos["DetalheMateria"]
             ):
                 url_proc = f"{self.base_url}/processo/{id_materia}?v=1"
-                resp_proc = self.session.get(
+                resp_proc = self._get(
                     url_proc, headers=headers, timeout=self.timeout
                 )
                 if resp_proc.status_code == 200:
@@ -170,7 +189,7 @@ class SenadoAdapter:
         }
         headers = {"Accept": "application/json"}
         try:
-            resp = self.session.get(
+            resp = self._get(
                 url, params=params, headers=headers, timeout=self.timeout
             )
             resp.raise_for_status()
@@ -181,7 +200,7 @@ class SenadoAdapter:
 
             if not dados and not ano:
                 params["ano"] = ano - 1
-                resp = self.session.get(
+                resp = self._get(
                     url, params=params, headers=headers, timeout=self.timeout
                 )
                 if resp.status_code == 200:
@@ -214,7 +233,7 @@ class SenadoAdapter:
         id_processo = id_materia
         try:
             url_mat = f"{self.base_url}/materia/{id_materia}"
-            resp_mat = self.session.get(url_mat, headers=headers, timeout=10)
+            resp_mat = self._get(url_mat, headers=headers, timeout=10)
             if resp_mat.status_code == 200:
                 dados_mat = resp_mat.json()
                 if (
@@ -233,7 +252,7 @@ class SenadoAdapter:
 
         url = f"{self.base_url}/processo/{id_processo}?v=1"
         try:
-            resp = self.session.get(url, headers=headers, timeout=self.timeout)
+            resp = self._get(url, headers=headers, timeout=self.timeout)
             resp.raise_for_status()
             dados = resp.json()
 
