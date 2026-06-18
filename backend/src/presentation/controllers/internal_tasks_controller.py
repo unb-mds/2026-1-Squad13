@@ -136,9 +136,7 @@ async def executar_coleta(session: Session = Depends(get_session)):
 
     try:
         # Fix 2 — timeout global de 240s (margem de 60s antes do cron do GA matar)
-        resumo = await asyncio.wait_for(
-            service.executar_coleta_diaria(), timeout=240
-        )
+        resumo = await asyncio.wait_for(service.executar_coleta_diaria(), timeout=240)
         resumo_para_retorno = resumo
 
         itens_para_registrar = resumo.get("camara", {}).get(

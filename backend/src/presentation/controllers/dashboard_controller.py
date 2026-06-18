@@ -294,11 +294,13 @@ def obter_handoff(
 
 @router.get("/dashboard/cobertura", response_model=list[CoberturaMetricaResponse])
 def obter_cobertura(
+    filtros: DashboardFilterParams = Depends(),
     cobertura_service: AtualizarCoberturaService = Depends(
         get_atualizar_cobertura_service
     ),
 ):
-    return cobertura_service.obter_todas_metricas_cobertura()
+    filtros_dict = _montar_filtros(filtros)
+    return cobertura_service.obter_todas_metricas_cobertura(filtros_dict or None)
 
 
 @router.get("/dashboard/qualidade", response_model=DashboardQualidadeResponse)
