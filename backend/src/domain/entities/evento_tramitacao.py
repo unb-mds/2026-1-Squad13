@@ -145,6 +145,7 @@ class EventoTramitacao(SQLModel):
             or self.marca_apensacao
         )
 
+
 def calcular_tempo_por_fase(eventos: list[EventoTramitacao]) -> list[dict]:
     """
     Calcula o breakdown de tempo por fase a partir dos eventos reais.
@@ -152,18 +153,18 @@ def calcular_tempo_por_fase(eventos: list[EventoTramitacao]) -> list[dict]:
     """
     if len(eventos) < 2:
         return []
-        
+
     from datetime import datetime
-    
+
     ordenadas = sorted(eventos, key=lambda e: (e.data_evento, e.sequencia))
     tempos: dict[str, int] = {}
-    
+
     for i in range(len(ordenadas) - 1):
         atual = ordenadas[i]
         proxima = ordenadas[i + 1]
-        
+
         fase = atual.sigla_orgao or "Outros"
-        
+
         try:
             d_atual = datetime.fromisoformat(atual.data_evento[:10]).date()
             d_prox = datetime.fromisoformat(proxima.data_evento[:10]).date()
@@ -171,7 +172,6 @@ def calcular_tempo_por_fase(eventos: list[EventoTramitacao]) -> list[dict]:
             tempos[fase] = tempos.get(fase, 0) + dias
         except ValueError:
             continue
-            
+
     resultado = [{"fase": k, "dias": v} for k, v in tempos.items()]
     return sorted(resultado, key=lambda x: x["dias"], reverse=True)
-

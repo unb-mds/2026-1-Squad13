@@ -8,6 +8,7 @@ from application.services.detalhe_proposicao_service import DetalheProposicaoSer
 from application.services.gerar_estimativa_service import GerarEstimativaUseCase
 from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.obter_confiabilidade_service import ObterConfiabilidadeService
+from domain.entities.evento_tramitacao import calcular_tempo_por_fase
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from presentation.proposicao_dependencies import (
     get_buscar_proposicoes_service,
@@ -16,7 +17,6 @@ from presentation.proposicao_dependencies import (
     get_listar_movimentacoes_service,
     get_obter_confiabilidade_service,
 )
-from domain.entities.evento_tramitacao import calcular_tempo_por_fase
 
 router = APIRouter(tags=["Proposições"])
 
@@ -319,21 +319,26 @@ def buscar_proposicoes(
 
 @router.get("/proposicoes/{id}", response_model=ProposicaoResponse)
 async def obter_detalhe_proposicao(
-    id: str, 
+    id: str,
     service: DetalheProposicaoService = Depends(get_detalhe_proposicao_service),
-    movimentacoes_service: ListarMovimentacoesService = Depends(get_listar_movimentacoes_service),
+    movimentacoes_service: ListarMovimentacoesService = Depends(
+        get_listar_movimentacoes_service
+    ),
 ):
     try:
         proposicao = await service.executar(id)
-        
+
         try:
-            eventos = await movimentacoes_service.executar(id, modo=ModoMovimentacao.COMPLETO)
+            eventos = await movimentacoes_service.executar(
+                id, modo=ModoMovimentacao.COMPLETO
+            )
             proposicao.tempo_por_fase = calcular_tempo_por_fase(eventos)
         except Exception as e:
             import logging
+
             logging.error(f"Erro ao calcular tempo por fase: {e}")
             proposicao.tempo_por_fase = None
-            
+
         return _to_response(proposicao)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
