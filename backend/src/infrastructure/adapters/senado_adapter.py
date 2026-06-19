@@ -73,10 +73,10 @@ class SenadoAdapter:
 
                 if resp.status_code >= 500:
                     if attempt < max_retries - 1:
+                        delay = 1 if backoff_type == "flat" else (2**attempt)
                         logger.warning(
-                            f"🔄 Senado instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
+                            f"🔄 Senado instável (Erro {resp.status_code}). Aguardando {delay}s antes da tentativa {attempt + 1}/{max_retries}..."
                         )
-                        delay = 1 if backoff_type == "flat" else (attempt + 1)
                         await asyncio.sleep(delay)
                         continue
                     else:

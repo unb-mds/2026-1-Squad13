@@ -67,10 +67,11 @@ class CamaraAdapter:
 
                 if resp.status_code >= 500:
                     if attempt < max_retries - 1:
+                        wait_time = 2**attempt
                         logger.warning(
-                            f"🔄 Câmara instável (Erro {resp.status_code}). Tentativa {attempt + 1}/{max_retries}..."
+                            f"🔄 Câmara instável (Erro {resp.status_code}). Aguardando {wait_time}s antes da tentativa {attempt + 1}/{max_retries}..."
                         )
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(wait_time)
                         continue
                     else:
                         raise ApiServerError(
