@@ -325,7 +325,7 @@ class ColetarEmLoteService:
         self, prop: Proposicao, client: httpx.AsyncClient
     ):
         """Coleta eventos para uma única proposição com isolamento transacional e validação de ID."""
-        # 1. Validação de ID (prefixo obrigatório para evitar FK violation)
+        # 1. Validação de ID (prefixo obrigatório para evitar FK violation ao persistir em evento_tramitacao)
         if ":" not in str(prop.id):
             logger.warning(
                 f"⚠️ Proposição com ID inválido (sem prefixo): {prop.id}. Ignorando eventos para evitar FK violation."
