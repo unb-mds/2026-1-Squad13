@@ -99,6 +99,11 @@ class PreencherLacunasService:
             )
             return {"modo": "manutencao", "processados": 0}
 
+        # Calcula o volume real de itens pendentes
+        total_itens_pendentes = sum(
+            max(0, lac["api_total"] - lac["local"]) for lac in lacunas
+        )
+
         # Carrega estados compartilhados do Redis de uma única vez (Read Once)
         config_compartilhada = self._carregar_configuracao_global()
 
@@ -159,7 +164,7 @@ class PreencherLacunasService:
 
             try:
                 qtd = await self._preencher_lacuna(
-                    lacuna, config_compartilhada, len(lacunas)
+                    lacuna, config_compartilhada, total_itens_pendentes
                 )
                 resumo["processados"][f"{fonte}:{lacuna['ano']}:{lacuna['tipo']}"] = qtd
 
@@ -349,12 +354,21 @@ class PreencherLacunasService:
         ano_atual = datetime.now(UTC).year
 
         # Calibra o batch size (throughput) de acordo com o backlog
-        if backlog_size <= 100:
-            cap_lote = 20
-        elif backlog_size <= 1000:
-            cap_lote = 150
+        override_cap = self.cache.get("seeding:cap_lote_override")
+        if override_cap is not None:
+            try:
+                if isinstance(override_cap, bytes):
+                    override_cap = override_cap.decode()
+                cap_lote = int(override_cap)
+            except ValueError:
+                cap_lote = 20
         else:
-            cap_lote = 300
+            if backlog_size <= 1000:
+                cap_lote = 20
+            elif backlog_size <= 10000:
+                cap_lote = 150
+            else:
+                cap_lote = 300
 
         batch_size = min(cfg["taxa"], cap_lote)
         cursor_anterior = self._ler_cursor(fonte, lacuna["ano"], lacuna["tipo"])

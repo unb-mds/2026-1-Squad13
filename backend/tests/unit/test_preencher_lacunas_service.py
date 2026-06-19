@@ -413,7 +413,7 @@ async def test_cursor_commit_monotonicidade(service, cache_mock):
 
 @pytest.mark.asyncio
 async def test_batch_size_calibration_backlog_baixo(service, camara_mock, cache_mock):
-    """Backlog baixo (<= 100) limita o batch size (cap_lote = 20)."""
+    """Backlog baixo (<= 1000) limita o batch size (cap_lote = 20)."""
     lacuna = {"fonte": "camara", "ano": 2026, "tipo": "PL"}
     camara_mock.listar_recentes.return_value = [1, 2]
 
@@ -443,7 +443,7 @@ async def test_batch_size_calibration_backlog_baixo(service, camara_mock, cache_
 
 @pytest.mark.asyncio
 async def test_batch_size_calibration_backlog_medio(service, camara_mock, cache_mock):
-    """Backlog médio (<= 1000) limita o batch size (cap_lote = 150)."""
+    """Backlog médio (1001 a 10000) limita o batch size (cap_lote = 150)."""
     lacuna = {"fonte": "camara", "ano": 2026, "tipo": "PL"}
     camara_mock.listar_recentes.return_value = [1, 2]
 
@@ -465,7 +465,7 @@ async def test_batch_size_calibration_backlog_medio(service, camara_mock, cache_
     with patch.object(
         service, "_executar_request_com_retry_after", new_callable=AsyncMock
     ):
-        await service._preencher_lacuna(lacuna, config, backlog_size=500)
+        await service._preencher_lacuna(lacuna, config, backlog_size=5000)
 
         # Verifica se o batch_size usado no listar_recentes foi capped em 150
         assert camara_mock.listar_recentes.call_args[1]["quantidade"] == 150
@@ -473,7 +473,7 @@ async def test_batch_size_calibration_backlog_medio(service, camara_mock, cache_
 
 @pytest.mark.asyncio
 async def test_batch_size_calibration_backlog_alto(service, camara_mock, cache_mock):
-    """Backlog alto (> 1000) limita o batch size (cap_lote = 300)."""
+    """Backlog alto (> 10000) limita o batch size (cap_lote = 300)."""
     lacuna = {"fonte": "camara", "ano": 2026, "tipo": "PL"}
     camara_mock.listar_recentes.return_value = [1, 2]
 
@@ -495,7 +495,7 @@ async def test_batch_size_calibration_backlog_alto(service, camara_mock, cache_m
     with patch.object(
         service, "_executar_request_com_retry_after", new_callable=AsyncMock
     ):
-        await service._preencher_lacuna(lacuna, config, backlog_size=1500)
+        await service._preencher_lacuna(lacuna, config, backlog_size=15000)
 
         # Verifica se o batch_size usado no listar_recentes foi capped em 300
         assert camara_mock.listar_recentes.call_args[1]["quantidade"] == 300
@@ -562,7 +562,9 @@ async def test_executar_erro_no_preenchimento(
     service, repo_mock, camara_mock, senado_mock, cache_mock
 ):
     """Registra falhas e calibra CB/Throughput caso ocorra um erro durante a requisição de lote."""
-    camara_mock.listar_recentes.side_effect = ApiConnectionError("API offline temporariamente")
+    camara_mock.listar_recentes.side_effect = ApiConnectionError(
+        "API offline temporariamente"
+    )
 
     with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
         mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
