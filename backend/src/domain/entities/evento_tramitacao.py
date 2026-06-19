@@ -144,3 +144,34 @@ class EventoTramitacao(SQLModel):
             or (self.dias_na_etapa is not None and self.dias_na_etapa > 30)
             or self.marca_apensacao
         )
+
+def calcular_tempo_por_fase(eventos: list[EventoTramitacao]) -> list[dict]:
+    """
+    Calcula o breakdown de tempo por fase a partir dos eventos reais.
+    Exige no mínimo 2 tramitações para gerar os dados.
+    """
+    if len(eventos) < 2:
+        return []
+        
+    from datetime import datetime
+    
+    ordenadas = sorted(eventos, key=lambda e: (e.data_evento, e.sequencia))
+    tempos: dict[str, int] = {}
+    
+    for i in range(len(ordenadas) - 1):
+        atual = ordenadas[i]
+        proxima = ordenadas[i + 1]
+        
+        fase = atual.sigla_orgao or "Outros"
+        
+        try:
+            d_atual = datetime.fromisoformat(atual.data_evento[:10]).date()
+            d_prox = datetime.fromisoformat(proxima.data_evento[:10]).date()
+            dias = max(0, (d_prox - d_atual).days)
+            tempos[fase] = tempos.get(fase, 0) + dias
+        except ValueError:
+            continue
+            
+    resultado = [{"fase": k, "dias": v} for k, v in tempos.items()]
+    return sorted(resultado, key=lambda x: x["dias"], reverse=True)
+
