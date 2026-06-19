@@ -167,9 +167,9 @@ class PreencherLacunasService:
                 self._pre_atualizar_taxa(
                     fonte, sucesso=True, config=config_compartilhada
                 )
-            except Exception as e:
-                logger.error(f"Erro ao preencher lacuna {lacuna}: {e}")
-                is_429 = "429" in str(e) or "Too Many" in str(e)
+            except ApiException as e:
+                logger.error(f"Erro de comunicação externa na lacuna {lacuna}: {e}")
+                is_429 = isinstance(e, ApiRateLimitError) or "429" in str(e)
 
                 self._pre_atualizar_taxa(
                     fonte, sucesso=False, config=config_compartilhada
@@ -177,6 +177,9 @@ class PreencherLacunasService:
                 self._registrar_falha_cb_local(
                     fonte, is_429=is_429, config=config_compartilhada
                 )
+            except Exception as e:
+                # Falhas locais (erros de banco, etc.) não interferem na contagem da API/Circuit Breaker
+                logger.error(f"Erro interno de processamento na lacuna {lacuna}: {e}")
 
         # Salva novos estados dinâmicos calculados (Update Once / Atomic)
         self._persistir_configuracao_global_seguro(config_compartilhada, resumo)
