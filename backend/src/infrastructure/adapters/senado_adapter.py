@@ -562,8 +562,8 @@ class SenadoAdapter:
                         if val.isdigit():
                             ids.append(int(val))
                         else:
-                            # Tenta extrair apenas o prefixo numérico (ex: "0113A" -> 113)
-                            match = re.match(r"^(\d+)", val)
+                            # Tenta extrair o prefixo numérico de IDs com sufixos literais (ex: "0113A" -> 113)
+                            match = re.search(r"^(\d+)", val)
                             if match:
                                 ids.append(int(match.group(1)))
                             else:
@@ -740,8 +740,8 @@ class SenadoAdapter:
                             if val.isdigit():
                                 ids_coletados.append(int(val))
                             else:
-                                # Tenta extrair apenas o prefixo numérico (ex: "0113A" -> 42)
-                                match = re.match(r"^(\d+)", val)
+                                # Tenta extrair o prefixo numérico de IDs com sufixos literais (ex: "0113A" -> 42)
+                                match = re.search(r"^(\d+)", val)
                                 if match:
                                     ids_coletados.append(int(match.group(1)))
                                 else:
