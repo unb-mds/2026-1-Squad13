@@ -13,7 +13,7 @@ from application.services.preencher_lacunas_service import (
     parse_retry_after,
 )
 from domain.entities.proposicao import Proposicao
-from domain.exceptions import ApiRateLimitError
+from domain.exceptions import ApiConnectionError, ApiRateLimitError
 
 
 class MockCacheProvider:
@@ -562,7 +562,7 @@ async def test_executar_erro_no_preenchimento(
     service, repo_mock, camara_mock, senado_mock, cache_mock
 ):
     """Registra falhas e calibra CB/Throughput caso ocorra um erro durante a requisição de lote."""
-    camara_mock.listar_recentes.side_effect = Exception("API offline temporariamente")
+    camara_mock.listar_recentes.side_effect = ApiConnectionError("API offline temporariamente")
 
     with patch("application.services.preencher_lacunas_service.datetime") as mock_date:
         mock_date.now.return_value = datetime(2026, 6, 12, tzinfo=UTC)
