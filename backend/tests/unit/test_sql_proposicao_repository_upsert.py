@@ -229,3 +229,37 @@ def test_upsert_em_lote_pre_2019_nao_colide(session):
     assert p2 is not None
     assert p1.autor == "Deputado Antigo"
     assert p2.autor == "Senador Antigo"
+
+
+def test_upsert_em_lote_mesmo_id_orgao_diferente(session):
+    repo = SQLProposicaoRepository(session)
+
+    # 1. Primeiro insert com orgao_origem = "Câmara dos Deputados" e ID "camara:169655"
+    prop1 = Proposicao(
+        id="camara:169655",
+        tipo="PEC",
+        numero="468",
+        ano=1997,
+        autor="Autor A",
+        ementa="Ementa A",
+        data_apresentacao="1997-05-06",
+        orgao_origem="Câmara dos Deputados",
+        status="Ativo",
+        orgao_atual="Mesa",
+        link_oficial="link",
+        data_ultima_movimentacao="1997-05-06",
+    )
+    repo.upsert_em_lote_por_numero_canonico([prop1])
+
+    # 2. Segundo insert via upsert com o mesmo ID "camara:169655", mas orgao_origem = "Mesa"
+    # Como o orgao_origem é diferente e o ano < 2019, a chave composta seria diferente,
+    # mas o ID é idêntico. O repositório deve atualizar o registro sem erro de UniqueViolation.
+    prop1_mod = prop1.model_copy(update={"orgao_origem": "Mesa", "autor": "Autor B"})
+    repo.upsert_em_lote_por_numero_canonico([prop1_mod])
+
+    session.expire_all()
+    saved = repo.buscar_por_id("camara:169655")
+    assert saved is not None
+    assert saved.orgao_origem == "Mesa"
+    assert saved.autor == "Autor B"
+    assert len(session.exec(select(ProposicaoModel)).all()) == 1
