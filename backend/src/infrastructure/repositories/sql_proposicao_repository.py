@@ -18,6 +18,7 @@ class SQLProposicaoRepository:
         return Proposicao.model_validate(model.model_dump())
 
     def _to_model(self, entity: Proposicao) -> ProposicaoModel:
+        entity.normalizar_campo_status()
         return ProposicaoModel.model_validate(entity.model_dump())
 
     def salvar(self, proposicao: Proposicao) -> Proposicao:

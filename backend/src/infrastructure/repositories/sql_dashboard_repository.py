@@ -53,25 +53,18 @@ class SQLDashboardRepository:
     def _status_agrupado_case(self):
         return case(
             (
-                ProposicaoModel.status.in_(
-                    ["Aprovada", "Sancionada", "Concluída (Lei)"]
-                ),
+                ProposicaoModel.status.in_(["Aprovada", "Sancionada"]),
                 "Aprovada/Sancionada",
             ),
             (
-                ProposicaoModel.status.in_(
-                    ["Arquivada", "Arquivada (Apensada)", "Vetada", "Rejeitada"]
-                ),
+                ProposicaoModel.status.in_(["Arquivada", "Vetada"]),
                 "Rejeitada/Arquivada",
             ),
             (
                 ProposicaoModel.status.in_(
                     [
                         "Em Tramitação",
-                        "Em tramitação",
-                        "Em Relatoria",
                         "Em Pauta",
-                        "Aguardando",
                     ]
                 ),
                 "Em tramitação",
@@ -572,23 +565,25 @@ class SQLDashboardRepository:
         total_senado = 0
         ids = []
 
+        status_ativos = {"Em Tramitação", "Em Pauta"}
+
         for p in props:
             id_p, orgao_origem, orgao_atual, status = p
             ids.append(str(id_p))
 
-            casa = "Câmara"
-            if status in ("Sancionada", "Vetada"):
-                casa = "Sanção"
-            elif (orgao_origem and "senado" in orgao_origem.lower()) or (
-                orgao_atual
-                and ("sf" in orgao_atual.lower() or "senado" in orgao_atual.lower())
-            ):
-                casa = "Senado"
+            # A contagem de totalCamara/totalSenado deve refletir apenas matérias em tramitação
+            if status in status_ativos:
+                casa = "Câmara"
+                if (orgao_origem and "senado" in orgao_origem.lower()) or (
+                    orgao_atual
+                    and ("sf" in orgao_atual.lower() or "senado" in orgao_atual.lower())
+                ):
+                    casa = "Senado"
 
-            if casa == "Câmara":
-                total_camara += 1
-            elif casa == "Senado":
-                total_senado += 1
+                if casa == "Câmara":
+                    total_camara += 1
+                elif casa == "Senado":
+                    total_senado += 1
 
         from infrastructure.database.models.evento_tramitacao_model import (
             EventoTramitacaoModel,

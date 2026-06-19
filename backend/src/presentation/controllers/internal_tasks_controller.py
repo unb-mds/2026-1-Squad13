@@ -179,7 +179,9 @@ async def executar_coleta(session: Session = Depends(get_session)):
 
     except asyncio.CancelledError:
         erro_para_registrar = "request cancelado externamente (CancelledError)"
-        logger.error(f"CancelledError na coleta via endpoint interno (job_id: {job_id})")
+        logger.error(
+            f"CancelledError na coleta via endpoint interno (job_id: {job_id})"
+        )
         raise
 
     except Exception as e:
