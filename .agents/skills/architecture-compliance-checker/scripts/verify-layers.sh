@@ -5,7 +5,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../" && pwd)"
-GEMINI_DIR="$REPO_ROOT/.gemini"
+AGENT_SCRATCH_DIR="$REPO_ROOT/.agents/scratch"
 
 FILES_TO_CHECK=()
 
@@ -14,13 +14,13 @@ if [ $# -gt 0 ]; then
   for arg in "$@"; do
     FILES_TO_CHECK+=("$arg")
   done
-elif [ -f "$GEMINI_DIR/changed-files.txt" ]; then
+elif [ -f "$AGENT_SCRATCH_DIR/changed-files.txt" ]; then
   # Senão, use os arquivos alterados da PR registrados
   while IFS= read -r file; do
     if [ -f "$REPO_ROOT/$file" ]; then
       FILES_TO_CHECK+=("$REPO_ROOT/$file")
     fi
-  done < "$GEMINI_DIR/changed-files.txt"
+  done < "$AGENT_SCRATCH_DIR/changed-files.txt"
 else
   # Se não houver arquivo, verifica recursivamente a pasta backend/src
   echo "Aviso: Sem argumentos e sem changed-files.txt. Verificando toda a pasta backend/src/..."

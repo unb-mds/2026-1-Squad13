@@ -5,7 +5,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../" && pwd)"
-GEMINI_DIR="$REPO_ROOT/.gemini"
+AGENT_SCRATCH_DIR="$REPO_ROOT/.agents/scratch"
 BACKEND_DIR="$REPO_ROOT/backend"
 
 MISSING_TESTS=()
@@ -13,7 +13,7 @@ CHECKED_COUNT=0
 
 echo "🔍 Verificando presença de arquivos de teste para os arquivos alterados..."
 
-if [ -f "$GEMINI_DIR/changed-files.txt" ]; then
+if [ -f "$AGENT_SCRATCH_DIR/changed-files.txt" ]; then
   while IFS= read -r file; do
     # Apenas arquivos Python dentro de backend/src/ (exceto __init__.py e arquivos de configuração)
     if [[ "$file" == backend/src/domain/* || "$file" == backend/src/application/* ]] && [[ "$file" == *.py ]] && [[ "$file" != *__init__.py ]]; then
@@ -30,7 +30,7 @@ if [ -f "$GEMINI_DIR/changed-files.txt" ]; then
         MISSING_TESTS+=("$file")
       fi
     fi
-  done < "$GEMINI_DIR/changed-files.txt"
+  done < "$AGENT_SCRATCH_DIR/changed-files.txt"
 fi
 
 if [ ${#MISSING_TESTS[@]} -gt 0 ]; then

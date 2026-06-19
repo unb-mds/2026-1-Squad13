@@ -75,9 +75,9 @@ Ao ser solicitado a criar um Pull Request, você deve seguir o seguinte protocol
      - impacto nas métricas do Squad Dashboard (labels, issues, CI/CD).
 
 5. Executar ou Verificar Validação Local:
-   - Antes de analisar o código, você DEVE garantir que os resultados de validação em `.gemini/pr-validation.json` são RECENTES (comparar timestamp com os últimos commits).
+   - Antes de analisar o código, você DEVE garantir que os resultados de validação em `.agents/scratch/pr-validation.json` são RECENTES (comparar timestamp com os últimos commits).
    - Se os resultados forem inexistentes ou obsoletos, execute a validação local usando a ferramenta de comandos do Antigravity (`pytest`, `npm run lint` ou o script `.agents/skills/pr-manager/scripts/review-pr.sh <num>`).
-   - Leia `.gemini/pr-validation.json` e `.gemini/pr-validation.log` para verificar se os linters (`Ruff`, `ESLint`, `TSC`) e testes (`Pytest`, `Vitest`) passaram locally. **Não ignore falhas de lint; reporte-as como bloqueios.**
+   - Leia `.agents/scratch/pr-validation.json` e `.agents/scratch/pr-validation.log` para verificar se os linters (`Ruff`, `ESLint`, `TSC`) e testes (`Pytest`, `Vitest`) passaram locally. **Não ignore falhas de lint; reporte-as como bloqueios.**
    - **Auto-remediação de Lints:** Caso a validação local acuse erros triviais de estilo ou formatação (ex: problemas que o `ruff --fix` resolveria), utilize as ferramentas de edição de arquivos do Antigravity para aplicar os patches e correções diretamente na branch de trabalho local antes de finalizar o parecer.
 
 6. Aplicar critérios de avaliação:
@@ -159,7 +159,7 @@ approve / comment / request-changes
 - **Blindagem de Ports**: Se o projeto já consolidou o uso de Ports (Interfaces), qualquer retorno ao uso de classes concretas em camadas superiores deve ser reportado como falha bloqueante de arquitetura.
 - Evitar comentários de estilo triviais quando houver riscos arquiteturais ou de I/O mais relevantes.  
 - Se a PR mexe em `squad-dashboard` ou CI/CD, lembre que labels e workflows alimentam o Squad Dashboard; trate isso com prioridade.
-- Leia sempre os arquivos `.gemini/pr-validation.json` e `.gemini/pr-validation.log` se disponíveis, para enriquecer a seção de Validação Local no parecer.
+- Leia sempre os arquivos `.agents/scratch/pr-validation.json` e `.agents/scratch/pr-validation.log` se disponíveis, para enriquecer a seção de Validação Local no parecer.
 - **Auditoria de Metadados do PR**: Analise a descrição (body) enviada no Pull Request. Se a descrição for considerada rasa (apenas uma lista plana ou sem referências a issues), aponte isso no review como uma pendência de documentação e sugira ativamente um rascunho de descrição robusto, copiando o modelo estruturado do PR #267.
 - **Associação de Issues e Ciclo de Vida**:
   - Toda PR deve estar explicitamente vinculada a todas as issues resolvidas por ela. O revisor deve **obrigatoriamente listar os commits da branch** (ex: `git log develop..HEAD --oneline`) e cruzar com a lista de issues abertas do repositório (usando `gh issue list --limit 100`) para identificar e referenciar quaisquer issues adicionais resolvidas que não tenham sido incluídas na descrição original do PR.
