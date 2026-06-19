@@ -15,7 +15,7 @@ jobs:
           HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
             -X POST "${{ secrets.RENDER_BACKEND_URL }}/internal/tarefas/baselines" \
             -H "X-Internal-Token: ${{ secrets.INTERNAL_API_SECRET }}" \
-            --max-time 120)
+            --max-time 300)
 
           echo "HTTP status: $HTTP_STATUS"
           cat /tmp/response.json
