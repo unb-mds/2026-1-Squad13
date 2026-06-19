@@ -67,12 +67,13 @@ class ListarMovimentacoesService:
     def _extrair_id_numerico(self, id_val: str | int | None) -> int:
         """Extrai o ID numérico puro de uma string que pode conter prefixos (ex: 'camara:123')."""
         import re
+
         if id_val is None:
             return 0
         if isinstance(id_val, int):
             return id_val
         id_str = str(id_val).strip()
-        match = re.search(r'\d+', id_str)
+        match = re.search(r"\d+", id_str)
         if match:
             return int(match.group(0))
         return 0

@@ -237,7 +237,10 @@ class ColetarEmLoteService:
                             *tasks_props, return_exceptions=True
                         )
                     except Exception as gather_err:
-                        logger.error(f"❌ Falha estrutural no asyncio.gather de proposições: {gather_err}", exc_info=True)
+                        logger.error(
+                            f"❌ Falha estrutural no asyncio.gather de proposições: {gather_err}",
+                            exc_info=True,
+                        )
                         results_props = []
 
                     proposicoes_coletadas = []
@@ -310,7 +313,10 @@ class ColetarEmLoteService:
             try:
                 resultados = await asyncio.gather(*tasks, return_exceptions=True)
             except Exception as gather_err:
-                logger.error(f"❌ Falha estrutural no asyncio.gather de eventos: {gather_err}", exc_info=True)
+                logger.error(
+                    f"❌ Falha estrutural no asyncio.gather de eventos: {gather_err}",
+                    exc_info=True,
+                )
                 resultados = []
             for idx, res in enumerate(resultados):
                 if isinstance(res, Exception):
