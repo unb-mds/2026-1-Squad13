@@ -127,6 +127,7 @@ export function mapProposicaoToProposition(p: Proposicao): Proposition {
     status: statusCanonico,
     statusLabel: p.temAtraso ? "Em atraso" : statusCanonico,
     transitouEntreCasas: p.orgaoOrigem?.toLowerCase().includes("senado") && p.orgaoAtual?.toLowerCase().includes("camara") || p.orgaoOrigem?.toLowerCase().includes("camara") && p.orgaoAtual?.toLowerCase().includes("senado"),
+    tempoPorFase: p.tempoPorFase,
   };
 }
 

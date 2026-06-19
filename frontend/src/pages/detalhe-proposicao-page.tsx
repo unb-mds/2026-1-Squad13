@@ -17,6 +17,7 @@ import { PhaseTimeline } from "@/features/proposicoes/components/PhaseTimeline";
 import { EventTimeline } from "@/features/proposicoes/components/EventTimeline";
 import { HouseTransitDiagram } from "@/features/proposicoes/components/HouseTransitDiagram";
 import { DataReliability } from "@/features/proposicoes/components/DataReliability";
+import { BreakdownFaseCard } from "@/features/proposicoes/components/BreakdownFaseCard";
 import { InfoTooltip } from "@/shared/components/InfoTooltip";
 import { AIInsightsCard } from "@/features/proposicoes/components/AIInsightsCard";
 import { useProposicao } from "@/shared/lib/hooks/useProposicao";
@@ -289,6 +290,11 @@ export function DetalheProposicaoPage() {
 
         {/* Phase Timeline */}
         <PhaseTimeline phases={phases} onPhaseClick={setSelectedPhaseId} />
+
+        {/* Breakdown Fase */}
+        {proposicao.tempoPorFase && proposicao.tempoPorFase.length >= 2 && (
+          <BreakdownFaseCard tempoPorFase={proposicao.tempoPorFase} />
+        )}
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
