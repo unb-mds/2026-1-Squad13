@@ -57,34 +57,46 @@ class SQLProposicaoRepository:
     def upsert_em_lote_por_numero_canonico(self, proposicoes: list[Proposicao]) -> None:
         """
         Executa um upsert em lote garantindo idempotência com alta performance.
-        Busca todos os registros existentes em uma única query e processa em memória
-        com base nos regimes de tramitação (Ato Conjunto 1/2018).
+        Busca todos os registros existentes em uma única query (por tipo/número/ano ou ID físico)
+        e processa em memória com base nos regimes de tramitação (Ato Conjunto 1/2018).
         """
         if not proposicoes:
             return
 
-        # 1. Extrai tuplas básicas de tipo, numero, ano do lote para buscar no banco em lote
+        # 1. Extrai tuplas básicas e IDs do lote para buscar no banco em lote
         chaves_basicas = []
+        ids_lote = []
         for p in proposicoes:
             if p.tipo and p.numero and p.ano:
                 chaves_basicas.append((p.tipo.lower(), str(p.numero), p.ano))
+            if p.id:
+                ids_lote.append(p.id)
 
-        if not chaves_basicas:
+        if not chaves_basicas and not ids_lote:
             return
 
-        # 2. Busca todos os registros existentes que batem com tipo, numero e ano do lote
+        # 2. Busca todos os registros existentes que batem com tipo, numero e ano, ou com ID físico
         from sqlalchemy import tuple_
 
+        condicoes = []
+        if chaves_basicas:
+            condicoes.append(
+                tuple_(
+                    func.lower(ProposicaoModel.tipo),
+                    ProposicaoModel.numero,
+                    ProposicaoModel.ano,
+                ).in_(chaves_basicas)
+            )
+        if ids_lote:
+            condicoes.append(ProposicaoModel.id.in_(ids_lote))
+
         statement = select(ProposicaoModel).where(
-            tuple_(
-                func.lower(ProposicaoModel.tipo),
-                ProposicaoModel.numero,
-                ProposicaoModel.ano,
-            ).in_(chaves_basicas)
+            condicoes[0] if len(condicoes) == 1 else (condicoes[0] | condicoes[1])
         )
         existentes = self.session.exec(statement).all()
 
-        # 3. Mapeia os existentes em um dicionário O(1) usando a chave refinada por regime
+        # 3. Mapeia os existentes em O(1) por ID físico e por chave refinada
+        mapa_por_id = {m.id: m for m in existentes if m.id}
         mapa_existentes = {}
         for m in existentes:
             chave = self._obter_chave_busca(m.tipo, m.numero, m.ano, m.orgao_origem)
@@ -102,12 +114,19 @@ class SQLProposicaoRepository:
         }
 
         for prop in proposicoes:
-            chave = self._obter_chave_busca(
-                prop.tipo, prop.numero, prop.ano, prop.orgao_origem
-            )
             model_novo = self._to_model(prop)
 
-            existing = mapa_existentes.get(chave)
+            # Busca prioritariamente por ID físico para evitar UniqueViolation
+            existing = None
+            if prop.id:
+                existing = mapa_por_id.get(prop.id)
+
+            # Fallback para chave refinada caso não encontre por ID físico
+            if not existing:
+                chave = self._obter_chave_busca(
+                    prop.tipo, prop.numero, prop.ano, prop.orgao_origem
+                )
+                existing = mapa_existentes.get(chave)
 
             if existing:
                 # Verifica se a nova coleta vem de uma casa/origem diferente (cruzamento de fontes)
