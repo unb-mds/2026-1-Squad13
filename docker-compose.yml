@@ -52,6 +52,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/src:/app/src
+      - ./backend/tests:/app/tests
     logging:
       driver: "json-file"
       options:
@@ -109,6 +110,7 @@ services:
       - .env
     volumes:
       - ./backend/src:/app/src
+      - ./backend/tests:/app/tests
     depends_on:
       db:
         condition: service_healthy
@@ -128,6 +130,7 @@ services:
       - .env
     volumes:
       - ./backend/src:/app/src
+      - ./backend/tests:/app/tests
     depends_on:
       db:
         condition: service_healthy
