@@ -56,11 +56,10 @@ Durante a auditoria técnica, a duplicidade foi resolvida removendo o componente
 
 ---
 
-## 6. Oportunidades de Padronização Visando Temas (Dark Mode)
-* **Estilização Semântica:** Substituir as classes de estilização de cor fixa (ex: `bg-red-100` e `text-red-600`) por variáveis do tema Tailwind (ex: `bg-destructive/10 text-destructive`) para garantir suporte nativo e consistente ao tema escuro global.
+A duplicidade foi resolvida removendo o componente redundante `KPICard` (PascalCase) e unificando as propriedades de tendência e alarme no componente `KpiCard` de `src/shared/ui/index.tsx`. As cores fixas foram substituídas por tokens semânticos do Tailwind (`text-destructive`, `bg-destructive/10`, `text-success`).
 
 ---
 
-## 7. Arquivos Relacionados
-* **Implementação Oficial:** [KPICard.tsx](../../../frontend/src/shared/components/KPICard.tsx)
-* **Consumo do Componente:** [dashboard-page.tsx](../../../frontend/src/pages/dashboard-page.tsx#L353-L383)
+## 6. Arquivos Relacionados
+* **Implementação Oficial:** [index.tsx](../../../frontend/src/shared/ui/index.tsx)
+* **Consumo do Componente:** [dashboard-page.tsx](../../../frontend/src/pages/dashboard-page.tsx)

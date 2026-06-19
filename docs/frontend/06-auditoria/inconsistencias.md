@@ -5,10 +5,8 @@ Este documento detalha as incompatibilidades técnicas, duplicações de compone
 ---
 
 ## 1. Duplicação de Componentes de KPI (Métricas)
-* **Inconsistência:** O projeto possui duas implementações distintas para exibir cartões de métrica no topo do dashboard:
-  1. `<KPICard />` em [KPICard.tsx](../../../frontend/src/shared/components/KPICard.tsx) (PascalCase): Suporta tendências (`trend`), modo alarme crítico com borda vermelha e usa classes de cores genéricas do Tailwind (`bg-card border-border text-foreground`).
-  2. `<KpiCard />` em [index.tsx](../../../frontend/src/shared/ui/index.tsx#L127-L150) (camelCase): Não possui suporte a tendências ou ícones de alerta, usa cores fixas e escuras (`bg-ink-800 border-ink-700/50 text-white`).
-* **Impacto:** Confusão de legibilidade no desenvolvimento de novos módulos e perda de unidade visual nas cores de fundo em telas que misturam ambos os componentes.
+* **Status:** RESOLVIDO (Issue #235).
+* **Solução:** O componente legado `KPICard` (PascalCase) foi removido e suas capacidades (tendências, modo alarme crítico) foram migradas para o componente único `KpiCard` em `src/shared/ui/index.tsx`. As cores fixas foram substituídas por tokens semânticos do Tailwind (ex: `bg-destructive/10`, `text-destructive`).
 
 ---
 
