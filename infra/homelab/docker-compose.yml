@@ -1,0 +1,90 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: monitor_postgres
+    restart: always
+    env_file:
+      - ../../.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: monitor_redis
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: monitor_backend
+    restart: always
+    command: uv run fastapi run src/main.py --host 0.0.0.0 --port 8000
+    env_file:
+      - ../../.env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: infra/homelab/frontend.Dockerfile
+    container_name: monitor_frontend
+    restart: always
+    ports:
+      - "8888:8888" # Porta pública no homelab
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  celery_worker:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: monitor_worker
+    restart: always
+    command: uv run celery -A infrastructure.workers.celery_app worker --loglevel=info
+    env_file:
+      - ../../.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_beat:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: monitor_beat
+    restart: always
+    command: uv run celery -A infrastructure.workers.celery_app beat --loglevel=info
+    env_file:
+      - ../../.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
