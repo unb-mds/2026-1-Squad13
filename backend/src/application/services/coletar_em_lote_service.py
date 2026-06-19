@@ -232,9 +232,13 @@ class ColetarEmLoteService:
                             return await adapt.buscar_por_id(id_p, client=client)
 
                     tasks_props = [fetch_prop(id_p) for id_p in ids_unicos]
-                    results_props = await asyncio.gather(
-                        *tasks_props, return_exceptions=True
-                    )
+                    try:
+                        results_props = await asyncio.gather(
+                            *tasks_props, return_exceptions=True
+                        )
+                    except Exception as gather_err:
+                        logger.error(f"❌ Falha estrutural no asyncio.gather de proposições: {gather_err}", exc_info=True)
+                        results_props = []
 
                     proposicoes_coletadas = []
                     for idx, res in enumerate(results_props):
@@ -303,7 +307,11 @@ class ColetarEmLoteService:
             for prop in batch:
                 tasks.append(self._processar_uma_proposicao(prop, client))
 
-            resultados = await asyncio.gather(*tasks, return_exceptions=True)
+            try:
+                resultados = await asyncio.gather(*tasks, return_exceptions=True)
+            except Exception as gather_err:
+                logger.error(f"❌ Falha estrutural no asyncio.gather de eventos: {gather_err}", exc_info=True)
+                resultados = []
             for idx, res in enumerate(resultados):
                 if isinstance(res, Exception):
                     if isinstance(
