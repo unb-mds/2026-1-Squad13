@@ -7,7 +7,7 @@ import {
   Filter,
   X,
 } from "lucide-react";
-import { KPICard } from "@/shared/components/KPICard";
+import { KpiCard } from "@/shared/ui";
 import { KPI_CARDS_CONFIG } from "@/shared/constants/kpi-config";
 import { PipelineStage } from "@/features/proposicoes/components/PipelineStage";
 import { HouseTransitions } from "@/features/proposicoes/components/HouseTransitions";
@@ -375,7 +375,7 @@ export function DashboardPage() {
           }
 
           return (
-            <KPICard
+            <KpiCard
               key={config.key}
               title={config.title}
               value={displayValue}
