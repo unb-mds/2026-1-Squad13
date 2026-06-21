@@ -75,6 +75,14 @@ Resumo das tecnologias principais usadas no projeto, explicando **o que é** e *
 
 ---
 
+## Docker
+ 
+-Configuração: `docker-compose.yml`
++Configuração: `docker-compose.yml` (local) e `docker-compose.gcp.yml` (homologação)
+ 
+ ```yaml
+ version: '3.8'
+
 ## 8. Docker Compose
 
 - **O que é:** ferramenta para orquestrar múltiplos containers.
