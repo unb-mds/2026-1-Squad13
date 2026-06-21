@@ -74,6 +74,14 @@ O CI é disparado automaticamente ao abrir ou atualizar um PR.
 
 O repositório possui workflows separados por área, disparados apenas quando os arquivos relevantes mudam (path filter):
 
+### Linting
+ 
+ Usamos ESLint para o frontend e Ruff para o backend. Certifique-se de que seu código passe no linting antes de submeter um PR.
+-O CI ainda não inclui esse passo automaticamente — ele será adicionado em breve.
++Execute o lint antes de abrir o PR para garantir que o código siga os padrões do projeto.
+ 
+ `` `bash
+
 ### Frontend (`frontend/**`)
 
 Arquivo: `.github/workflows/frontend.yml`
