@@ -41,6 +41,7 @@ async function main() {
     'f1': ['proposicao', 'consulta', 'api-camara', 'api-senado', 'adapter'],
     'f2': ['detalhamento', 'detalhe'],
     'f3': ['dashboard', 'kpi', 'chart', 'grafico', 'squad-dashboard'],
+    'f4': ["predicao", "ia", "estimativa", "previsao", "machine-learning"],
     'f5': ['auth', 'login', 'autenticacao'],
     'f6': ['backend', 'infra', 'database', 'docker', 'sqlmodel', 'fastapi', 'architecture', 'arq'],
     'f7': ['test', 'ci', 'workflow', 'ruff', 'pytest', 'vitest', 'lint', 'coverage']
