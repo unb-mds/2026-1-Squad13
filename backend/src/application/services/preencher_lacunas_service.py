@@ -15,7 +15,6 @@ from domain.exceptions import (
     ApiServerError,
     ApiTimeoutError,
 )
-
 from infrastructure.config import settings
 
 logger = logging.getLogger(__name__)
@@ -80,7 +79,14 @@ class PreencherLacunasService:
     # Rate Limit Temporal (intervalo mínimo entre requests por worker em ms)
     RATE_LIMIT_INTERVAL = {"camara": 700, "senado": 1000}
 
-    def __init__(self, proposicao_repo, camara_adapter, senado_adapter, cache, movimentacoes_service=None):
+    def __init__(
+        self,
+        proposicao_repo,
+        camara_adapter,
+        senado_adapter,
+        cache,
+        movimentacoes_service=None,
+    ):
         self.repo = proposicao_repo
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
@@ -704,7 +710,9 @@ class PreencherLacunasService:
         if not id_prop or not isinstance(id_prop, str):
             return False
         parts = id_prop.split(":")
-        return len(parts) == 2 and parts[0] in ("camara", "senado") and parts[1].isdigit()
+        return (
+            len(parts) == 2 and parts[0] in ("camara", "senado") and parts[1].isdigit()
+        )
 
     async def _pos_processar_proposicoes(self, proposicoes: list[Proposicao]):
         """Ponto de extensão para pós-processamento de proposições persistidas (best-effort)."""
@@ -715,7 +723,7 @@ class PreencherLacunasService:
         enable_raw = self.cache.get("seeding:enable_eventos_gapfiller")
         if isinstance(enable_raw, bytes):
             enable_raw = enable_raw.decode()
-        
+
         enable_eventos = False
         if enable_raw is not None:
             enable_eventos = enable_raw.strip().lower() == "true"
@@ -724,31 +732,43 @@ class PreencherLacunasService:
             enable_eventos = getattr(settings, "GAPFILLER_ENABLE_EVENTOS", False)
 
         if not enable_eventos:
-            logger.info("Coleta de eventos no gap-filler desabilitada operacionalmente.")
+            logger.info(
+                "Coleta de eventos no gap-filler desabilitada operacionalmente."
+            )
             return
 
         # 2. Filtra apenas proposições com identificadores válidos
         elegiveis = [p for p in proposicoes if self._is_id_valido(p.id)]
         if not elegiveis:
-            logger.info("Nenhuma proposição elegível para coleta de eventos no sublote.")
+            logger.info(
+                "Nenhuma proposição elegível para coleta de eventos no sublote."
+            )
             return
 
         # 3. Lê parâmetros de batch_size (tamanho do sublote) e concurrency (concorrência)
         batch_size_raw = self.cache.get("seeding:eventos_batch_size")
         if isinstance(batch_size_raw, bytes):
             batch_size_raw = batch_size_raw.decode()
-        
+
         try:
-            batch_size = int(batch_size_raw) if batch_size_raw else getattr(settings, "GAPFILLER_EVENTOS_BATCH_SIZE", 5)
+            batch_size = (
+                int(batch_size_raw)
+                if batch_size_raw
+                else getattr(settings, "GAPFILLER_EVENTOS_BATCH_SIZE", 5)
+            )
         except ValueError:
             batch_size = 5
 
         concurrency_raw = self.cache.get("seeding:eventos_concorrencia")
         if isinstance(concurrency_raw, bytes):
             concurrency_raw = concurrency_raw.decode()
-        
+
         try:
-            concurrency = int(concurrency_raw) if concurrency_raw else getattr(settings, "GAPFILLER_EVENTOS_CONCURRENCY", 5)
+            concurrency = (
+                int(concurrency_raw)
+                if concurrency_raw
+                else getattr(settings, "GAPFILLER_EVENTOS_CONCURRENCY", 5)
+            )
         except ValueError:
             concurrency = 5
 
@@ -758,8 +778,10 @@ class PreencherLacunasService:
         )
 
         # 4. Divide as proposições em sublotes (batch_size)
-        sublotes = [elegiveis[i:i + batch_size] for i in range(0, len(elegiveis), batch_size)]
-        
+        sublotes = [
+            elegiveis[i : i + batch_size] for i in range(0, len(elegiveis), batch_size)
+        ]
+
         # 5. Processa cada sublote
         semaphore = asyncio.Semaphore(concurrency)
 
@@ -772,7 +794,7 @@ class PreencherLacunasService:
                 except Exception as e:
                     logger.error(
                         f"[GAPFILLER_EVENTO_ERRO] Falha ao coletar eventos da proposição {p.id}: {e}",
-                        exc_info=True
+                        exc_info=True,
                     )
                     return {"id": p.id, "sucesso": False, "erro": str(e)}
 
@@ -781,13 +803,12 @@ class PreencherLacunasService:
                 f"[GAPFILLER_EVENTOS_SUBLOTE_INICIO] Processando sublote {idx + 1}/{len(sublotes)} "
                 f"com {len(sublote)} proposições."
             )
-            
+
             # Roda as tarefas de forma concorrente no sublote
             resultados = await asyncio.gather(
-                *[coletar_evento(p) for p in sublote],
-                return_exceptions=True
+                *[coletar_evento(p) for p in sublote], return_exceptions=True
             )
-            
+
             # Computa estatísticas do sublote
             sucessos = 0
             falhas = 0

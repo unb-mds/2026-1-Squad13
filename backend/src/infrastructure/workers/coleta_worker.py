@@ -244,8 +244,12 @@ def task_preencher_lacunas(self):
             camara = CamaraAdapter()
             senado = SenadoAdapter()
 
-            from application.services.listar_movimentacoes_service import ListarMovimentacoesService
-            from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
+            from application.services.listar_movimentacoes_service import (
+                ListarMovimentacoesService,
+            )
+            from application.services.reconstruir_periodos_service import (
+                ReconstruirPeriodosService,
+            )
 
             evento_repo = SQLEventoTramitacaoRepository(session)
             fase_repo = SQLFaseAnaliticaRepository(session)
