@@ -16,6 +16,8 @@ from domain.exceptions import (
     ApiTimeoutError,
 )
 
+from infrastructure.config import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -693,6 +695,104 @@ class PreencherLacunasService:
         self.cache.obter_e_atualizar_multichaves_seguro([chave], delete_cursor_fn)
         self.cache.delete(chave)
 
+    def _is_id_valido(self, id_prop: str | None) -> bool:
+        if not id_prop or not isinstance(id_prop, str):
+            return False
+        parts = id_prop.split(":")
+        return len(parts) == 2 and parts[0] in ("camara", "senado") and parts[1].isdigit()
+
     async def _pos_processar_proposicoes(self, proposicoes: list[Proposicao]):
         """Ponto de extensão para pós-processamento de proposições persistidas (best-effort)."""
-        pass
+        if not self.movimentacoes_service:
+            return
+
+        # 1. Verifica se a feature flag está ativa
+        enable_raw = self.cache.get("seeding:enable_eventos_gapfiller")
+        if isinstance(enable_raw, bytes):
+            enable_raw = enable_raw.decode()
+        
+        enable_eventos = False
+        if enable_raw is not None:
+            enable_eventos = enable_raw.strip().lower() == "true"
+        else:
+            # Fallback para settings
+            enable_eventos = getattr(settings, "GAPFILLER_ENABLE_EVENTOS", False)
+
+        if not enable_eventos:
+            logger.info("Coleta de eventos no gap-filler desabilitada operacionalmente.")
+            return
+
+        # 2. Filtra apenas proposições com identificadores válidos
+        elegiveis = [p for p in proposicoes if self._is_id_valido(p.id)]
+        if not elegiveis:
+            logger.info("Nenhuma proposição elegível para coleta de eventos no sublote.")
+            return
+
+        # 3. Lê parâmetros de batch_size (tamanho do sublote) e concurrency (concorrência)
+        batch_size_raw = self.cache.get("seeding:eventos_batch_size")
+        if isinstance(batch_size_raw, bytes):
+            batch_size_raw = batch_size_raw.decode()
+        
+        try:
+            batch_size = int(batch_size_raw) if batch_size_raw else getattr(settings, "GAPFILLER_EVENTOS_BATCH_SIZE", 5)
+        except ValueError:
+            batch_size = 5
+
+        concurrency_raw = self.cache.get("seeding:eventos_concorrencia")
+        if isinstance(concurrency_raw, bytes):
+            concurrency_raw = concurrency_raw.decode()
+        
+        try:
+            concurrency = int(concurrency_raw) if concurrency_raw else getattr(settings, "GAPFILLER_EVENTOS_CONCURRENCY", 5)
+        except ValueError:
+            concurrency = 5
+
+        logger.info(
+            f"[GAPFILLER_EVENTOS_LOTE] Iniciando processamento de {len(elegiveis)} proposições. "
+            f"Configuração: batch_size={batch_size}, concurrency={concurrency}"
+        )
+
+        # 4. Divide as proposições em sublotes (batch_size)
+        sublotes = [elegiveis[i:i + batch_size] for i in range(0, len(elegiveis), batch_size)]
+        
+        # 5. Processa cada sublote
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def coletar_evento(p: Proposicao):
+            async with semaphore:
+                try:
+                    # ListarMovimentacoesService.executar é best-effort e salva os eventos no banco
+                    await self.movimentacoes_service.executar(p.id)
+                    return {"id": p.id, "sucesso": True, "erro": None}
+                except Exception as e:
+                    logger.error(
+                        f"[GAPFILLER_EVENTO_ERRO] Falha ao coletar eventos da proposição {p.id}: {e}",
+                        exc_info=True
+                    )
+                    return {"id": p.id, "sucesso": False, "erro": str(e)}
+
+        for idx, sublote in enumerate(sublotes):
+            logger.info(
+                f"[GAPFILLER_EVENTOS_SUBLOTE_INICIO] Processando sublote {idx + 1}/{len(sublotes)} "
+                f"com {len(sublote)} proposições."
+            )
+            
+            # Roda as tarefas de forma concorrente no sublote
+            resultados = await asyncio.gather(
+                *[coletar_evento(p) for p in sublote],
+                return_exceptions=True
+            )
+            
+            # Computa estatísticas do sublote
+            sucessos = 0
+            falhas = 0
+            for r in resultados:
+                if isinstance(r, dict) and r.get("sucesso"):
+                    sucessos += 1
+                else:
+                    falhas += 1
+
+            logger.info(
+                f"[GAPFILLER_EVENTOS_SUBLOTE_FIM] Sublote {idx + 1}/{len(sublotes)} finalizado. "
+                f"Elegiveis: {len(sublote)} | Sucessos: {sucessos} | Falhas: {falhas}"
+            )
