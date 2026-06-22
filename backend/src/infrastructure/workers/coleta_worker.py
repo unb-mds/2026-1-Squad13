@@ -244,11 +244,40 @@ def task_preencher_lacunas(self):
             camara = CamaraAdapter()
             senado = SenadoAdapter()
 
+            from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+            from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
+
+            evento_repo = SQLEventoTramitacaoRepository(session)
+            fase_repo = SQLFaseAnaliticaRepository(session)
+            orgao_repo = SQLOrgaoLegislativoRepository(session)
+            apensamento_repo = SQLApensamentoRepository(session)
+            periodo_repo = SQLPeriodoFaseRepository(session)
+
+            reconstruir_service = ReconstruirPeriodosService(
+                periodo_repo=periodo_repo,
+                evento_repo=evento_repo,
+                fase_repo=fase_repo,
+                proposicao_repo=repo,
+            )
+
+            movimentacoes_service = ListarMovimentacoesService(
+                evento_repo=evento_repo,
+                proposicao_repo=repo,
+                fase_repo=fase_repo,
+                orgao_repo=orgao_repo,
+                camara_adapter=camara,
+                senado_adapter=senado,
+                apensamento_repo=apensamento_repo,
+                reconstruir_service=reconstruir_service,
+                cache_provider=cache,
+            )
+
             service = PreencherLacunasService(
                 proposicao_repo=repo,
                 camara_adapter=camara,
                 senado_adapter=senado,
                 cache=cache,
+                movimentacoes_service=movimentacoes_service,
             )
             return await service.executar()
 
