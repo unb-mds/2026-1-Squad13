@@ -78,11 +78,12 @@ class PreencherLacunasService:
     # Rate Limit Temporal (intervalo mínimo entre requests por worker em ms)
     RATE_LIMIT_INTERVAL = {"camara": 700, "senado": 1000}
 
-    def __init__(self, proposicao_repo, camara_adapter, senado_adapter, cache):
+    def __init__(self, proposicao_repo, camara_adapter, senado_adapter, cache, movimentacoes_service=None):
         self.repo = proposicao_repo
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
         self.cache = cache
+        self.movimentacoes_service = movimentacoes_service
 
         # Inicializa rate limiters temporais
         self.limiters = {
@@ -464,6 +465,7 @@ class PreencherLacunasService:
 
                 if proposicoes:
                     self.repo.upsert_em_lote_por_numero_canonico(proposicoes)
+                    await self._pos_processar_proposicoes(proposicoes)
 
                 # Regra de cursor monotônico
                 cursor_novo = cursor_anterior + len(ids)
@@ -690,3 +692,7 @@ class PreencherLacunasService:
 
         self.cache.obter_e_atualizar_multichaves_seguro([chave], delete_cursor_fn)
         self.cache.delete(chave)
+
+    async def _pos_processar_proposicoes(self, proposicoes: list[Proposicao]):
+        """Ponto de extensão para pós-processamento de proposições persistidas (best-effort)."""
+        pass
