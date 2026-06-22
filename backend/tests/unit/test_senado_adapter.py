@@ -431,3 +431,21 @@ async def test_coletar_em_lote_com_id_nao_numerico(adapter):
             # buscar_por_id deve ter sido chamado com os IDs numéricos extraídos
             mock_buscar.assert_any_call(42)
             mock_buscar.assert_any_call(300)
+
+
+@pytest.mark.asyncio
+async def test_senado_adapter_erro_500(adapter):
+    from domain.exceptions import ApiServerError
+
+    with (
+        patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get,
+        patch("asyncio.sleep", new_callable=AsyncMock),
+    ):
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_get.return_value = mock_response
+
+        with pytest.raises(ApiServerError):
+            await adapter.buscar_por_id(54321)
+
+        assert mock_get.call_count >= 3
