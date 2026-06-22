@@ -206,12 +206,17 @@ class PreencherLacunasService:
 
                 for ano in range(ano_atual, self.ANO_INICIO - 1, -1):
                     for tipo in self.TIPOS:
+                        # Mapeia sigla de busca local se for Senado pré-2019
+                        tipo_local = tipo
+                        if fonte == "senado" and tipo == "PL" and ano < 2019:
+                            tipo_local = "PLS"
+
                         # Tática 1: Pruning - pula anos consolidados
                         if self._ano_consolidado(fonte, ano, tipo):
                             continue
 
                         local = self.repo.contar(
-                            tipo=tipo, ano=ano, orgao_origem=orgao_nome
+                            tipo=tipo_local, ano=ano, orgao_origem=orgao_nome
                         )
 
                         # API total com cache de 24h
