@@ -1,5 +1,5 @@
 import { ArrowUpDown, ExternalLink, ArrowRightLeft } from "lucide-react";
-import type { StatusProposicao } from "@/shared/types";
+import type { StatusProposicao, BreakdownFase } from "@/shared/types";
 import { corStatus } from "@/shared/lib/utils";
 
 export interface Proposition {
@@ -21,6 +21,7 @@ export interface Proposition {
   status: StatusProposicao;
   statusLabel: string;
   transitouEntreCasas?: boolean;
+  tempoPorFase?: BreakdownFase[];
 }
 
 interface PropositionsTableProps {

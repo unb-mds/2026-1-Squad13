@@ -8,6 +8,11 @@ export type StatusProposicao =
   | 'Vetada'
   | 'Arquivada'
 
+export interface BreakdownFase {
+  fase: string
+  dias: number
+}
+
 export interface Proposicao {
   id: string
   tipo: TipoProposicao
@@ -32,6 +37,7 @@ export interface Proposicao {
   previsaoAprovacaoDias?: number
   coberturaDados: number
   confiabilidade: 'alta' | 'media' | 'baixa'
+  tempoPorFase?: BreakdownFase[]
   tags: string[]
 }
 
