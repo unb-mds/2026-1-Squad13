@@ -103,7 +103,7 @@ class PreencherLacunasService:
         resumo = {"modo": "catch_up", "processados": {}, "circuit_breakers": {}}
         lacunas = await self._detectar_lacunas()
         if not lacunas:
-            logger.info(
+            self._persistir_telemetria(
                 "[TELEMETRIA RESUMO] Status da Run: manutencao (Sem lacunas identificadas)"
             )
             return {"modo": "manutencao", "processados": 0}
@@ -353,7 +353,7 @@ class PreencherLacunasService:
         self.cache.obter_e_atualizar_multichaves_seguro(chaves, update_fn)
 
         # Telemetria Resumo consolidada
-        logger.info(
+        self._persistir_telemetria(
             f"[TELEMETRIA RESUMO] Status da Run: {resumo['modo']}\n"
             f" - Câmara: [Estado CB: {config['camara']['cb_estado']}] [Throughput Alvo: {config['camara']['taxa']} itens/lote] [Concorrência: {config['camara']['concorrencia']}] [Falhas Run: 429={config['camara']['429_count']}, 5xx={config['camara']['5xx_count']}, timeouts={config['camara']['timeout_count']}] [RTT P95: {self._calc_p95(config['camara']['rtts'])}ms]\n"
             f" - Senado: [Estado CB: {config['senado']['cb_estado']}] [Throughput Alvo: {config['senado']['taxa']} itens/lote] [Concorrência: {config['senado']['concorrencia']}] [Falhas Run: 429={config['senado']['429_count']}, 5xx={config['senado']['5xx_count']}, timeouts={config['senado']['timeout_count']}] [RTT P95: {self._calc_p95(config['senado']['rtts'])}ms]"
@@ -495,7 +495,7 @@ class PreencherLacunasService:
                 # Telemetria Batch consolidada
                 rtt_p95 = self._calc_p95(cfg["rtts"])
                 req_s = len(ids_unicos) / duration_lote if duration_lote > 0 else 0.0
-                logger.info(
+                self._persistir_telemetria(
                     f"[TELEMETRIA BATCH] Fonte: {fonte} | Lacuna: {lacuna['ano']}:{lacuna['tipo']} | "
                     f"Processados: {len(proposicoes)}/{len(ids_unicos)} | RTT P95: {rtt_p95}ms | "
                     f"Frequência Real: {req_s:.2f} req/s | "
@@ -713,6 +713,21 @@ class PreencherLacunasService:
         return (
             len(parts) == 2 and parts[0] in ("camara", "senado") and parts[1].isdigit()
         )
+
+    def _persistir_telemetria(self, mensagem: str):
+        # 1. Exibe no logger padrão (stdout/console)
+        logger.info(mensagem)
+
+        # 2. Persiste em arquivo local mapeado no volume
+        try:
+            log_dir = "/app/logs"
+            import os
+            os.makedirs(log_dir, exist_ok=True)
+            with open(f"{log_dir}/telemetria.log", "a", encoding="utf-8") as f:
+                timestamp = datetime.now(UTC).isoformat()
+                f.write(f"[{timestamp}] {mensagem}\n")
+        except Exception as e:
+            logger.error(f"Erro ao persistir telemetria local: {e}")
 
     async def _pos_processar_proposicoes(self, proposicoes: list[Proposicao]):
         """Ponto de extensão para pós-processamento de proposições persistidas (best-effort)."""
