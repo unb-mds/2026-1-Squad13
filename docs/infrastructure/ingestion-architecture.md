@@ -231,8 +231,13 @@ Emitida ao final de cada execução global do Celery Worker, sintetizando o esta
 
 ### C. Comandos Úteis para Visualização de Logs (CLI)
 
+As telemetrias de batches e resumo são persistidas de forma cumulativa no arquivo local `backend/logs/telemetria.log` mapeado via volume Docker, mantendo o histórico de execução mesmo que os containers sejam reiniciados.
+
 ```bash
-# Filtrar apenas a Telemetria
+# Visualizar o arquivo de telemetria persistido localmente (com tail em tempo real)
+tail -f backend/logs/telemetria.log
+
+# Filtrar apenas a Telemetria na saída padrão do container (efêmero)
 docker compose logs -f celery_worker | grep "\[TELEMETRIA"
 
 # Monitorar o Circuit Breaker
