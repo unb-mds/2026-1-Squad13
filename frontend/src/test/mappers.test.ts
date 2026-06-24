@@ -7,7 +7,7 @@ import {
   mapEventoTramitacaoToTimelineEvent,
   mapMovimentacoesToTransitSteps,
 } from '../shared/lib/mappers';
-import type { Proposicao } from '../shared/types';
+import type { Proposicao, StatusProposicao } from '../shared/types';
 
 describe('formatarDataBr', () => {
   it('retorna data no formato pt-BR quando string ISO valida', () => {
@@ -73,6 +73,7 @@ describe('mapProposicaoToProposition', () => {
     numero: '123',
     ano: 2024,
     ementa: 'Ementa de teste',
+    ementaResumida: 'Ementa de teste',
     autor: 'Autor Ficticio',
     status: 'Em Tramitação',
     orgaoAtual: 'CCJC',
@@ -80,6 +81,8 @@ describe('mapProposicaoToProposition', () => {
     dataUltimaMovimentacao: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 dias atras
     orgaoOrigem: 'Câmara dos Deputados',
     temAtraso: false,
+    atrasoCritico: false,
+    temPrevisaoIA: false,
     tempoTotalDias: 30,
     coberturaDados: 90,
     confiabilidade: 'alta',
@@ -102,7 +105,7 @@ describe('mapProposicaoToProposition', () => {
   });
 
   it('identifica casaAtual como Sanção quando status e Sancionada ou Vetada', () => {
-    const sancionadaProp = { ...baseProp, status: 'Sancionada' };
+    const sancionadaProp = { ...baseProp, status: 'Sancionada' as StatusProposicao };
     expect(mapProposicaoToProposition(sancionadaProp).casaAtual).toBe('Sanção');
   });
 
@@ -115,9 +118,9 @@ describe('mapProposicaoToProposition', () => {
   });
 
   it('identifica statusTramitacao como aprovada/arquivada/aguardando baseado em palavras-chave', () => {
-    expect(mapProposicaoToProposition({ ...baseProp, status: 'Rejeitada' }).statusTramitacao).toBe('arquivada');
-    expect(mapProposicaoToProposition({ ...baseProp, status: 'Aprovada' }).statusTramitacao).toBe('aprovada');
-    expect(mapProposicaoToProposition({ ...baseProp, status: 'Aguardando' }).statusTramitacao).toBe('aguardando');
+    expect(mapProposicaoToProposition({ ...baseProp, status: 'Rejeitada' as unknown as StatusProposicao }).statusTramitacao).toBe('arquivada');
+    expect(mapProposicaoToProposition({ ...baseProp, status: 'Aprovada' as StatusProposicao }).statusTramitacao).toBe('aprovada');
+    expect(mapProposicaoToProposition({ ...baseProp, status: 'Aguardando' as unknown as StatusProposicao }).statusTramitacao).toBe('aguardando');
   });
 });
 
