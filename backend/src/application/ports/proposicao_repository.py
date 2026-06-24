@@ -38,8 +38,10 @@ class ProposicaoRepositoryPort(Protocol):
         data_fim: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
+        ordenar_por: str | None = None,
+        ordem: str | None = None,
     ) -> list[Proposicao]:
-        """Filtra proposições com base em critérios e paginação."""
+        """Filtra proposições com base em critérios, paginação e ordenação."""
         ...
 
     def contar(
