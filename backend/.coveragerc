@@ -17,10 +17,12 @@ omit =
     src/domain/entities/tramitacao.py
     src/infrastructure/cache/redis_client.py
     src/infrastructure/database/__init__.py
+    src/infrastructure/database/seeds/*
     src/main.py
     src/infrastructure/repositories/sql_user_repository.py
     src/presentation/controllers/health_controller.py
-    src/infrastructure/database/seeds/*
+    src/trigger_backfill.py
+    src/update_ids_migration.py
 
 [report]
 show_missing = True
