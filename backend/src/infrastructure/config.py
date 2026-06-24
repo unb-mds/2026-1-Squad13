@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     # Token secreto para endpoints internos (GitHub Actions cron)
     INTERNAL_API_SECRET: str = ""
 
+    # Configurações do Gap-Filler (Preenchimento de Lacunas)
+    # Precedência de configuração para a ingestão de eventos: Redis -> Settings/.env -> default do código
+    GAPFILLER_ENABLE_EVENTOS: bool = False
+    GAPFILLER_EVENTOS_BATCH_SIZE: int = 5
+    GAPFILLER_EVENTOS_CONCURRENCY: int = 5
+
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 

@@ -492,7 +492,10 @@ class SenadoAdapter:
     ) -> int:
         """Obtém o total de matérias para um tipo e ano na API do Senado."""
         url = f"{self.base_url}/processo"
-        params = {"sigla": tipo, "ano": ano}
+        tipo_consulta = tipo
+        if tipo == "PL" and ano < 2019:
+            tipo_consulta = "PLS"
+        params = {"sigla": tipo_consulta, "ano": ano}
         headers = {"Accept": "application/json"}
         _client = client or httpx.AsyncClient(follow_redirects=True)
         try:
@@ -534,8 +537,12 @@ class SenadoAdapter:
 
             ano = date.today().year
 
+        tipo_consulta = tipo
+        if tipo == "PL" and isinstance(ano, int) and ano < 2019:
+            tipo_consulta = "PLS"
+
         params = {
-            "sigla": tipo,
+            "sigla": tipo_consulta,
             "ano": ano,
         }
         if numero:
@@ -704,6 +711,12 @@ class SenadoAdapter:
         """
         if params is None:
             params = {}
+
+        # Mapeamento dinâmico de PL para PLS em lotes históricos do Senado
+        sigla_param = params.get("sigla")
+        ano_param = params.get("ano")
+        if sigla_param == "PL" and isinstance(ano_param, int) and ano_param < 2019:
+            params["sigla"] = "PLS"
 
         url = f"{self.base_url}/processo"
         headers = {"Accept": "application/json"}

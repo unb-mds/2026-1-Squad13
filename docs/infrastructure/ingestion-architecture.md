@@ -156,16 +156,16 @@ Para evitar colisões e concorrência indevida quando múltiplos workers operam 
 
 Os arquivos responsáveis por essa engrenagem de ingestão estão mapeados abaixo:
 
-*   [exceptions.py](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/exceptions.py) — Exceções ricas de rede e status da API.
-*   [classificacao_preditiva.py](file:///home/caio_martins/2026-1-Squad13/backend/src/domain/services/classificacao_preditiva.py) — Classificadores de autoria e tema econômico.
-*   [ports/camara_adapter.py](file:///home/caio_martins/2026-1-Squad13/backend/src/application/ports/camara_adapter.py) — Interface de acesso para a API da Câmara.
-*   [ports/senado_adapter.py](file:///home/caio_martins/2026-1-Squad13/backend/src/application/ports/senado_adapter.py) — Interface de acesso para a API do Senado.
-*   [preencher_lacunas_service.py](file:///home/caio_martins/2026-1-Squad13/backend/src/application/services/preencher_lacunas_service.py) — Motor adaptativo de seeds históricos e detecção de lacunas.
-*   [adapters/camara_adapter.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/adapters/camara_adapter.py) — Conectividade HTTP com a Câmara, parser de Retry-After e lógica de retries locais.
-*   [adapters/senado_adapter.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/adapters/senado_adapter.py) — Conectividade HTTP com o Senado, parse de emendas e retries locais.
-*   [redis_client.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/cache/redis_client.py) — Operações Lua, Optimistic Locking e chaves no Redis.
-*   [celery_app.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/workers/celery_app.py) — Configurações de schedule Celery Beat e logs estruturados.
-*   [coleta_worker.py](file:///home/caio_martins/2026-1-Squad13/backend/src/infrastructure/workers/coleta_worker.py) — Worker Celery e lock global de overlap.
+*   [exceptions.py](../../backend/src/domain/exceptions.py) — Exceções ricas de rede e status da API.
+*   [classificacao_preditiva.py](../../backend/src/domain/services/classificacao_preditiva.py) — Classificadores de autoria e tema econômico.
+*   [ports/camara_adapter.py](../../backend/src/application/ports/camara_adapter.py) — Interface de acesso para a API da Câmara.
+*   [ports/senado_adapter.py](../../backend/src/application/ports/senado_adapter.py) — Interface de acesso para a API do Senado.
+*   [preencher_lacunas_service.py](../../backend/src/application/services/preencher_lacunas_service.py) — Motor adaptativo de seeds históricos e detecção de lacunas.
+*   [adapters/camara_adapter.py](../../backend/src/infrastructure/adapters/camara_adapter.py) — Conectividade HTTP com a Câmara, parser de Retry-After e lógica de retries locais.
+*   [adapters/senado_adapter.py](../../backend/src/infrastructure/adapters/senado_adapter.py) — Conectividade HTTP com o Senado, parse de emendas e retries locais.
+*   [redis_client.py](../../backend/src/infrastructure/cache/redis_client.py) — Operações Lua, Optimistic Locking e chaves no Redis.
+*   [celery_app.py](../../backend/src/infrastructure/workers/celery_app.py) — Configurações de schedule Celery Beat e logs estruturados.
+*   [coleta_worker.py](../../backend/src/infrastructure/workers/coleta_worker.py) — Worker Celery e lock global de overlap.
 
 ---
 
@@ -231,8 +231,13 @@ Emitida ao final de cada execução global do Celery Worker, sintetizando o esta
 
 ### C. Comandos Úteis para Visualização de Logs (CLI)
 
+As telemetrias de batches e resumo são persistidas de forma cumulativa no arquivo local `backend/logs/telemetria.log` mapeado via volume Docker, mantendo o histórico de execução mesmo que os containers sejam reiniciados.
+
 ```bash
-# Filtrar apenas a Telemetria
+# Visualizar o arquivo de telemetria persistido localmente (com tail em tempo real)
+tail -f backend/logs/telemetria.log
+
+# Filtrar apenas a Telemetria na saída padrão do container (efêmero)
 docker compose logs -f celery_worker | grep "\[TELEMETRIA"
 
 # Monitorar o Circuit Breaker

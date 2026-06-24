@@ -15,6 +15,7 @@ from domain.exceptions import (
     ApiServerError,
     ApiTimeoutError,
 )
+from infrastructure.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -78,11 +79,19 @@ class PreencherLacunasService:
     # Rate Limit Temporal (intervalo mínimo entre requests por worker em ms)
     RATE_LIMIT_INTERVAL = {"camara": 700, "senado": 1000}
 
-    def __init__(self, proposicao_repo, camara_adapter, senado_adapter, cache):
+    def __init__(
+        self,
+        proposicao_repo,
+        camara_adapter,
+        senado_adapter,
+        cache,
+        movimentacoes_service=None,
+    ):
         self.repo = proposicao_repo
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
         self.cache = cache
+        self.movimentacoes_service = movimentacoes_service
 
         # Inicializa rate limiters temporais
         self.limiters = {
@@ -94,7 +103,7 @@ class PreencherLacunasService:
         resumo = {"modo": "catch_up", "processados": {}, "circuit_breakers": {}}
         lacunas = await self._detectar_lacunas()
         if not lacunas:
-            logger.info(
+            self._persistir_telemetria(
                 "[TELEMETRIA RESUMO] Status da Run: manutencao (Sem lacunas identificadas)"
             )
             return {"modo": "manutencao", "processados": 0}
@@ -203,12 +212,17 @@ class PreencherLacunasService:
 
                 for ano in range(ano_atual, self.ANO_INICIO - 1, -1):
                     for tipo in self.TIPOS:
+                        # Mapeia sigla de busca local se for Senado pré-2019
+                        tipo_local = tipo
+                        if fonte == "senado" and tipo == "PL" and ano < 2019:
+                            tipo_local = "PLS"
+
                         # Tática 1: Pruning - pula anos consolidados
                         if self._ano_consolidado(fonte, ano, tipo):
                             continue
 
                         local = self.repo.contar(
-                            tipo=tipo, ano=ano, orgao_origem=orgao_nome
+                            tipo=tipo_local, ano=ano, orgao_origem=orgao_nome
                         )
 
                         # API total com cache de 24h
@@ -339,7 +353,7 @@ class PreencherLacunasService:
         self.cache.obter_e_atualizar_multichaves_seguro(chaves, update_fn)
 
         # Telemetria Resumo consolidada
-        logger.info(
+        self._persistir_telemetria(
             f"[TELEMETRIA RESUMO] Status da Run: {resumo['modo']}\n"
             f" - Câmara: [Estado CB: {config['camara']['cb_estado']}] [Throughput Alvo: {config['camara']['taxa']} itens/lote] [Concorrência: {config['camara']['concorrencia']}] [Falhas Run: 429={config['camara']['429_count']}, 5xx={config['camara']['5xx_count']}, timeouts={config['camara']['timeout_count']}] [RTT P95: {self._calc_p95(config['camara']['rtts'])}ms]\n"
             f" - Senado: [Estado CB: {config['senado']['cb_estado']}] [Throughput Alvo: {config['senado']['taxa']} itens/lote] [Concorrência: {config['senado']['concorrencia']}] [Falhas Run: 429={config['senado']['429_count']}, 5xx={config['senado']['5xx_count']}, timeouts={config['senado']['timeout_count']}] [RTT P95: {self._calc_p95(config['senado']['rtts'])}ms]"
@@ -464,6 +478,7 @@ class PreencherLacunasService:
 
                 if proposicoes:
                     self.repo.upsert_em_lote_por_numero_canonico(proposicoes)
+                    await self._pos_processar_proposicoes(proposicoes)
 
                 # Regra de cursor monotônico
                 cursor_novo = cursor_anterior + len(ids)
@@ -480,7 +495,7 @@ class PreencherLacunasService:
                 # Telemetria Batch consolidada
                 rtt_p95 = self._calc_p95(cfg["rtts"])
                 req_s = len(ids_unicos) / duration_lote if duration_lote > 0 else 0.0
-                logger.info(
+                self._persistir_telemetria(
                     f"[TELEMETRIA BATCH] Fonte: {fonte} | Lacuna: {lacuna['ano']}:{lacuna['tipo']} | "
                     f"Processados: {len(proposicoes)}/{len(ids_unicos)} | RTT P95: {rtt_p95}ms | "
                     f"Frequência Real: {req_s:.2f} req/s | "
@@ -690,3 +705,135 @@ class PreencherLacunasService:
 
         self.cache.obter_e_atualizar_multichaves_seguro([chave], delete_cursor_fn)
         self.cache.delete(chave)
+
+    def _is_id_valido(self, id_prop: str | None) -> bool:
+        if not id_prop or not isinstance(id_prop, str):
+            return False
+        parts = id_prop.split(":")
+        return (
+            len(parts) == 2 and parts[0] in ("camara", "senado") and parts[1].isdigit()
+        )
+
+    def _persistir_telemetria(self, mensagem: str):
+        # 1. Exibe no logger padrão (stdout/console)
+        logger.info(mensagem)
+
+        # 2. Persiste em arquivo local mapeado no volume
+        try:
+            log_dir = "/app/logs"
+            import os
+            os.makedirs(log_dir, exist_ok=True)
+            with open(f"{log_dir}/telemetria.log", "a", encoding="utf-8") as f:
+                timestamp = datetime.now(UTC).isoformat()
+                f.write(f"[{timestamp}] {mensagem}\n")
+        except Exception as e:
+            logger.error(f"Erro ao persistir telemetria local: {e}")
+
+    async def _pos_processar_proposicoes(self, proposicoes: list[Proposicao]):
+        """Ponto de extensão para pós-processamento de proposições persistidas (best-effort)."""
+        if not self.movimentacoes_service:
+            return
+
+        # 1. Verifica se a feature flag está ativa
+        enable_raw = self.cache.get("seeding:enable_eventos_gapfiller")
+        if isinstance(enable_raw, bytes):
+            enable_raw = enable_raw.decode()
+
+        enable_eventos = False
+        if enable_raw is not None:
+            enable_eventos = enable_raw.strip().lower() == "true"
+        else:
+            # Fallback para settings
+            enable_eventos = getattr(settings, "GAPFILLER_ENABLE_EVENTOS", False)
+
+        if not enable_eventos:
+            logger.info(
+                "Coleta de eventos no gap-filler desabilitada operacionalmente."
+            )
+            return
+
+        # 2. Filtra apenas proposições com identificadores válidos
+        elegiveis = [p for p in proposicoes if self._is_id_valido(p.id)]
+        if not elegiveis:
+            logger.info(
+                "Nenhuma proposição elegível para coleta de eventos no sublote."
+            )
+            return
+
+        # 3. Lê parâmetros de batch_size (tamanho do sublote) e concurrency (concorrência)
+        batch_size_raw = self.cache.get("seeding:eventos_batch_size")
+        if isinstance(batch_size_raw, bytes):
+            batch_size_raw = batch_size_raw.decode()
+
+        try:
+            batch_size = (
+                int(batch_size_raw)
+                if batch_size_raw
+                else getattr(settings, "GAPFILLER_EVENTOS_BATCH_SIZE", 5)
+            )
+        except ValueError:
+            batch_size = 5
+
+        concurrency_raw = self.cache.get("seeding:eventos_concorrencia")
+        if isinstance(concurrency_raw, bytes):
+            concurrency_raw = concurrency_raw.decode()
+
+        try:
+            concurrency = (
+                int(concurrency_raw)
+                if concurrency_raw
+                else getattr(settings, "GAPFILLER_EVENTOS_CONCURRENCY", 5)
+            )
+        except ValueError:
+            concurrency = 5
+
+        logger.info(
+            f"[GAPFILLER_EVENTOS_LOTE] Iniciando processamento de {len(elegiveis)} proposições. "
+            f"Configuração: batch_size={batch_size}, concurrency={concurrency}"
+        )
+
+        # 4. Divide as proposições em sublotes (batch_size)
+        sublotes = [
+            elegiveis[i : i + batch_size] for i in range(0, len(elegiveis), batch_size)
+        ]
+
+        # 5. Processa cada sublote
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def coletar_evento(p: Proposicao):
+            async with semaphore:
+                try:
+                    # ListarMovimentacoesService.executar é best-effort e salva os eventos no banco
+                    await self.movimentacoes_service.executar(p.id)
+                    return {"id": p.id, "sucesso": True, "erro": None}
+                except Exception as e:
+                    logger.error(
+                        f"[GAPFILLER_EVENTO_ERRO] Falha ao coletar eventos da proposição {p.id}: {e}",
+                        exc_info=True,
+                    )
+                    return {"id": p.id, "sucesso": False, "erro": str(e)}
+
+        for idx, sublote in enumerate(sublotes):
+            logger.info(
+                f"[GAPFILLER_EVENTOS_SUBLOTE_INICIO] Processando sublote {idx + 1}/{len(sublotes)} "
+                f"com {len(sublote)} proposições."
+            )
+
+            # Roda as tarefas de forma concorrente no sublote
+            resultados = await asyncio.gather(
+                *[coletar_evento(p) for p in sublote], return_exceptions=True
+            )
+
+            # Computa estatísticas do sublote
+            sucessos = 0
+            falhas = 0
+            for r in resultados:
+                if isinstance(r, dict) and r.get("sucesso"):
+                    sucessos += 1
+                else:
+                    falhas += 1
+
+            logger.info(
+                f"[GAPFILLER_EVENTOS_SUBLOTE_FIM] Sublote {idx + 1}/{len(sublotes)} finalizado. "
+                f"Elegiveis: {len(sublote)} | Sucessos: {sucessos} | Falhas: {falhas}"
+            )
