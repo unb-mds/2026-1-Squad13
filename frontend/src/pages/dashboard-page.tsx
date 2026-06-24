@@ -48,6 +48,8 @@ export function DashboardPage() {
   const [proposicoesData, setProposicoesData] = useState<{ items: Proposition[]; total: number }>({ items: [], total: 0 });
   const [pagina, setPagina] = useState(1);
   const [loadingProps, setLoadingProps] = useState(false);
+  const [ordenarPor, setOrdenarPor] = useState<string | undefined>(undefined);
+  const [ordem, setOrdem] = useState<"asc" | "desc">("asc");
 
   // Debounce search term local state change to filters state
   useEffect(() => {
@@ -74,21 +76,46 @@ export function DashboardPage() {
   // Load propositions list with filters and pagination
   useEffect(() => {
     setLoadingProps(true);
-    listarProposicoes(filtros, pagina, 10)
+    listarProposicoes(filtros, pagina, 10, ordenarPor, ordem)
       .then((res) => {
         const mapped = res.items.map((p) => mapProposicaoToProposition(p));
         setProposicoesData({ items: mapped, total: res.total });
       })
       .catch((err) => {
         console.error("Erro ao listar proposições da API, usando fallback mock:", err);
-        // Fallback to local mocks
+        // Fallback to local mocks com ordenação embutida
         const mappedMock = PROPOSICOES_MOCK.map((p) => mapProposicaoToProposition(p));
+        if (ordenarPor) {
+          mappedMock.sort((a: Proposition, b: Proposition) => {
+            const valA = a[ordenarPor as keyof Proposition];
+            const valB = b[ordenarPor as keyof Proposition];
+            if (ordenarPor === "diasNaEtapa" || ordenarPor === "atraso") {
+              const numA = typeof valA === "number" ? valA : 0;
+              const numB = typeof valB === "number" ? valB : 0;
+              return ordem === "asc" ? numA - numB : numB - numA;
+            }
+            if (typeof valA === "string" && typeof valB === "string") {
+              return ordem === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+            return 0;
+          });
+        }
         setProposicoesData({ items: mappedMock, total: PROPOSICOES_MOCK.length });
       })
       .finally(() => {
         setLoadingProps(false);
       });
-  }, [filtros, pagina]);
+  }, [filtros, pagina, ordenarPor, ordem]);
+
+  const handleSort = (field: string) => {
+    if (ordenarPor === field) {
+      setOrdem((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setOrdenarPor(field);
+      setOrdem("asc");
+    }
+    setPagina(1);
+  };
 
   const handlePropositionClick = (id: string) => {
     navigate(`/proposicoes/${id}`);
@@ -671,6 +698,7 @@ export function DashboardPage() {
             <PropositionsTable
               propositions={proposicoesData.items}
               onPropositionClick={handlePropositionClick}
+              onSort={handleSort}
             />
 
             {/* Pagination Controls */}
