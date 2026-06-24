@@ -37,7 +37,7 @@ class BackfillEmendasService:
 
         # Busca proposições que precisam de atualização
         statement = select(ProposicaoModel).where(
-            (ProposicaoModel.numero_emendas is None)
+            (ProposicaoModel.numero_emendas.is_(None))
             | (
                 (ProposicaoModel.numero_emendas == 0)
                 & (ProposicaoModel.orgao_origem == "Câmara dos Deputados")
