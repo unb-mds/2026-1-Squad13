@@ -11,7 +11,12 @@ class BuscarProposicoesService:
         self.repository = repository
 
     def executar(
-        self, filtros: dict, pagina: int = 1, itens_por_pagina: int = 10
+        self,
+        filtros: dict,
+        pagina: int = 1,
+        itens_por_pagina: int = 10,
+        ordenar_por: str | None = None,
+        ordem: str | None = None,
     ) -> dict:
 
         filtros_repositorio = {
@@ -34,6 +39,8 @@ class BuscarProposicoesService:
             **filtros_repositorio,
             limit=itens_por_pagina,
             offset=inicio,
+            ordenar_por=ordenar_por,
+            ordem=ordem,
         )
 
         total_paginas = (
