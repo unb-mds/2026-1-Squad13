@@ -3,6 +3,7 @@ import type { Proposition } from '@/features/proposicoes/components/Propositions
 import type { PhaseEntry } from '@/features/proposicoes/components/PhaseTimeline';
 import type { TimelineEvent } from '@/features/proposicoes/components/EventTimeline';
 import type { TransitStep } from '@/features/proposicoes/components/HouseTransitDiagram';
+import { buildTransitSteps } from './fsm/build';
 
 // Converte data ISO ou string em formato DD/MM/AAAA
 export function formatarDataBr(dataStr?: string): string {
@@ -249,58 +250,25 @@ export function mapMovimentacoesToTransitSteps(movs: {
   orgao?: string;
   dataEvento?: string;
   data?: string;
+  descricaoOriginal?: string;
   remessaOuRetorno?: string | null;
 }[]): TransitStep[] {
-  const steps: TransitStep[] = [];
-  
   if (movs.length === 0) {
     return [
-      { casa: "Câmara", tipo: "origem", dataEntrada: "Apresentação" }
+      { casa: "Câmara", tipo: "origem", dataEntrada: "Apresentação", duracaoDias: 0 }
     ];
   }
 
   // Ordena cronologicamente
-  const sortedMovs = [...movs].sort((a, b) => new Date(a.dataEvento || a.data || "").getTime() - new Date(b.dataEvento || b.data || "").getTime());
-  
-  // Determina a casa inicial
-  const firstMov = sortedMovs[0];
-  const casaInicial = identificarCasaDoEvento(firstMov.siglaOrgao, firstMov.orgao, firstMov.proposicaoId, firstMov.remessaOuRetorno);
-  
-  let currentCasa = casaInicial;
-  let houseEntryTime = new Date(firstMov.dataEvento || firstMov.data || "").getTime();
-
-  steps.push({
-    casa: currentCasa,
-    tipo: "origem",
-    dataEntrada: formatarDataBr(firstMov.dataEvento || firstMov.data),
-    duracaoDias: 0
+  const sortedMovs = [...movs].sort((a, b) => {
+    const timeA = new Date((a.dataEvento || a.data || "").replace(/Z$/i, "")).getTime();
+    const timeB = new Date((b.dataEvento || b.data || "").replace(/Z$/i, "")).getTime();
+    return timeA - timeB;
   });
+  
+  // Determina a casa inicial/origem para alimentar a FSM
+  const firstMov = sortedMovs[0];
+  const casaOrigem = identificarCasaDoEvento(firstMov.siglaOrgao, firstMov.orgao, firstMov.proposicaoId, firstMov.remessaOuRetorno);
 
-  for (let i = 1; i < sortedMovs.length; i++) {
-    const m = sortedMovs[i];
-    const casaDoEvento = identificarCasaDoEvento(m.siglaOrgao, m.orgao, m.proposicaoId, m.remessaOuRetorno, casaInicial);
-    
-    if (casaDoEvento !== currentCasa) {
-      // Transição de casa detectada
-      steps[steps.length - 1].dataSaida = formatarDataBr(m.dataEvento || m.data);
-      
-      // Duração real na casa anterior (do dia que entrou na casa até o dia que mudou para a outra)
-      const end = new Date(m.dataEvento || m.data || "").getTime();
-      steps[steps.length - 1].duracaoDias = Math.max(1, Math.floor((end - houseEntryTime) / (1000 * 60 * 60 * 24)));
-
-      currentCasa = casaDoEvento;
-      houseEntryTime = end;
-      steps.push({
-        casa: currentCasa,
-        tipo: steps.length === 1 ? "revisora" : "retorno",
-        dataEntrada: formatarDataBr(m.dataEvento || m.data),
-        duracaoDias: 0
-      });
-    }
-  }
-
-  // Estima os dias na última etapa (do dia que entrou até hoje)
-  steps[steps.length - 1].duracaoDias = Math.max(1, Math.floor((Date.now() - houseEntryTime) / (1000 * 60 * 60 * 24)));
-
-  return steps;
+  return buildTransitSteps(movs, casaOrigem);
 }
