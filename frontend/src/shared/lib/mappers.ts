@@ -208,10 +208,6 @@ export function identificarCasaDoEvento(
   remessaOuRetorno?: string | null,
   casaOrigem?: "Câmara" | "Senado"
 ): "Câmara" | "Senado" {
-  if (proposicaoId?.startsWith("senado:")) return "Senado";
-  if (proposicaoId?.startsWith("camara:")) return "Câmara";
-
-  // Se o ID for legado/numérico puro, usamos a heurística de siglas
   if (remessaOuRetorno === "REMESSA") {
     return casaOrigem === "Câmara" ? "Senado" : "Câmara";
   }
@@ -222,6 +218,7 @@ export function identificarCasaDoEvento(
   const sigla = siglaOrgao?.toLowerCase() || "";
   const orgaoLower = orgao?.toLowerCase() || "";
 
+  // 1. Heurísticas baseadas em siglas de órgãos ou termos explícitos
   if (
     sigla.includes("sf") || 
     orgaoLower.includes("sf") || 
@@ -238,6 +235,11 @@ export function identificarCasaDoEvento(
     return "Câmara";
   }
 
+  // 2. Prefixo do ID como fallback caso a sigla seja inconclusiva
+  if (proposicaoId?.startsWith("senado:")) return "Senado";
+  if (proposicaoId?.startsWith("camara:")) return "Câmara";
+
+  // 3. Fallback final
   return casaOrigem || "Câmara";
 }
 
