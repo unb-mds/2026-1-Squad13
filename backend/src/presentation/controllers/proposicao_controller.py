@@ -2,7 +2,11 @@ from enum import StrEnum
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+from sqlmodel import Session, select
 
+from application.services.atualizar_transit_steps_service import (
+    AtualizarTransitStepsService,
+)
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
 from application.services.gerar_estimativa_service import GerarEstimativaUseCase
@@ -10,6 +14,8 @@ from application.services.listar_movimentacoes_service import ListarMovimentacoe
 from application.services.obter_confiabilidade_service import ObterConfiabilidadeService
 from domain.entities.evento_tramitacao import calcular_tempo_por_fase
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
+from infrastructure.database import get_session
+from infrastructure.database.models.transit_step_model import TransitStepModel
 from presentation.proposicao_dependencies import (
     get_buscar_proposicoes_service,
     get_detalhe_proposicao_service,
@@ -47,6 +53,14 @@ class EventoTramitacaoResponse(BaseModel):
     diasNaEtapa: int = Field(alias="diasNaEtapa")
     temAtraso: bool = Field(alias="temAtraso")
     relevante: bool
+
+
+class TransitStepResponse(BaseModel):
+    casa: str
+    tipoPasso: str = Field(alias="tipoPasso")
+    dataEntrada: str = Field(alias="dataEntrada")
+    dataSaida: str | None = Field(default=None, alias="dataSaida")
+    duracaoDias: int = Field(alias="duracaoDias")
 
 
 class ProposicaoResponse(BaseModel):
@@ -96,6 +110,9 @@ class ProposicaoResponse(BaseModel):
     coberturaDados: int = Field(alias="coberturaDados")
     confiabilidade: str = Field(alias="confiabilidade")
     tempoPorFase: list[BreakdownFase] | None = Field(default=None, alias="tempoPorFase")
+    transitSteps: list[TransitStepResponse] | None = Field(
+        default=None, alias="transitSteps"
+    )
 
 
 class ProposicoesListResponse(BaseModel):
@@ -159,8 +176,8 @@ class EstimativaAprovacaoResponse(BaseModel):
 
 
 # --- Helper to map snake_case to camelCase for response ---
-def _to_response(p) -> dict:
-    return {
+def _to_response(p, steps=None) -> dict:
+    res = {
         "id": str(p.id),
         "tipo": p.tipo,
         "numero": str(p.numero),
@@ -198,6 +215,22 @@ def _to_response(p) -> dict:
         "confiabilidade": p.confiabilidade,
         "tempoPorFase": getattr(p, "tempo_por_fase", None),
     }
+    if steps is not None:
+        res["transitSteps"] = [
+            {
+                "casa": s.casa,
+                "tipoPasso": s.tipo_passo,
+                "dataEntrada": s.data_entrada.strftime("%d/%m/%Y")
+                if s.data_entrada
+                else "",
+                "dataSaida": s.data_saida.strftime("%d/%m/%Y")
+                if s.data_saida
+                else None,
+                "duracaoDias": s.duracao_dias,
+            }
+            for s in steps
+        ]
+    return res
 
 
 def _to_evento_response(e) -> dict:
@@ -330,6 +363,7 @@ async def obter_detalhe_proposicao(
     movimentacoes_service: ListarMovimentacoesService = Depends(
         get_listar_movimentacoes_service
     ),
+    session: Session = Depends(get_session),
 ):
     try:
         proposicao = await service.executar(id)
@@ -345,7 +379,30 @@ async def obter_detalhe_proposicao(
             logging.error(f"Erro ao calcular tempo por fase: {e}")
             proposicao.tempo_por_fase = None
 
-        return _to_response(proposicao)
+        # Busca os transit steps do banco (Read Model Projeção)
+        steps_models = session.exec(
+            select(TransitStepModel)
+            .where(TransitStepModel.proposicao_id == id)
+            .order_by(TransitStepModel.data_entrada)
+        ).all()
+
+        # Se não houver steps no banco, computa sob demanda
+        if not steps_models:
+            try:
+                atualizador = AtualizarTransitStepsService(session)
+                atualizador.executar(id)
+                # Recarrega do banco
+                steps_models = session.exec(
+                    select(TransitStepModel)
+                    .where(TransitStepModel.proposicao_id == id)
+                    .order_by(TransitStepModel.data_entrada)
+                ).all()
+            except Exception as e:
+                import logging
+
+                logging.error(f"Erro ao computar transit steps sob demanda: {e}")
+
+        return _to_response(proposicao, steps=steps_models)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
