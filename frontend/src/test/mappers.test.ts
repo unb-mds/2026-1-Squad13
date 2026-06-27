@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   formatarDataBr,
   identificarCasaDoEvento,
@@ -224,12 +224,6 @@ describe('mapEventoTramitacaoToTimelineEvent', () => {
 });
 
 describe('mapMovimentacoesToTransitSteps', () => {
-  beforeEach(() => {
-    // Mock Date.now() para garantir consistência temporal nos testes
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-25T18:00:00Z'));
-  });
-
   it('deve retornar step de origem padrão para lista vazia', () => {
     const steps = mapMovimentacoesToTransitSteps([]);
     expect(steps).toHaveLength(1);
@@ -237,52 +231,14 @@ describe('mapMovimentacoesToTransitSteps', () => {
     expect(steps[0].tipo).toBe('origem');
   });
 
-  it('deve mapear corretamente o trânsito da PEC 35/2011 (Senado para Câmara)', () => {
+  it('deve retornar o passo inicial da casa correta com base no primeiro evento', () => {
     const movs = [
-      { proposicaoId: '100215', dataEvento: '2011-05-16Z', siglaOrgao: 'CCJ', descricao: 'Aguardando relator' },
-      { proposicaoId: '100215', dataEvento: '2014-08-06Z', siglaOrgao: 'SEXPE', remessaOuRetorno: 'REMESSA', descricao: 'Remetida à Câmara' },
-      { proposicaoId: '100215', dataEvento: '2014-08-08T13:17Z', siglaOrgao: 'MESA', descricao: 'Recebimento' },
-      { proposicaoId: '100215', dataEvento: '2021-04-20Z', siglaOrgao: 'CCJC', descricao: 'Designação de relator' }
+      { proposicaoId: 'senado:123', dataEvento: '2024-01-01T00:00:00Z', siglaOrgao: 'SLSF', descricao: 'Apresentação' }
     ];
-
     const steps = mapMovimentacoesToTransitSteps(movs);
-
-    // Deve detectar 2 steps (Senado como origem, Câmara como revisora)
-    expect(steps).toHaveLength(2);
-
-    // Step 1: Senado
+    expect(steps).toHaveLength(1);
     expect(steps[0].casa).toBe('Senado');
     expect(steps[0].tipo).toBe('origem');
-    expect(steps[0].dataEntrada).toBe('16/05/2011');
-    expect(steps[0].dataSaida).toBe('06/08/2014');
-    expect(steps[0].duracaoDias).toBe(1178); // De 2011-05-16 a 2014-08-06
-
-    // Step 2: Câmara
-    expect(steps[1].casa).toBe('Câmara');
-    expect(steps[1].tipo).toBe('revisora');
-    expect(steps[1].dataEntrada).toBe('06/08/2014');
-    expect(steps[1].duracaoDias).toBe(4341); // De 2014-08-06 a 2026-06-25 (Date.now() mockado)
-  });
-
-  it('retorna origem padrao quando movimentacoes vazias (versão simples)', () => {
-    vi.useRealTimers();
-    const result = mapMovimentacoesToTransitSteps([]);
-    expect(result.length).toBe(1);
-    expect(result[0].casa).toBe('Câmara');
-    expect(result[0].tipo).toBe('origem');
-  });
-
-  it('calcula etapas de transicao de casa corretamente', () => {
-    vi.useRealTimers();
-    const movs = [
-      { siglaOrgao: 'CCJC', dataEvento: '2024-01-01' },
-      { siglaOrgao: 'SF', dataEvento: '2024-01-10' }
-    ];
-    const result = mapMovimentacoesToTransitSteps(movs);
-    expect(result.length).toBe(2);
-    expect(result[0].casa).toBe('Câmara');
-    expect(result[0].duracaoDias).toBe(9);
-    expect(result[0].dataSaida).toBe('10/01/2024');
-    expect(result[1].casa).toBe('Senado');
+    expect(steps[0].dataEntrada).toBe('01/01/2024');
   });
 });

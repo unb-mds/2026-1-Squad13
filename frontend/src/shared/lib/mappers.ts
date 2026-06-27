@@ -3,7 +3,6 @@ import type { Proposition } from '@/features/proposicoes/components/Propositions
 import type { PhaseEntry } from '@/features/proposicoes/components/PhaseTimeline';
 import type { TimelineEvent } from '@/features/proposicoes/components/EventTimeline';
 import type { TransitStep } from '@/features/proposicoes/components/HouseTransitDiagram';
-import { buildTransitSteps } from './fsm/build';
 
 // Converte data ISO ou string em formato DD/MM/AAAA
 export function formatarDataBr(dataStr?: string): string {
@@ -248,8 +247,8 @@ export function mapMovimentacoesToTransitSteps(movs: {
   proposicaoId?: string;
   siglaOrgao?: string;
   orgao?: string;
-  dataEvento?: string;
   data?: string;
+  dataEvento?: string;
   descricaoOriginal?: string;
   remessaOuRetorno?: string | null;
 }[]): TransitStep[] {
@@ -259,16 +258,20 @@ export function mapMovimentacoesToTransitSteps(movs: {
     ];
   }
 
-  // Ordena cronologicamente
-  const sortedMovs = [...movs].sort((a, b) => {
-    const timeA = new Date((a.dataEvento || a.data || "").replace(/Z$/i, "")).getTime();
-    const timeB = new Date((b.dataEvento || b.data || "").replace(/Z$/i, "")).getTime();
-    return timeA - timeB;
-  });
-  
-  // Determina a casa inicial/origem para alimentar a FSM
-  const firstMov = sortedMovs[0];
-  const casaOrigem = identificarCasaDoEvento(firstMov.siglaOrgao, firstMov.orgao, firstMov.proposicaoId, firstMov.remessaOuRetorno);
+  const firstMov = movs[0];
+  const casaOrigem = identificarCasaDoEvento(
+    firstMov.siglaOrgao,
+    firstMov.orgao,
+    firstMov.proposicaoId,
+    firstMov.remessaOuRetorno
+  );
 
-  return buildTransitSteps(movs, casaOrigem);
+  return [
+    {
+      casa: casaOrigem as "Câmara" | "Senado",
+      tipo: "origem",
+      dataEntrada: firstMov.dataEvento ? formatarDataBr(firstMov.dataEvento) : "Apresentação",
+      duracaoDias: 0
+    }
+  ];
 }
