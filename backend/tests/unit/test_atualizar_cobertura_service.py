@@ -253,3 +253,66 @@ async def test_normalizacao_fonte_em_atualizar_snapshot(origem, esperado, mock_r
     snapshot = await service.atualizar_snapshot(2026, "PL", origem)
 
     assert snapshot.fonte == esperado
+
+
+@pytest.mark.asyncio
+async def test_atualizar_snapshot_origem_desconhecida(service, mock_repos):
+    mock_repos["cobertura_repo"].salvar = MagicMock(side_effect=lambda x: x)
+    snapshot = await service.atualizar_snapshot(2026, "PL", "outro")
+    assert snapshot.total_api_oficial == 0
+    assert snapshot.fonte == "outro"
+
+
+@pytest.mark.asyncio
+async def test_atualizar_snapshot_exception_handling(service, mock_repos):
+    mock_repos["camara_adapter"].obter_total = AsyncMock(
+        side_effect=Exception("API indisponível")
+    )
+    mock_repos["cobertura_repo"].salvar = MagicMock(side_effect=lambda x: x)
+    snapshot = await service.atualizar_snapshot(2026, "PL", "camara")
+    assert snapshot.total_api_oficial == 0
+
+
+def test_obter_todas_metricas_cobertura_com_filtros(service, mock_repos):
+    snapshots = [
+        _snapshot(2025, "PL", "camara", 50),
+        _snapshot(2026, "PEC", "senado", 10),
+    ]
+    mock_repos["cobertura_repo"].buscar_todos.return_value = snapshots
+    mock_repos["proposicao_repo"].contar.return_value = 10
+
+    # Filtro de tipo e orgao
+    filtros = {
+        "tipo": "PL",
+        "orgao_origem": "Câmara dos Deputados",
+        "data_inicio": "2025-01-01T00:00:00",
+        "data_fim": "2025-12-31T23:59:59",
+    }
+    res = service.obter_todas_metricas_cobertura(filtros)
+    assert len(res) == 1
+    assert res[0]["ano"] == 2025
+    assert res[0]["tipo_proposicao"] == "PL"
+
+    # Filtros com datas inválidas
+    filtros_data_invalida = {
+        "data_inicio": "data-invalida",
+        "data_fim": "outra-data-invalida",
+    }
+    res_invalida = service.obter_todas_metricas_cobertura(filtros_data_invalida)
+    assert len(res_invalida) == 2
+
+    # Filtros parciais para cobrir branches Falso de outros filtros
+    filtros_parciais = {
+        "tipo": "PL",
+        "orgao_origem": "   ",
+    }
+    res_parcial = service.obter_todas_metricas_cobertura(filtros_parciais)
+    assert len(res_parcial) == 1
+
+
+def test_normalizar_fonte_private_function():
+    from application.services.atualizar_cobertura_service import _normalizar_fonte
+
+    assert _normalizar_fonte(None) == ""
+    assert _normalizar_fonte("") == ""
+    assert _normalizar_fonte("outro") == "outro"

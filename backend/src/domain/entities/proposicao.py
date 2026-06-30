@@ -45,6 +45,7 @@ class Proposicao(SQLModel):
     data_calculo_metricas: datetime | None = None
     regime_tramitacao: str | None = None
     tempo_por_fase: list[dict] | None = None
+    transit_steps: list | None = None
     tags: list[str] = []
     numero_assinaturas: int | None = 0
     numero_emendas: int | None = 0

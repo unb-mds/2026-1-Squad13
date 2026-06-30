@@ -39,6 +39,13 @@ export interface Proposicao {
   confiabilidade: 'alta' | 'media' | 'baixa'
   tempoPorFase?: BreakdownFase[]
   tags: string[]
+  transitSteps?: {
+    casa: string
+    tipoPasso: string
+    dataEntrada: string
+    dataSaida?: string
+    duracaoDias: number
+  }[]
 }
 
 export interface MovimentacaoTramitacao {

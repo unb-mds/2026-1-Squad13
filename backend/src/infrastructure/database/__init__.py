@@ -29,6 +29,9 @@ from infrastructure.database.models.periodo_fase_model import (
 from infrastructure.database.models.proposicao_model import (
     ProposicaoModel,  # noqa: F401
 )
+from infrastructure.database.models.transit_step_model import (
+    TransitStepModel,  # noqa: F401
+)
 
 from ..config import settings
 

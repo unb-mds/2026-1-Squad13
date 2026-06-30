@@ -173,8 +173,19 @@ export function useProposicao(id?: string) {
           const mappedEvents = (eventosRes.value as { sequencia?: number }[]).map((e) => mapEventoTramitacaoToTimelineEvent(e));
           setEvents(mappedEvents);
 
-          const steps = mapMovimentacoesToTransitSteps(eventosRes.value as { siglaOrgao?: string }[]);
-          setTransitSteps(steps);
+          if (prop && prop.transitSteps && prop.transitSteps.length > 0) {
+            const steps = prop.transitSteps.map((s) => ({
+              casa: s.casa as "Câmara" | "Senado",
+              tipo: s.tipoPasso as "origem" | "revisora" | "retorno" | "final",
+              dataEntrada: s.dataEntrada,
+              dataSaida: s.dataSaida || undefined,
+              duracaoDias: s.duracaoDias,
+            }));
+            setTransitSteps(steps);
+          } else {
+            const steps = mapMovimentacoesToTransitSteps(eventosRes.value as { siglaOrgao?: string }[]);
+            setTransitSteps(steps);
+          }
         } else {
           // Empty or failed: fallback to mock events
           setEvents(fallbackEvents);

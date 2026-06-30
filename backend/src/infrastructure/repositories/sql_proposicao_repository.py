@@ -348,3 +348,27 @@ class SQLProposicaoRepository:
 
         results = self.session.exec(statement).all()
         return [int(d) for d in results if d is not None]
+
+    def buscar_transit_steps(self, proposicao_id: str) -> list:
+        from infrastructure.database.models.transit_step_model import TransitStepModel
+
+        statement = (
+            select(TransitStepModel)
+            .where(TransitStepModel.proposicao_id == proposicao_id)
+            .order_by(TransitStepModel.data_entrada)
+        )
+        return self.session.exec(statement).all()
+
+    def buscar_eventos_por_proposicao(self, proposicao_id: str) -> list:
+        from infrastructure.database.models.evento_tramitacao_model import (
+            EventoTramitacaoModel,
+        )
+
+        statement = (
+            select(EventoTramitacaoModel)
+            .where(EventoTramitacaoModel.proposicao_id == proposicao_id)
+            .order_by(
+                EventoTramitacaoModel.data_evento, EventoTramitacaoModel.sequencia
+            )
+        )
+        return self.session.exec(statement).all()

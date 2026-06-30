@@ -31,7 +31,7 @@ celery_app.conf.beat_schedule = {
     },
     "preencher-lacunas-cobertura": {
         "task": "preencher_lacunas_cobertura",
-        "schedule": crontab(minute="*/5"),
+        "schedule": crontab(minute="*/2"),
     },
 }
 

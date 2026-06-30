@@ -49,6 +49,14 @@ class EventoTramitacaoResponse(BaseModel):
     relevante: bool
 
 
+class TransitStepResponse(BaseModel):
+    casa: str
+    tipoPasso: str = Field(alias="tipoPasso")
+    dataEntrada: str = Field(alias="dataEntrada")
+    dataSaida: str | None = Field(default=None, alias="dataSaida")
+    duracaoDias: int = Field(alias="duracaoDias")
+
+
 class ProposicaoResponse(BaseModel):
     """Schema para retorno na API com normalização camelCase"""
 
@@ -96,6 +104,9 @@ class ProposicaoResponse(BaseModel):
     coberturaDados: int = Field(alias="coberturaDados")
     confiabilidade: str = Field(alias="confiabilidade")
     tempoPorFase: list[BreakdownFase] | None = Field(default=None, alias="tempoPorFase")
+    transitSteps: list[TransitStepResponse] | None = Field(
+        default=None, alias="transitSteps"
+    )
 
 
 class ProposicoesListResponse(BaseModel):
@@ -160,7 +171,7 @@ class EstimativaAprovacaoResponse(BaseModel):
 
 # --- Helper to map snake_case to camelCase for response ---
 def _to_response(p) -> dict:
-    return {
+    res = {
         "id": str(p.id),
         "tipo": p.tipo,
         "numero": str(p.numero),
@@ -198,6 +209,23 @@ def _to_response(p) -> dict:
         "confiabilidade": p.confiabilidade,
         "tempoPorFase": getattr(p, "tempo_por_fase", None),
     }
+    steps = getattr(p, "transit_steps", None)
+    if steps is not None:
+        res["transitSteps"] = [
+            {
+                "casa": s.casa,
+                "tipoPasso": s.tipo_passo,
+                "dataEntrada": s.data_entrada.strftime("%d/%m/%Y")
+                if s.data_entrada
+                else "",
+                "dataSaida": s.data_saida.strftime("%d/%m/%Y")
+                if s.data_saida
+                else None,
+                "duracaoDias": s.duracao_dias,
+            }
+            for s in steps
+        ]
+    return res
 
 
 def _to_evento_response(e) -> dict:

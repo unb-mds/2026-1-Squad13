@@ -19,6 +19,7 @@ Este documento é a fonte única de verdade para todos os agentes de Inteligênc
 ## 3. Fluxo de Versionamento e Commits
 * **Criação de Branches:** Sempre sugira/crie uma nova branch a partir de `develop` para cada foco de implementação (`feat/<nome>`, `fix/<nome>`, `docs/<nome>`, `refactor/<nome>`).
 * **Commits Dinâmicos e Atômicos:** Se o usuário solicitar a realização de commits, execute-os diretamente. Divida as alterações em commits atômicos (focados e auto-contidos), com mensagens em inglês (tipo) e descrição em português (descrição imperativa). Ex: `feat: adiciona calculo de IAR`.
+* **Preservação do Autor nos Commits:** O agente de IA deve respeitar o nome de autor e e-mail configurados originalmente no Git do workspace local. É terminantemente proibido reconfigurar o `user.name` ou `user.email` para adicionar sufixos de identificação de Inteligência Artificial (ex: `(Gemini CLI)`, `(Claude)`, `(IA)`) ou alterar a identidade real do desenvolvedor.
 * **Push sob Solicitação:** Se o usuário solicitar a realização do `git push`, execute-o diretamente. 
 * **Validação Pre-Push Hook:** O repositório conta com um hook de validação inteligente no push (configurado por `./scripts/dev/setup-hooks.sh`, localizado em `.git/hooks/pre-push`). Esse hook roda testes e linters incrementais de forma automática antes que o envio ao repositório remoto seja concluído.
 * **Fluxo de Integração:** 

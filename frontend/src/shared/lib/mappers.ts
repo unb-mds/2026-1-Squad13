@@ -7,11 +7,19 @@ import type { TransitStep } from '@/features/proposicoes/components/HouseTransit
 // Converte data ISO ou string em formato DD/MM/AAAA
 export function formatarDataBr(dataStr?: string): string {
   if (!dataStr) return '';
+  const cleanStr = dataStr.replace(/Z$/i, '');
+  
+  // Se for apenas data no formato YYYY-MM-DD, formata diretamente para evitar timezone-shift
+  const match = cleanStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+
   try {
-    const data = new Date(dataStr);
+    const data = new Date(cleanStr);
     if (isNaN(data.getTime())) {
       // Tenta fazer split simples se for yyyy-mm-dd
-      const parts = dataStr.split('T')[0].split('-');
+      const parts = cleanStr.split('T')[0].split('-');
       if (parts.length === 3) {
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
       }
@@ -200,59 +208,77 @@ export function mapEventoTramitacaoToTimelineEvent(e: {
   };
 }
 
+export function identificarCasaDoEvento(
+  siglaOrgao?: string,
+  orgao?: string,
+  proposicaoId?: string,
+  remessaOuRetorno?: string | null,
+  casaOrigem?: "Câmara" | "Senado"
+): "Câmara" | "Senado" {
+  if (remessaOuRetorno === "REMESSA") {
+    return casaOrigem === "Câmara" ? "Senado" : "Câmara";
+  }
+  if (remessaOuRetorno === "RETORNO") {
+    return casaOrigem || "Câmara";
+  }
+
+  const sigla = siglaOrgao?.toLowerCase() || "";
+  const orgaoLower = orgao?.toLowerCase() || "";
+
+  // 1. Heurísticas baseadas em siglas de órgãos ou termos explícitos
+  if (
+    sigla.includes("sf") || 
+    orgaoLower.includes("sf") || 
+    orgaoLower.includes("senado") || 
+    ["ccj", "cae", "cas", "cra", "cre", "ci", "cdh", "ce", "cma", "csp", "ctfc", "cdr", "sexpe", "ssclsf"].includes(sigla)
+  ) {
+    return "Senado";
+  }
+
+  if (
+    ["ccjc", "cft", "ccjr", "mesa", "plen", "ccp"].includes(sigla) || 
+    (sigla.length >= 4 && sigla.startsWith("c"))
+  ) {
+    return "Câmara";
+  }
+
+  // 2. Prefixo do ID como fallback caso a sigla seja inconclusiva
+  if (proposicaoId?.startsWith("senado:")) return "Senado";
+  if (proposicaoId?.startsWith("camara:")) return "Câmara";
+
+  // 3. Fallback final
+  return casaOrigem || "Câmara";
+}
+
 export function mapMovimentacoesToTransitSteps(movs: {
+  proposicaoId?: string;
   siglaOrgao?: string;
   orgao?: string;
-  dataEvento?: string;
   data?: string;
+  dataEvento?: string;
+  descricaoOriginal?: string;
+  remessaOuRetorno?: string | null;
 }[]): TransitStep[] {
-  // Agrupa os eventos por casa
-  const steps: TransitStep[] = [];
-  
   if (movs.length === 0) {
     return [
-      { casa: "Câmara", tipo: "origem", dataEntrada: "Apresentação" }
+      { casa: "Câmara", tipo: "origem", dataEntrada: "Apresentação", duracaoDias: 0 }
     ];
   }
 
-  // Ordena cronologicamente
-  const sortedMovs = [...movs].sort((a, b) => new Date(a.dataEvento || a.data || "").getTime() - new Date(b.dataEvento || b.data || "").getTime());
-  
-  let currentCasa: "Câmara" | "Senado" = sortedMovs[0].siglaOrgao?.toLowerCase().includes("sf") || sortedMovs[0].orgao?.toLowerCase().includes("sf") ? "Senado" : "Câmara";
-  steps.push({
-    casa: currentCasa,
-    tipo: "origem",
-    dataEntrada: formatarDataBr(sortedMovs[0].dataEvento || sortedMovs[0].data),
-    duracaoDias: 0
-  });
+  const firstMov = movs[0];
+  const casaOrigem = identificarCasaDoEvento(
+    firstMov.siglaOrgao,
+    firstMov.orgao,
+    firstMov.proposicaoId,
+    firstMov.remessaOuRetorno
+  );
 
-  for (let i = 1; i < sortedMovs.length; i++) {
-    const m = sortedMovs[i];
-    const mCasa: "Câmara" | "Senado" = m.siglaOrgao?.toLowerCase().includes("sf") || m.orgao?.toLowerCase().includes("sf") ? "Senado" : "Câmara";
-    
-    if (mCasa !== currentCasa) {
-      // Transição de casa detectada
-      steps[steps.length - 1].dataSaida = formatarDataBr(m.dataEvento || m.data);
-      
-      // Estima a duração na casa anterior
-      const start = new Date(sortedMovs[i-1].dataEvento || sortedMovs[i-1].data || "").getTime();
-      const end = new Date(m.dataEvento || m.data || "").getTime();
-      steps[steps.length - 1].duracaoDias = Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
-
-      currentCasa = mCasa;
-      steps.push({
-        casa: currentCasa,
-        tipo: steps.length === 1 ? "revisora" : "retorno",
-        dataEntrada: formatarDataBr(m.dataEvento || m.data),
-        duracaoDias: 0
-      });
+  return [
+    {
+      casa: casaOrigem as "Câmara" | "Senado",
+      tipo: "origem",
+      dataEntrada: firstMov.dataEvento ? formatarDataBr(firstMov.dataEvento) : "Apresentação",
+      duracaoDias: 0
     }
-  }
-
-  // Estima os dias na última etapa
-  const lastIndex = sortedMovs.length - 1;
-  const start = new Date(sortedMovs[lastIndex].dataEvento || sortedMovs[lastIndex].data || "").getTime();
-  steps[steps.length - 1].duracaoDias = Math.max(1, Math.floor((Date.now() - start) / (1000 * 60 * 60 * 24)));
-
-  return steps;
+  ];
 }
