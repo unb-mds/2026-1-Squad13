@@ -200,6 +200,8 @@ class SQLProposicaoRepository:
         data_fim: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
+        ordenar_por: str | None = None,
+        ordem: str | None = None,
     ) -> list[Proposicao]:
         statement = select(ProposicaoModel)
 
@@ -242,7 +244,29 @@ class SQLProposicaoRepository:
                 | (ProposicaoModel.autor.ilike(termo))
             )
 
-        statement = statement.order_by(ProposicaoModel.id)
+        # Mapeamento dinâmico de campos para colunas do banco
+        ordem_campo = ProposicaoModel.id
+        if ordenar_por == "numero":
+            ordem_campo = ProposicaoModel.numero
+        elif ordenar_por == "casaAtual":
+            ordem_campo = ProposicaoModel.orgao_origem
+        elif ordenar_por == "diasNaEtapa":
+            ordem_campo = ProposicaoModel.data_ultima_movimentacao
+        elif ordenar_por == "atraso":
+            ordem_campo = ProposicaoModel.tempo_total_dias
+
+        # Inversão lógica para 'diasNaEtapa':
+        # Mais dias na etapa = data mais antiga (asc).
+        # Menos dias na etapa = data mais recente (desc).
+        if ordenar_por == "diasNaEtapa":
+            direcao_ordem = "asc" if ordem == "desc" else "desc"
+        else:
+            direcao_ordem = ordem or "asc"
+
+        if direcao_ordem == "desc":
+            statement = statement.order_by(ordem_campo.desc())
+        else:
+            statement = statement.order_by(ordem_campo.asc())
 
         if offset is not None:
             statement = statement.offset(offset)

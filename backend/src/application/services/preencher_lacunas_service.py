@@ -722,6 +722,7 @@ class PreencherLacunasService:
         try:
             log_dir = "/app/logs"
             import os
+
             os.makedirs(log_dir, exist_ok=True)
             with open(f"{log_dir}/telemetria.log", "a", encoding="utf-8") as f:
                 timestamp = datetime.now(UTC).isoformat()

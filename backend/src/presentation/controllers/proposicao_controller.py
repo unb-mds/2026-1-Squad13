@@ -291,6 +291,8 @@ def buscar_proposicoes(
     data_fim: str | None = Query(default=None, alias="dataFim"),
     pagina: int = Query(default=1, ge=1),
     itens_por_pagina: int = Query(default=10, ge=1, le=100),
+    ordenar_por: str | None = Query(default=None, alias="ordenarPor"),
+    ordem: str | None = Query(default=None),
     service: BuscarProposicoesService = Depends(get_buscar_proposicoes_service),
 ):
     filtros = {
@@ -304,7 +306,11 @@ def buscar_proposicoes(
 
     try:
         resultado = service.executar(
-            filtros=filtros, pagina=pagina, itens_por_pagina=itens_por_pagina
+            filtros=filtros,
+            pagina=pagina,
+            itens_por_pagina=itens_por_pagina,
+            ordenar_por=ordenar_por,
+            ordem=ordem,
         )
 
         return {

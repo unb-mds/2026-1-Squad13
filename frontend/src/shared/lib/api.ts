@@ -21,7 +21,9 @@ const API_BASE = import.meta.env.VITE_API_URL || `${window.location.protocol}//$
 export async function listarProposicoes(
   filtros: FiltrosProposicao,
   pagina: number,
-  itensPorPagina: number
+  itensPorPagina: number,
+  ordenarPor?: string,
+  ordem?: 'asc' | 'desc'
 ): Promise<{ items: Proposicao[]; total: number }> {
   const params = new URLSearchParams()
 
@@ -33,6 +35,8 @@ export async function listarProposicoes(
   if (filtros.dataFim) params.append('dataFim', filtros.dataFim)
   params.append('pagina', String(pagina))
   params.append('itens_por_pagina', String(itensPorPagina))
+  if (ordenarPor) params.append('ordenarPor', ordenarPor)
+  if (ordem) params.append('ordem', ordem)
 
   const response = await fetch(`${API_BASE}/proposicoes?${params.toString()}`)
 
