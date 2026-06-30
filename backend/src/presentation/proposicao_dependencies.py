@@ -2,6 +2,9 @@ import redis
 from fastapi import Depends
 from sqlmodel import Session
 
+from application.services.atualizar_transit_steps_service import (
+    AtualizarTransitStepsService,
+)
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
 from application.services.gerar_estimativa_service import GerarEstimativaUseCase
@@ -50,8 +53,14 @@ def get_buscar_proposicoes_service(
 
 def get_detalhe_proposicao_service(
     repository: SQLProposicaoRepository = Depends(get_proposicao_repository),
+    session: Session = Depends(get_session),
 ) -> DetalheProposicaoService:
-    return DetalheProposicaoService(repository, CamaraAdapter(), SenadoAdapter())
+    return DetalheProposicaoService(
+        repository,
+        CamaraAdapter(),
+        SenadoAdapter(),
+        AtualizarTransitStepsService(session),
+    )
 
 
 def get_reconstruir_periodos_service(

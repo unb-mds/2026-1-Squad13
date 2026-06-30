@@ -63,3 +63,11 @@ class ProposicaoRepositoryPort(Protocol):
     def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> list[int]:
         """Busca o tempo de tramitação de proposições concluídas por tipo e tema."""
         ...
+
+    def buscar_transit_steps(self, proposicao_id: str) -> list:
+        """Busca os passos de trânsito de uma proposição."""
+        ...
+
+    def buscar_eventos_por_proposicao(self, proposicao_id: str) -> list:
+        """Busca os eventos/movimentações de uma proposição ordenados por data e sequência."""
+        ...

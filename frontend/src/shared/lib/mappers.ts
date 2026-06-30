@@ -8,6 +8,13 @@ import type { TransitStep } from '@/features/proposicoes/components/HouseTransit
 export function formatarDataBr(dataStr?: string): string {
   if (!dataStr) return '';
   const cleanStr = dataStr.replace(/Z$/i, '');
+  
+  // Se for apenas data no formato YYYY-MM-DD, formata diretamente para evitar timezone-shift
+  const match = cleanStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+
   try {
     const data = new Date(cleanStr);
     if (isNaN(data.getTime())) {
