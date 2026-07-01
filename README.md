@@ -4,6 +4,8 @@
 
 Sistema para busca e acompanhamento de proposições legislativas, com foco inicial em PL e PEC, permitindo consulta por filtros como tipo, número, ano, autor, UF do autor e status de tramitação.
 
+🔗 **Link do Frontend Hospedado:** [LexTrack Dashboard](https://lextrack-frontend-q5xojl820-2026-1-squad13.vercel.app/dashboard)
+
 ---
 
 ## ⚡ Modo Rápido (Recomendado)
