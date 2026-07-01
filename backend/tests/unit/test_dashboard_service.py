@@ -1,27 +1,29 @@
-import pytest
 import json
-from sqlmodel import Session, SQLModel, create_engine
-from typing import Any, Optional
+from typing import Any
 
+import pytest
+from sqlmodel import Session, SQLModel, create_engine
+
+from application.ports.cache_provider import CacheProvider
+from application.services.dashboard_service import DashboardService
 from domain.entities.proposicao import Proposicao
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
+from infrastructure.repositories.sql_dashboard_repository import SQLDashboardRepository
 from infrastructure.repositories.sql_evento_tramitacao_repository import (
     SQLEventoTramitacaoRepository,
 )
-from application.services.dashboard_service import DashboardService
-from application.ports.cache_provider import CacheProvider
+from infrastructure.repositories.sql_proposicao_repository import (
+    SQLProposicaoRepository,
+)
 
 
 class MockCacheProvider(CacheProvider):
     def __init__(self):
         self.store = {}
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         return self.store.get(key)
 
-    def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: int | None = None) -> None:
         self.store[key] = value
 
     def delete(self, key: str) -> None:
@@ -71,11 +73,14 @@ def session_fixture():
         repo.salvar(p2)
         yield session
 
+    engine.dispose()
+
 
 def test_obter_metricas_dashboard_sem_cache(session: Session):
     repo = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
-    service = DashboardService(repo, evento_repo)
+    dashboard_repo = SQLDashboardRepository(session)
+    service = DashboardService(repo, evento_repo, dashboard_repo=dashboard_repo)
 
     metricas = service.obter_metricas()
 
@@ -87,8 +92,11 @@ def test_obter_metricas_dashboard_sem_cache(session: Session):
 def test_obter_metricas_cache_miss_e_set(session: Session):
     repo = SQLProposicaoRepository(session)
     evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
     cache_provider = MockCacheProvider()
-    service = DashboardService(repo, evento_repo, cache_provider=cache_provider)
+    service = DashboardService(
+        repo, evento_repo, cache_provider=cache_provider, dashboard_repo=dashboard_repo
+    )
 
     assert cache_provider.get("dashboard:metricas") is None
 
@@ -112,36 +120,54 @@ def test_obter_metricas_cache_hit(session: Session):
     cache_provider = MockCacheProvider()
     service = DashboardService(repo, evento_repo, cache_provider=cache_provider)
 
-    dados_simulados = {
-        "tempoMedioTramitacao": 999,
-        "totalProposicoes": 50,
-        "proposicoesComAtraso": 10,
-        "totalAprovadas": 20,
-        "totalEmTramitacao": 20,
-        "totalRejeitadas": 10,
+    # Simula um Cache Hit
+    mock_data = {
+        "tempoMedioTramitacao": 500,
+        "totalProposicoes": 10,
+        "proposicoesComAtraso": 5,
+        "totalAprovadas": 2,
+        "totalEmTramitacao": 3,
+        "totalRejeitadas": 5,
         "comissaoMaiorTempo": "MOCK",
-        "comissaoMaiorTempoMedia": 999,
+        "comissaoMaiorTempoMedia": 1000,
     }
+    cache_provider.set("dashboard:metricas", json.dumps(mock_data))
 
-    cache_provider.set("dashboard:metricas", json.dumps(dados_simulados))
-
-    # Deve pegar direto do cache (Cache Hit) e não processar os dados do banco
+    # Deve retornar o cache e não processar nada (mesmo sem dashboard_repo)
     metricas = service.obter_metricas()
 
-    assert metricas["totalProposicoes"] == 50
-    assert metricas["tempoMedioTramitacao"] == 999
+    assert metricas["totalProposicoes"] == 10
+    assert metricas["tempoMedioTramitacao"] == 500
     assert metricas["comissaoMaiorTempo"] == "MOCK"
 
 
-def test_cache_provider_invalidation():
-    cache_provider = MockCacheProvider()
-    cache_provider.set("dashboard:metricas", '{"a": 1}')
-    cache_provider.set("dashboard:tipos", '{"b": 2}')
-    cache_provider.set("outra:chave", "valor")
+def test_obter_estoque_fases(session: Session):
+    repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
+    service = DashboardService(repo, evento_repo, dashboard_repo=dashboard_repo)
 
-    # Invalida tudo do dashboard
-    cache_provider.invalidate("dashboard:")
+    estoque = service.obter_estoque_fases()
+    assert isinstance(estoque, list)
 
-    assert cache_provider.get("dashboard:metricas") is None
-    assert cache_provider.get("dashboard:tipos") is None
-    assert cache_provider.get("outra:chave") == "valor"
+
+def test_obter_mediana_handoff(session: Session):
+    repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
+    service = DashboardService(repo, evento_repo, dashboard_repo=dashboard_repo)
+
+    handoff = service.obter_mediana_handoff()
+    assert "total_em_transito" in handoff
+    assert "mediana_dias_transito" in handoff
+
+
+def test_obter_qualidade_base(session: Session):
+    repo = SQLProposicaoRepository(session)
+    evento_repo = SQLEventoTramitacaoRepository(session)
+    dashboard_repo = SQLDashboardRepository(session)
+    service = DashboardService(repo, evento_repo, dashboard_repo=dashboard_repo)
+
+    qualidade = service.obter_qualidade_base()
+    assert "completude_porcentagem" in qualidade
+    assert "total_proposicoes" in qualidade

@@ -8,8 +8,6 @@ de controle.
 Ordenação padrão: data_evento ASC, sequencia ASC (cronológica).
 """
 
-from typing import Dict, List, Optional
-
 from sqlalchemy import func
 from sqlmodel import Session, select
 
@@ -37,7 +35,7 @@ class SQLEventoTramitacaoRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
-    def salvar_lote(self, eventos: List[EventoTramitacao]) -> List[EventoTramitacao]:
+    def salvar_lote(self, eventos: list[EventoTramitacao]) -> list[EventoTramitacao]:
         """Persiste uma lista de eventos em batch usando add_all."""
         if eventos:
             models = [self._to_model(e) for e in eventos]
@@ -45,25 +43,38 @@ class SQLEventoTramitacaoRepository:
             self.session.commit()
         return eventos
 
-    def buscar_por_proposicao(self, proposicao_id: str) -> List[EventoTramitacao]:
+    def existe_algum_evento(self, proposicao_id: str) -> bool:
+        """Verifica se existe pelo menos um evento para a proposição."""
+        statement = select(func.count()).where(
+            EventoTramitacaoModel.proposicao_id == proposicao_id
+        )
+        count = self.session.exec(statement).one()
+        return count > 0
+
+    def buscar_por_proposicao(
+        self, proposicao_id: str, somente_relevantes: bool = False
+    ) -> list[EventoTramitacao]:
         """
-        Retorna todos os eventos de uma proposição ordenados
-        cronologicamente (data_evento ASC, sequencia ASC).
+        Retorna eventos de uma proposição ordenados cronologicamente.
+        Opcionalmente filtra apenas os marcados como relevantes.
         """
-        statement = (
-            select(EventoTramitacaoModel)
-            .where(EventoTramitacaoModel.proposicao_id == proposicao_id)
-            .order_by(
-                EventoTramitacaoModel.data_evento.asc(),
-                EventoTramitacaoModel.sequencia.asc(),
-            )
+        statement = select(EventoTramitacaoModel).where(
+            EventoTramitacaoModel.proposicao_id == proposicao_id
+        )
+
+        if somente_relevantes:
+            statement = statement.where(EventoTramitacaoModel.relevante)
+
+        statement = statement.order_by(
+            EventoTramitacaoModel.data_evento.asc(),
+            EventoTramitacaoModel.sequencia.asc(),
         )
         models = self.session.exec(statement).all()
         return [self._to_entity(m) for m in models]
 
     def buscar_por_multiplas_proposicoes(
-        self, proposicoes_ids: List[str]
-    ) -> Dict[str, List[EventoTramitacao]]:
+        self, proposicoes_ids: list[str]
+    ) -> dict[str, list[EventoTramitacao]]:
         """
         Retorna eventos para múltiplas proposições de uma só vez (batch query),
         agrupados por proposicao_id e ordenados cronologicamente.
@@ -83,7 +94,7 @@ class SQLEventoTramitacaoRepository:
 
         resultados = self.session.exec(statement).all()
 
-        agrupado: Dict[str, List[EventoTramitacao]] = {
+        agrupado: dict[str, list[EventoTramitacao]] = {
             pid: [] for pid in proposicoes_ids
         }
         for m in resultados:
@@ -91,7 +102,7 @@ class SQLEventoTramitacaoRepository:
 
         return agrupado
 
-    def buscar_ultimo_evento(self, proposicao_id: str) -> Optional[EventoTramitacao]:
+    def buscar_ultimo_evento(self, proposicao_id: str) -> EventoTramitacao | None:
         """Retorna o evento mais recente de uma proposição."""
         statement = (
             select(EventoTramitacaoModel)
@@ -115,7 +126,7 @@ class SQLEventoTramitacaoRepository:
             self.session.delete(r)
         self.session.commit()
 
-    def contar_por_tipo(self, proposicao_id: str) -> Dict[str, int]:
+    def contar_por_tipo(self, proposicao_id: str) -> dict[str, int]:
         """
         Retorna contagem de eventos agrupados por tipo_evento.
         """

@@ -1,4 +1,4 @@
-from infrastructure.repositories.proposicao_repository import ProposicaoRepository
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
 
 
 class BuscarProposicoesService:
@@ -7,11 +7,16 @@ class BuscarProposicoesService:
     Integra a lógica de filtros e paginação da 'main' com o repositório da 'develop'.
     """
 
-    def __init__(self, repository: ProposicaoRepository):
+    def __init__(self, repository: ProposicaoRepositoryPort):
         self.repository = repository
 
     def executar(
-        self, filtros: dict, pagina: int = 1, itens_por_pagina: int = 10
+        self,
+        filtros: dict,
+        pagina: int = 1,
+        itens_por_pagina: int = 10,
+        ordenar_por: str | None = None,
+        ordem: str | None = None,
     ) -> dict:
 
         filtros_repositorio = {
@@ -34,6 +39,8 @@ class BuscarProposicoesService:
             **filtros_repositorio,
             limit=itens_por_pagina,
             offset=inicio,
+            ordenar_por=ordenar_por,
+            ordem=ordem,
         )
 
         total_paginas = (

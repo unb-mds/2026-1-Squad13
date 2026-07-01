@@ -5,8 +5,8 @@ Valida seed idempotente das 8 fases, busca por código e ordenação.
 """
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
 from domain.entities.fase_analitica import FASES_SEED
 from infrastructure.repositories.sql_fase_analitica_repository import (
@@ -25,6 +25,8 @@ def session_fixture():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
+    engine.dispose()
 
 
 def test_seed_fases_insere_8_registros(session: Session):

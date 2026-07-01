@@ -43,3 +43,37 @@ class EmailJaCadastradoError(Exception):
 
     def __init__(self, message="E-mail já cadastrado"):
         super().__init__(message)
+
+
+class ApiException(Exception):
+    """Exceção base para erros de integração com APIs externas."""
+
+    pass
+
+
+class ApiRateLimitError(ApiException):
+    """Erro de Rate Limit (HTTP 429). Contém o tempo recomendado de retry-after."""
+
+    def __init__(self, message: str, retry_after: str | None = None):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class ApiTimeoutError(ApiException):
+    """Erro de Timeout na comunicação com o servidor externo."""
+
+    pass
+
+
+class ApiConnectionError(ApiException):
+    """Erro de conexão física ou DNS com a API externa."""
+
+    pass
+
+
+class ApiServerError(ApiException):
+    """Erro interno do servidor da API (HTTP 5xx)."""
+
+    def __init__(self, message: str, status_code: int):
+        super().__init__(message)
+        self.status_code = status_code

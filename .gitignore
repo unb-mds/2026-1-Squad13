@@ -8,6 +8,11 @@ __pycache__/
 venv/
 env/
 
+# Root env files
+.env
+.env.*
+!.env.example
+
 # Backend env files
 backend/.env
 backend/.env.*
@@ -52,6 +57,5 @@ pnpm-debug.log*
 # IA / Claude Code
 GEMINI.md
 .claude/
-.gemini/*
-!.gemini/skills/
+.agents/scratch/*
 gha-creds-*.json

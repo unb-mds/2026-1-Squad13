@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     THRESHOLD_MINIMO_AMOSTRA_ESTIMATIVA: int = 50
 
     model_config = SettingsConfigDict(
-        env_file=".env",  # Procura na pasta atual
+        # Procura primeiro no local, depois sobe para a raiz do projeto
+        env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -29,11 +30,21 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 horas
 
     # Redis e Bloqueio de Conta
+    REDIS_URL: str | None = None
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     TENTATIVAS_MAXIMAS: int = 5
     BLOQUEIO_MINUTOS: int = 15
+
+    # Token secreto para endpoints internos (GitHub Actions cron)
+    INTERNAL_API_SECRET: str = ""
+
+    # Configurações do Gap-Filler (Preenchimento de Lacunas)
+    # Precedência de configuração para a ingestão de eventos: Redis -> Settings/.env -> default do código
+    GAPFILLER_ENABLE_EVENTOS: bool = False
+    GAPFILLER_EVENTOS_BATCH_SIZE: int = 5
+    GAPFILLER_EVENTOS_CONCURRENCY: int = 5
 
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
@@ -54,6 +65,8 @@ class Settings(BaseSettings):
     @property
     def redis_url(self) -> str:
         """Gera a URL de conexão para o Redis"""
+        if self.REDIS_URL:
+            return self.REDIS_URL
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
 

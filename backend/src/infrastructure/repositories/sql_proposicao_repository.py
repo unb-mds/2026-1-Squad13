@@ -1,6 +1,6 @@
-from typing import List, Optional
 from sqlalchemy import func
 from sqlmodel import Session, select
+
 from domain.entities.proposicao import Proposicao
 from infrastructure.database.models.proposicao_model import ProposicaoModel
 
@@ -18,6 +18,7 @@ class SQLProposicaoRepository:
         return Proposicao.model_validate(model.model_dump())
 
     def _to_model(self, entity: Proposicao) -> ProposicaoModel:
+        entity.normalizar_campo_status()
         return ProposicaoModel.model_validate(entity.model_dump())
 
     def salvar(self, proposicao: Proposicao) -> Proposicao:
@@ -36,13 +37,146 @@ class SQLProposicaoRepository:
         self.session.refresh(model)
         return self._to_entity(model)
 
-    def buscar_por_id(self, id: str) -> Optional[Proposicao]:
+    def _obter_chave_busca(
+        self, tipo: str, numero: str, ano: int, orgao_origem: str | None
+    ) -> tuple:
+        """
+        Retorna a chave de busca para controle de unicidade no banco de dados.
+        Proposições bicamerais (PL, PEC) a partir de 2019 (Ato Conjunto 1/2018)
+        são unificadas globalmente. Matérias anteriores a 2019 ou monocamerais
+        possuem chaves isoladas por órgão de origem para evitar colisões.
+        """
+        tipo_l = tipo.lower() if tipo else ""
+        num_s = str(numero) if numero else "0"
+        orgao_l = orgao_origem.lower() if orgao_origem else ""
+
+        tipos_bicamerais = {"pl", "pec"}
+        if ano and ano >= 2019 and tipo_l in tipos_bicamerais:
+            return (tipo_l, num_s, ano, None)
+        return (tipo_l, num_s, ano, orgao_l)
+
+    def upsert_em_lote_por_numero_canonico(self, proposicoes: list[Proposicao]) -> None:
+        """
+        Executa um upsert em lote garantindo idempotência com alta performance.
+        Busca todos os registros existentes em uma única query (por tipo/número/ano ou ID físico)
+        e processa em memória com base nos regimes de tramitação (Ato Conjunto 1/2018).
+        """
+        if not proposicoes:
+            return
+
+        # 1. Extrai tuplas básicas e IDs do lote para buscar no banco em lote
+        chaves_basicas = []
+        ids_lote = []
+        for p in proposicoes:
+            if p.tipo and p.numero and p.ano:
+                chaves_basicas.append((p.tipo.lower(), str(p.numero), p.ano))
+            if p.id:
+                ids_lote.append(p.id)
+
+        if not chaves_basicas and not ids_lote:
+            return
+
+        # 2. Busca todos os registros existentes que batem com tipo, numero e ano, ou com ID físico
+        from sqlalchemy import tuple_
+
+        condicoes = []
+        if chaves_basicas:
+            condicoes.append(
+                tuple_(
+                    func.lower(ProposicaoModel.tipo),
+                    ProposicaoModel.numero,
+                    ProposicaoModel.ano,
+                ).in_(chaves_basicas)
+            )
+        if ids_lote:
+            condicoes.append(ProposicaoModel.id.in_(ids_lote))
+
+        statement = select(ProposicaoModel).where(
+            condicoes[0] if len(condicoes) == 1 else (condicoes[0] | condicoes[1])
+        )
+        existentes = self.session.exec(statement).all()
+
+        # 3. Mapeia os existentes em O(1) por ID físico e por chave refinada
+        mapa_por_id = {m.id: m for m in existentes if m.id}
+        mapa_existentes = {}
+        for m in existentes:
+            chave = self._obter_chave_busca(m.tipo, m.numero, m.ano, m.orgao_origem)
+            mapa_existentes[chave] = m
+
+        # 4. Processa o upsert com mesclagem inteligente
+        campos_preservar = {
+            "id",
+            "tipo",
+            "numero",
+            "ano",
+            "orgao_origem",
+            "autor",
+            "data_apresentacao",
+        }
+
+        for prop in proposicoes:
+            model_novo = self._to_model(prop)
+
+            # Busca prioritariamente por ID físico para evitar UniqueViolation
+            existing = None
+            if prop.id:
+                existing = mapa_por_id.get(prop.id)
+
+            # Fallback para chave refinada caso não encontre por ID físico
+            if not existing:
+                chave = self._obter_chave_busca(
+                    prop.tipo, prop.numero, prop.ano, prop.orgao_origem
+                )
+                existing = mapa_existentes.get(chave)
+
+            if existing:
+                # Verifica se a nova coleta vem de uma casa/origem diferente (cruzamento de fontes)
+                casa_existente = getattr(existing, "orgao_origem", None)
+                casa_nova = getattr(model_novo, "orgao_origem", None)
+
+                mesma_origem = True
+                if casa_existente and casa_nova:
+                    exist_lower = casa_existente.lower()
+                    nova_lower = casa_nova.lower()
+
+                    is_exist_camara = "camara" in exist_lower or "câmara" in exist_lower
+                    is_nova_camara = "camara" in nova_lower or "câmara" in nova_lower
+                    is_exist_senado = "senado" in exist_lower
+                    is_nova_senado = "senado" in nova_lower
+
+                    # Se um é da Câmara e o outro é do Senado (cruzamento bicameral)
+                    if (is_exist_camara and is_nova_senado) or (
+                        is_exist_senado and is_nova_camara
+                    ):
+                        mesma_origem = False
+
+                # Atualiza os dados preservando campos históricos se a origem for diferente
+                for key, value in model_novo.model_dump().items():
+                    # O ID da chave primária física nunca deve ser alterado no banco
+                    if key == "id":
+                        continue
+
+                    if not mesma_origem and key in campos_preservar:
+                        # Se for de origem diferente, não sobrescreve os metadados da casa iniciadora
+                        if getattr(existing, key, None) is not None:
+                            continue
+
+                    if value is not None:
+                        setattr(existing, key, value)
+                self.session.add(existing)
+                # Propaga o ID persistido de volta para a entidade de domínio em memória
+                prop.id = existing.id
+            else:
+                # Caso não exista, realiza o insert
+                self.session.add(model_novo)
+
+        self.session.commit()
+
+    def buscar_por_id(self, id: str) -> Proposicao | None:
         model = self.session.get(ProposicaoModel, id)
         return self._to_entity(model) if model else None
 
-    def buscar_por_codigo(
-        self, tipo: str, numero: str, ano: int
-    ) -> Optional[Proposicao]:
+    def buscar_por_codigo(self, tipo: str, numero: str, ano: int) -> Proposicao | None:
         """Busca uma proposição pelo conjunto único Tipo, Número e Ano."""
         statement = select(ProposicaoModel).where(
             func.lower(ProposicaoModel.tipo) == tipo.lower(),
@@ -54,19 +188,21 @@ class SQLProposicaoRepository:
 
     def filtrar(
         self,
-        tipo: Optional[str] = None,
-        numero: Optional[str] = None,
-        ano: Optional[int] = None,
-        autor: Optional[str] = None,
-        uf_autor: Optional[str] = None,
-        status: Optional[str] = None,
-        busca: Optional[str] = None,
-        orgao_origem: Optional[str] = None,
-        data_inicio: Optional[str] = None,
-        data_fim: Optional[str] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-    ) -> List[Proposicao]:
+        tipo: str | None = None,
+        numero: str | None = None,
+        ano: int | None = None,
+        autor: str | None = None,
+        uf_autor: str | None = None,
+        status: str | None = None,
+        busca: str | None = None,
+        orgao_origem: str | None = None,
+        data_inicio: str | None = None,
+        data_fim: str | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+        ordenar_por: str | None = None,
+        ordem: str | None = None,
+    ) -> list[Proposicao]:
         statement = select(ProposicaoModel)
 
         if tipo:
@@ -108,7 +244,29 @@ class SQLProposicaoRepository:
                 | (ProposicaoModel.autor.ilike(termo))
             )
 
-        statement = statement.order_by(ProposicaoModel.id)
+        # Mapeamento dinâmico de campos para colunas do banco
+        ordem_campo = ProposicaoModel.id
+        if ordenar_por == "numero":
+            ordem_campo = ProposicaoModel.numero
+        elif ordenar_por == "casaAtual":
+            ordem_campo = ProposicaoModel.orgao_origem
+        elif ordenar_por == "diasNaEtapa":
+            ordem_campo = ProposicaoModel.data_ultima_movimentacao
+        elif ordenar_por == "atraso":
+            ordem_campo = ProposicaoModel.tempo_total_dias
+
+        # Inversão lógica para 'diasNaEtapa':
+        # Mais dias na etapa = data mais antiga (asc).
+        # Menos dias na etapa = data mais recente (desc).
+        if ordenar_por == "diasNaEtapa":
+            direcao_ordem = "asc" if ordem == "desc" else "desc"
+        else:
+            direcao_ordem = ordem or "asc"
+
+        if direcao_ordem == "desc":
+            statement = statement.order_by(ordem_campo.desc())
+        else:
+            statement = statement.order_by(ordem_campo.asc())
 
         if offset is not None:
             statement = statement.offset(offset)
@@ -120,16 +278,16 @@ class SQLProposicaoRepository:
 
     def contar(
         self,
-        tipo: Optional[str] = None,
-        numero: Optional[str] = None,
-        ano: Optional[int] = None,
-        autor: Optional[str] = None,
-        uf_autor: Optional[str] = None,
-        status: Optional[str] = None,
-        busca: Optional[str] = None,
-        orgao_origem: Optional[str] = None,
-        data_inicio: Optional[str] = None,
-        data_fim: Optional[str] = None,
+        tipo: str | None = None,
+        numero: str | None = None,
+        ano: int | None = None,
+        autor: str | None = None,
+        uf_autor: str | None = None,
+        status: str | None = None,
+        busca: str | None = None,
+        orgao_origem: str | None = None,
+        data_inicio: str | None = None,
+        data_fim: str | None = None,
     ) -> int:
         statement = select(func.count()).select_from(ProposicaoModel)
 
@@ -174,7 +332,7 @@ class SQLProposicaoRepository:
 
         return self.session.exec(statement).one()
 
-    def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> List[int]:
+    def buscar_historico_dias_aprovacao(self, tipo: str, tema: str) -> list[int]:
         """
         Busca cirúrgica: traz apenas a coluna de tempo em dias de proposições
         que já foram concluídas e que casam com o tipo e tema solicitados.
@@ -190,3 +348,27 @@ class SQLProposicaoRepository:
 
         results = self.session.exec(statement).all()
         return [int(d) for d in results if d is not None]
+
+    def buscar_transit_steps(self, proposicao_id: str) -> list:
+        from infrastructure.database.models.transit_step_model import TransitStepModel
+
+        statement = (
+            select(TransitStepModel)
+            .where(TransitStepModel.proposicao_id == proposicao_id)
+            .order_by(TransitStepModel.data_entrada)
+        )
+        return self.session.exec(statement).all()
+
+    def buscar_eventos_por_proposicao(self, proposicao_id: str) -> list:
+        from infrastructure.database.models.evento_tramitacao_model import (
+            EventoTramitacaoModel,
+        )
+
+        statement = (
+            select(EventoTramitacaoModel)
+            .where(EventoTramitacaoModel.proposicao_id == proposicao_id)
+            .order_by(
+                EventoTramitacaoModel.data_evento, EventoTramitacaoModel.sequencia
+            )
+        )
+        return self.session.exec(statement).all()

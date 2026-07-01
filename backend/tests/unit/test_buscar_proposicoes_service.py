@@ -44,6 +44,8 @@ def test_deve_filtrar_por_tipo_com_sucesso(
         data_fim=None,
         limit=10,
         offset=0,
+        ordenar_por=None,
+        ordem=None,
     )
 
 
@@ -82,6 +84,8 @@ def test_deve_filtrar_por_ano_com_sucesso(service, mock_repositorio, lista_propo
         data_fim=None,
         limit=10,
         offset=0,
+        ordenar_por=None,
+        ordem=None,
     )
 
 
@@ -98,3 +102,37 @@ def test_deve_retornar_lista_vazia_quando_nao_houver_resultados(
     # Assert
     assert resultado["total"] == 0
     assert resultado["items"] == []
+
+
+def test_deve_repassar_parametros_de_ordenacao_para_o_repositorio(
+    service, mock_repositorio
+):
+    # Arrange
+    mock_repositorio.filtrar.return_value = []
+    mock_repositorio.contar.return_value = 0
+
+    # Act
+    service.executar(
+        filtros={},
+        pagina=2,
+        itens_por_pagina=15,
+        ordenar_por="atraso",
+        ordem="desc",
+    )
+
+    # Assert
+    mock_repositorio.filtrar.assert_called_once_with(
+        tipo=None,
+        numero=None,
+        ano=None,
+        autor=None,
+        status=None,
+        busca=None,
+        orgao_origem=None,
+        data_inicio=None,
+        data_fim=None,
+        limit=15,
+        offset=15,
+        ordenar_por="atraso",
+        ordem="desc",
+    )

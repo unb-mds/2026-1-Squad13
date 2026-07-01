@@ -4,6 +4,23 @@ Referência rápida para contribuir com o projeto de forma consistente.
 
 ---
 
+## 🛡️ Validação Local (Git Hooks)
+
+Para garantir a integridade do monorepo e evitar falhas no CI, o projeto utiliza Git Hooks para validar mudanças antes de cada `git push`.
+
+**É obrigatório instalar o hook ao iniciar no projeto:**
+
+```bash
+./scripts/dev/setup-hooks.sh
+```
+
+### O que o Hook faz?
+- **Mudanças em Documentação**: Push direto (instantâneo).
+- **Mudanças Técnicas (Código/Testes)**: Roda uma validação seletiva inteligente (apenas o que foi afetado).
+- **Mudanças Críticas (Scripts/Infra)**: Roda a suite completa de testes e build.
+
+---
+
 ## Branches
 
 Crie sempre uma branch a partir da `develop` atualizada. Use o prefixo correspondente ao tipo de mudança:
@@ -61,7 +78,7 @@ O repositório possui workflows separados por área, disparados apenas quando os
 
 Arquivo: `.github/workflows/frontend.yml`
 
-- Roda em todo PR para `main` que altere `frontend/`
+- Roda em todo PR para `main` e/ou `develop` que altere `frontend/`
 - Instala dependências: `npm ci`
 - Verifica build: `npm run build`
 
@@ -69,7 +86,7 @@ Arquivo: `.github/workflows/frontend.yml`
 
 Arquivo: `.github/workflows/backend.yml`
 
-- Roda em todo PR para `main` ou `develop` que altere `backend/`
+- Roda em todo PR para `main` e/ou `develop` que altere `backend/`
 - Instala dependências: `uv sync`
 - Verifica código: Ruff (lint) + pytest (testes unitários e de integração)
 
@@ -90,8 +107,6 @@ cd frontend
 npm run lint          # reporta erros e avisos
 npm run lint -- --fix # corrige automaticamente o que for possível
 ```
-
-Execute o lint antes de abrir o PR. O CI ainda não inclui esse passo automaticamente — ele será adicionado em breve.
 
 Regras ativas:
 

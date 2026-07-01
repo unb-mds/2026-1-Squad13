@@ -9,7 +9,6 @@ Usam apenas os enums TipoEvento e FaseCodigo.
 """
 
 import re
-from typing import Optional
 
 from domain.entities.fase_codigo import FaseCodigo
 from domain.entities.tipo_evento import TipoEvento
@@ -107,8 +106,13 @@ _PATTERNS: list[tuple[re.Pattern, TipoEvento]] = [
         TipoEvento.RECEBIMENTO_ORGAO,
     ),
     (re.compile(r"despacho|distribu", re.IGNORECASE), TipoEvento.DESPACHO),
+    # APRESENTACAO refinada: ignora requerimentos se for "Apresentação de requerimento"
+    # para evitar retrocesso de fase em matérias já em trâmite.
     (
-        re.compile(r"apresentaç|leitura", re.IGNORECASE),
+        re.compile(
+            r"(?<!requerimento\s)(apresentaç|leitura)(?!\sde\srequerimento)",
+            re.IGNORECASE,
+        ),
         TipoEvento.APRESENTACAO,
     ),
 ]
@@ -190,7 +194,7 @@ _FASE_FALLBACK = FaseCodigo.PROTOCOLO_INICIAL
 
 def determinar_fase_analitica(
     tipo_evento: TipoEvento,
-    fase_atual: Optional[FaseCodigo],
+    fase_atual: FaseCodigo | None,
 ) -> FaseCodigo:
     """Determina a fase analítica resultante de um evento.
 
@@ -224,6 +228,16 @@ def determinar_fase_analitica(
     fase_determinada = _TIPO_PARA_FASE.get(tipo_evento)
 
     if fase_determinada is not None:
+        # REGRA DE NÃO-RETROCESSO PARA PROTOCOLO
+        # Se já estamos na fase 2 (Comissões) ou superior, eventos de
+        # Apresentação/Despacho (Fase 1) não deveriam nos levar de volta ao início.
+        if (
+            fase_determinada == FaseCodigo.PROTOCOLO_INICIAL
+            and fase_atual is not None
+            and fase_atual != FaseCodigo.PROTOCOLO_INICIAL
+        ):
+            return fase_atual
+
         return fase_determinada
 
     # Safety net: tipo desconhecido não deveria chegar aqui,

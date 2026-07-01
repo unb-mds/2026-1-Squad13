@@ -1,12 +1,31 @@
 import re
-from typing import Optional
-from sqlmodel import SQLModel
+
 from pydantic import field_validator
+from sqlmodel import SQLModel
+
+from domain.entities.tipo_evento import TipoEvento
 
 # Regex para validar formato ISO: YYYY-MM-DD com hora opcional
 _ISO_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?$"
 
 _REMESSA_RETORNO_VALIDOS = {None, "REMESSA", "RETORNO"}
+
+TIPOS_SEMPRE_RELEVANTES = {
+    TipoEvento.APRESENTACAO.value,
+    TipoEvento.RECEBIMENTO_ORGAO.value,
+    TipoEvento.DESIGNACAO_RELATOR.value,
+    TipoEvento.VOTACAO_PLENARIO.value,
+    TipoEvento.VOTACAO_COMISSAO.value,
+    TipoEvento.APROVACAO.value,
+    TipoEvento.REJEICAO.value,
+    TipoEvento.REMESSA_OUTRA_CASA.value,
+    TipoEvento.RECEBIMENTO_OUTRA_CASA.value,
+    TipoEvento.RETORNO_INICIADORA.value,
+    TipoEvento.SANCAO_OU_VETO.value,
+    TipoEvento.ARQUIVAMENTO.value,
+    TipoEvento.PREJUDICIALIDADE.value,
+    TipoEvento.PROMULGACAO.value,
+}
 
 
 class EventoTramitacao(SQLModel):
@@ -14,30 +33,31 @@ class EventoTramitacao(SQLModel):
     Evento de tramitação legislativa — entidade de domínio pura.
     """
 
-    evento_id: Optional[int] = None
+    evento_id: int | None = None
     proposicao_id: str
     data_evento: str
     sequencia: int
-    sigla_orgao: Optional[str] = None
+    sigla_orgao: str | None = None
     descricao_original: str
 
     # Campos analíticos
     tipo_evento: str
-    fase_analitica_id: Optional[int] = None
+    fase_analitica_id: int | None = None
 
     # Flags de controle analítico
     deliberativo: bool = False
     mudou_fase: bool = False
     mudou_orgao: bool = False
-    remessa_ou_retorno: Optional[str] = None
+    remessa_ou_retorno: str | None = None
 
     # Campos de análise temporal
     dias_na_etapa: int = 0
     tem_atraso: bool = False
     marca_apensacao: bool = False
+    relevante: bool = False
 
     # Auditoria
-    payload_bruto: Optional[dict] = None
+    payload_bruto: dict | None = None
 
     @field_validator("data_evento")
     @classmethod
@@ -72,7 +92,7 @@ class EventoTramitacao(SQLModel):
 
     @field_validator("remessa_ou_retorno")
     @classmethod
-    def validar_remessa_ou_retorno(cls, v: Optional[str]) -> Optional[str]:
+    def validar_remessa_ou_retorno(cls, v: str | None) -> str | None:
         if v not in _REMESSA_RETORNO_VALIDOS:
             raise ValueError(
                 f"remessa_ou_retorno deve ser None, 'REMESSA' ou 'RETORNO', "
@@ -111,3 +131,47 @@ class EventoTramitacao(SQLModel):
             TipoEvento.REJEICAO.value,
         }
         return self.tipo_evento in deliberativos
+
+    @property
+    def eh_relevante(self) -> bool:
+        """
+        Regra de negócio para definir se um evento deve ser exibido em visões resumidas.
+        """
+        return (
+            self.tipo_evento in TIPOS_SEMPRE_RELEVANTES
+            or self.mudou_fase
+            or self.deliberativo
+            or (self.dias_na_etapa is not None and self.dias_na_etapa > 30)
+            or self.marca_apensacao
+        )
+
+
+def calcular_tempo_por_fase(eventos: list[EventoTramitacao]) -> list[dict]:
+    """
+    Calcula o breakdown de tempo por fase a partir dos eventos reais.
+    Exige no mínimo 2 tramitações para gerar os dados.
+    """
+    if len(eventos) < 2:
+        return []
+
+    from datetime import datetime
+
+    ordenadas = sorted(eventos, key=lambda e: (e.data_evento, e.sequencia))
+    tempos: dict[str, int] = {}
+
+    for i in range(len(ordenadas) - 1):
+        atual = ordenadas[i]
+        proxima = ordenadas[i + 1]
+
+        fase = atual.sigla_orgao or "Outros"
+
+        try:
+            d_atual = datetime.fromisoformat(atual.data_evento[:10]).date()
+            d_prox = datetime.fromisoformat(proxima.data_evento[:10]).date()
+            dias = max(0, (d_prox - d_atual).days)
+            tempos[fase] = tempos.get(fase, 0) + dias
+        except ValueError:
+            continue
+
+    resultado = [{"fase": k, "dias": v} for k, v in tempos.items()]
+    return sorted(resultado, key=lambda x: x["dias"], reverse=True)

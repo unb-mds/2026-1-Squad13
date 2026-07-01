@@ -1,34 +1,31 @@
-from typing import Optional, List
-from enum import Enum
-from fastapi import APIRouter, HTTPException, Query, Depends
+from enum import StrEnum
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+
 from application.services.buscar_proposicoes_service import BuscarProposicoesService
 from application.services.detalhe_proposicao_service import DetalheProposicaoService
-from application.services.listar_movimentacoes_service import ListarMovimentacoesService
 from application.services.gerar_estimativa_service import GerarEstimativaUseCase
-from infrastructure.repositories.sql_apensamento_repository import (
-    SQLApensamentoRepository,
+from application.services.listar_movimentacoes_service import ListarMovimentacoesService
+from application.services.obter_confiabilidade_service import ObterConfiabilidadeService
+from domain.entities.evento_tramitacao import calcular_tempo_por_fase
+from domain.value_objects.modo_movimentacao import ModoMovimentacao
+from presentation.proposicao_dependencies import (
+    get_buscar_proposicoes_service,
+    get_detalhe_proposicao_service,
+    get_gerar_estimativa_use_case,
+    get_listar_movimentacoes_service,
+    get_obter_confiabilidade_service,
 )
-from infrastructure.repositories.sql_proposicao_repository import (
-    SQLProposicaoRepository,
-)
-from infrastructure.repositories.sql_evento_tramitacao_repository import (
-    SQLEventoTramitacaoRepository,
-)
-from infrastructure.adapters.camara_adapter import CamaraAdapter
-from infrastructure.adapters.senado_adapter import SenadoAdapter
-from infrastructure.repositories.sql_fase_analitica_repository import (
-    SQLFaseAnaliticaRepository,
-)
-from infrastructure.repositories.sql_orgao_legislativo_repository import (
-    SQLOrgaoLegislativoRepository,
-)
-from infrastructure.database import get_session
-from sqlmodel import Session
 
-router = APIRouter()
+router = APIRouter(tags=["Proposições"])
 
 # --- Schemas ---
+
+
+class BreakdownFase(BaseModel):
+    fase: str
+    dias: int
 
 
 class EventoTramitacaoResponse(BaseModel):
@@ -39,16 +36,25 @@ class EventoTramitacaoResponse(BaseModel):
     proposicaoId: str = Field(alias="proposicaoId")
     dataEvento: str = Field(alias="dataEvento")
     sequencia: int
-    siglaOrgao: Optional[str] = Field(default=None, alias="siglaOrgao")
+    siglaOrgao: str | None = Field(default=None, alias="siglaOrgao")
     descricaoOriginal: str = Field(alias="descricaoOriginal")
     tipoEvento: str = Field(alias="tipoEvento")
-    faseAnaliticaId: Optional[int] = Field(default=None, alias="faseAnaliticaId")
+    faseAnaliticaId: int | None = Field(default=None, alias="faseAnaliticaId")
     deliberativo: bool
     mudouFase: bool = Field(alias="mudouFase")
     mudouOrgao: bool = Field(alias="mudouOrgao")
-    remessaOuRetorno: Optional[str] = Field(default=None, alias="remessaOuRetorno")
+    remessaOuRetorno: str | None = Field(default=None, alias="remessaOuRetorno")
     diasNaEtapa: int = Field(alias="diasNaEtapa")
     temAtraso: bool = Field(alias="temAtraso")
+    relevante: bool
+
+
+class TransitStepResponse(BaseModel):
+    casa: str
+    tipoPasso: str = Field(alias="tipoPasso")
+    dataEntrada: str = Field(alias="dataEntrada")
+    dataSaida: str | None = Field(default=None, alias="dataSaida")
+    duracaoDias: int = Field(alias="duracaoDias")
 
 
 class ProposicaoResponse(BaseModel):
@@ -61,10 +67,11 @@ class ProposicaoResponse(BaseModel):
     numero: str
     ano: int
     ementa: str
-    ementaResumida: Optional[str] = Field(default=None, alias="ementaResumida")
+    ementaResumida: str | None = Field(default=None, alias="ementaResumida")
     autor: str
-    orgaoOrigem: Optional[str] = Field(default=None, alias="orgaoOrigem")
+    orgaoOrigem: str | None = Field(default=None, alias="orgaoOrigem")
     status: str
+    statusOriginal: str | None = Field(default=None, alias="statusOriginal")
     orgaoAtual: str
     dataApresentacao: str
     dataUltimaMovimentacao: str
@@ -72,31 +79,86 @@ class ProposicaoResponse(BaseModel):
     temAtraso: bool
     atrasoCritico: bool = Field(alias="atrasoCritico")
     temPrevisaoIA: bool
-    tags: List[str]
-    linkOficial: Optional[str] = Field(default=None, alias="linkOficial")
-    codigoNormalizado: Optional[str] = Field(default=None, alias="codigoNormalizado")
-    dataEncerramento: Optional[str] = Field(default=None, alias="dataEncerramento")
-    previsaoAprovacaoDias: Optional[int] = Field(
+    tags: list[str]
+    linkOficial: str | None = Field(default=None, alias="linkOficial")
+    codigoNormalizado: str | None = Field(default=None, alias="codigoNormalizado")
+    dataEncerramento: str | None = Field(default=None, alias="dataEncerramento")
+    previsaoAprovacaoDias: int | None = Field(
         default=None, alias="previsaoAprovacaoDias"
+    )
+    indiceAtrasoRelativo: float | None = Field(
+        default=None, alias="indiceAtrasoRelativo"
+    )
+    indiceAtrasoFaseAtual: float | None = Field(
+        default=None, alias="indiceAtrasoFaseAtual"
+    )
+    indiceEsperaImprodutiva: float | None = Field(
+        default=None, alias="indiceEsperaImprodutiva"
+    )
+    statusAtraso: str | None = Field(default=None, alias="statusAtraso")
+    diasDecorridosTotal: int | None = Field(default=None, alias="diasDecorridosTotal")
+    diasEsperadosTotal: int | None = Field(default=None, alias="diasEsperadosTotal")
+    baselineGrupoId: str | None = Field(default=None, alias="baselineGrupoId")
+    dataCalculoMetricas: str | None = Field(default=None, alias="dataCalculoMetricas")
+    regimeTramitacao: str | None = Field(default=None, alias="regimeTramitacao")
+    coberturaDados: int = Field(alias="coberturaDados")
+    confiabilidade: str = Field(alias="confiabilidade")
+    tempoPorFase: list[BreakdownFase] | None = Field(default=None, alias="tempoPorFase")
+    transitSteps: list[TransitStepResponse] | None = Field(
+        default=None, alias="transitSteps"
     )
 
 
 class ProposicoesListResponse(BaseModel):
-    items: List[ProposicaoResponse]
+    items: list[ProposicaoResponse]
     total: int
     pagina: int
     totalPaginas: int = Field(alias="totalPaginas")
 
 
-class StatusEstimativa(str, Enum):
+class StatusEstimativa(StrEnum):
     CALCULADA = "CALCULADA"
     DADOS_INSUFICIENTES = "DADOS_INSUFICIENTES"
+
+
+class ConfiabilidadeResponse(BaseModel):
+    cobertura: int
+    statusHistorico: str = Field(alias="statusHistorico")
+    ultimaAtualizacao: str = Field(alias="ultimaAtualizacao")
+    fontes: list[str]
+    limitacoes: list[str]
+    confiabilidade: str
+
+
+class EventoResumoResponse(BaseModel):
+    eventoId: int | None = Field(default=None, alias="eventoId")
+    tipoEvento: str = Field(alias="tipoEvento")
+    descricaoOriginal: str = Field(alias="descricaoOriginal")
+    dataEvento: str = Field(alias="dataEvento")
+    siglaOrgao: str | None = Field(default=None, alias="siglaOrgao")
+    deliberativo: bool
+    diasNaEtapa: int | None = Field(default=None, alias="diasNaEtapa")
+    marcaApensacao: bool = Field(alias="marcaApensacao")
+
+
+class PeriodoFaseResponse(BaseModel):
+    faseCodigo: str = Field(alias="faseCodigo")
+    faseNome: str = Field(alias="faseNome")
+    ordemLogica: int = Field(alias="ordemLogica")
+    ocorrencia: int
+    dataEntrada: str = Field(alias="dataEntrada")
+    dataSaida: str | None = Field(default=None, alias="dataSaida")
+    diasCorridos: int = Field(alias="diasCorridos")
+    eventosRelevantes: list[EventoResumoResponse] = Field(alias="eventosRelevantes")
+    motivoTravamento: str | None = Field(default=None, alias="motivoTravamento")
+    numeroTurno: int | None = Field(default=None, alias="numeroTurno")
+    subtipoFase: str | None = Field(default=None, alias="subtipoFase")
 
 
 class EstimativaAprovacaoResponse(BaseModel):
     """Schema para retorno da estimativa de aprovação"""
 
-    previsaoAprovacaoDias: Optional[int] = Field(
+    previsaoAprovacaoDias: int | None = Field(
         default=None,
         alias="previsaoAprovacaoDias",
         description="Estimativa em dias. null se insuficiente.",
@@ -109,7 +171,7 @@ class EstimativaAprovacaoResponse(BaseModel):
 
 # --- Helper to map snake_case to camelCase for response ---
 def _to_response(p) -> dict:
-    return {
+    res = {
         "id": str(p.id),
         "tipo": p.tipo,
         "numero": str(p.numero),
@@ -119,6 +181,7 @@ def _to_response(p) -> dict:
         "autor": p.autor,
         "orgaoOrigem": p.orgao_origem,
         "status": p.status,
+        "statusOriginal": p.status_original,
         "orgaoAtual": p.orgao_atual,
         "dataApresentacao": p.data_apresentacao,
         "dataUltimaMovimentacao": p.data_ultima_movimentacao,
@@ -131,13 +194,46 @@ def _to_response(p) -> dict:
         "codigoNormalizado": p.codigo_normalizado,
         "dataEncerramento": p.data_encerramento,
         "previsaoAprovacaoDias": p.previsao_aprovacao_dias,
+        "indiceAtrasoRelativo": p.indice_atraso_relativo,
+        "indiceAtrasoFaseAtual": p.indice_atraso_fase_atual,
+        "indiceEsperaImprodutiva": p.indice_espera_improdutiva,
+        "statusAtraso": p.status_atraso,
+        "diasDecorridosTotal": p.dias_decorridos_total,
+        "diasEsperadosTotal": p.dias_esperados_total,
+        "baselineGrupoId": p.baseline_grupo_id,
+        "dataCalculoMetricas": p.data_calculo_metricas.isoformat()
+        if p.data_calculo_metricas
+        else None,
+        "regimeTramitacao": p.regime_tramitacao,
+        "coberturaDados": p.cobertura_dados,
+        "confiabilidade": p.confiabilidade,
+        "tempoPorFase": getattr(p, "tempo_por_fase", None),
     }
+    steps = getattr(p, "transit_steps", None)
+    if steps is not None:
+        res["transitSteps"] = [
+            {
+                "casa": s.casa,
+                "tipoPasso": s.tipo_passo,
+                "dataEntrada": s.data_entrada.strftime("%d/%m/%Y")
+                if s.data_entrada
+                else "",
+                "dataSaida": s.data_saida.strftime("%d/%m/%Y")
+                if s.data_saida
+                else None,
+                "duracaoDias": s.duracao_dias,
+            }
+            for s in steps
+        ]
+    return res
 
 
 def _to_evento_response(e) -> dict:
-    data_str = e.data_evento.replace(" ", "T")
-    if not data_str.endswith("Z") and "+" not in data_str:
-        data_str += "Z"
+    data_str = e.data_evento or ""
+    if data_str:
+        data_str = data_str.replace(" ", "T")
+        if not data_str.endswith("Z") and "+" not in data_str:
+            data_str += "Z"
 
     return {
         "proposicaoId": e.proposicao_id,
@@ -153,6 +249,35 @@ def _to_evento_response(e) -> dict:
         "remessaOuRetorno": e.remessa_ou_retorno,
         "diasNaEtapa": e.dias_na_etapa,
         "temAtraso": e.tem_atraso,
+        "relevante": getattr(e, "relevante", False),
+    }
+
+
+def _to_periodo_response(p) -> dict:
+    return {
+        "faseCodigo": p.fase_codigo,
+        "faseNome": p.fase_nome,
+        "ordemLogica": p.ordem_logica,
+        "ocorrencia": p.ocorrencia,
+        "dataEntrada": p.data_entrada.isoformat(),
+        "dataSaida": p.data_saida.isoformat() if p.data_saida else None,
+        "diasCorridos": p.dias_corridos,
+        "motivoTravamento": p.motivo_travamento,
+        "numeroTurno": p.numero_turno,
+        "subtipoFase": p.subtipo_fase,
+        "eventosRelevantes": [
+            {
+                "eventoId": e.evento_id,
+                "tipoEvento": e.tipo_evento,
+                "descricaoOriginal": e.descricao_original,
+                "dataEvento": e.data_evento.replace(" ", "T"),
+                "siglaOrgao": e.sigla_orgao,
+                "deliberativo": e.deliberativo,
+                "diasNaEtapa": e.dias_na_etapa,
+                "marcaApensacao": e.marca_apensacao,
+            }
+            for e in p.eventos_relevantes
+        ],
     }
 
 
@@ -161,52 +286,43 @@ def _to_evento_response(e) -> dict:
 
 @router.get(
     "/proposicoes/{id}/movimentacoes",
-    response_model=List[EventoTramitacaoResponse],
+    response_model=list[dict],
 )
-def listar_movimentacoes(id: str, session: Session = Depends(get_session)):
-    evento_repo = SQLEventoTramitacaoRepository(session)
-    proposicao_repo = SQLProposicaoRepository(session)
-    camara_adapter = CamaraAdapter()
-    senado_adapter = SenadoAdapter()
-
-    fase_repo = SQLFaseAnaliticaRepository(session)
-    orgao_repo = SQLOrgaoLegislativoRepository(session)
-    apensamento_repo = SQLApensamentoRepository(session)
-
-    service = ListarMovimentacoesService(
-        evento_repo,
-        proposicao_repo,
-        fase_repo,
-        orgao_repo,
-        camara_adapter,
-        senado_adapter,
-        apensamento_repo,
-    )
-
+async def listar_movimentacoes(
+    id: str,
+    modo: ModoMovimentacao = Query(default=ModoMovimentacao.RESUMIDO),
+    service: ListarMovimentacoesService = Depends(get_listar_movimentacoes_service),
+):
     try:
-        movimentacoes = service.executar(id)
-        return [_to_evento_response(e) for e in movimentacoes]
+        resultado = await service.executar(id, modo=modo)
+
+        if modo == ModoMovimentacao.RESUMIDO:
+            return [_to_periodo_response(p) for p in resultado]
+        else:
+            return [_to_evento_response(e) for e in resultado]
     except Exception as e:
+        import traceback
+
+        traceback.print_exc()
         raise HTTPException(
             status_code=500, detail=f"Erro ao buscar movimentações: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/proposicoes", response_model=ProposicoesListResponse)
 def buscar_proposicoes(
-    busca: Optional[str] = Query(default=None),
-    tipo: Optional[str] = Query(default=None),
-    status: Optional[str] = Query(default=None),
-    orgao_origem: Optional[str] = Query(default=None, alias="orgaoOrigem"),
-    data_inicio: Optional[str] = Query(default=None, alias="dataInicio"),
-    data_fim: Optional[str] = Query(default=None, alias="dataFim"),
+    busca: str | None = Query(default=None),
+    tipo: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    orgao_origem: str | None = Query(default=None, alias="orgaoOrigem"),
+    data_inicio: str | None = Query(default=None, alias="dataInicio"),
+    data_fim: str | None = Query(default=None, alias="dataFim"),
     pagina: int = Query(default=1, ge=1),
     itens_por_pagina: int = Query(default=10, ge=1, le=100),
-    session: Session = Depends(get_session),
+    ordenar_por: str | None = Query(default=None, alias="ordenarPor"),
+    ordem: str | None = Query(default=None),
+    service: BuscarProposicoesService = Depends(get_buscar_proposicoes_service),
 ):
-    repository = SQLProposicaoRepository(session)
-    service = BuscarProposicoesService(repository)
-
     filtros = {
         "busca": busca,
         "tipo": tipo,
@@ -218,7 +334,11 @@ def buscar_proposicoes(
 
     try:
         resultado = service.executar(
-            filtros=filtros, pagina=pagina, itens_por_pagina=itens_por_pagina
+            filtros=filtros,
+            pagina=pagina,
+            itens_por_pagina=itens_por_pagina,
+            ordenar_por=ordenar_por,
+            ordem=ordem,
         )
 
         return {
@@ -228,38 +348,50 @@ def buscar_proposicoes(
             "totalPaginas": resultado["total_paginas"],
         }
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/proposicoes/{id}", response_model=ProposicaoResponse)
-def obter_detalhe_proposicao(id: str, session: Session = Depends(get_session)):
-    repository = SQLProposicaoRepository(session)
-    camara_adapter = CamaraAdapter()
-    senado_adapter = SenadoAdapter()
-    service = DetalheProposicaoService(repository, camara_adapter, senado_adapter)
-
+async def obter_detalhe_proposicao(
+    id: str,
+    service: DetalheProposicaoService = Depends(get_detalhe_proposicao_service),
+    movimentacoes_service: ListarMovimentacoesService = Depends(
+        get_listar_movimentacoes_service
+    ),
+):
     try:
-        proposicao = service.executar(id)
+        proposicao = await service.executar(id)
+
+        try:
+            eventos = await movimentacoes_service.executar(
+                id, modo=ModoMovimentacao.COMPLETO
+            )
+            proposicao.tempo_por_fase = calcular_tempo_por_fase(eventos)
+        except Exception as e:
+            import logging
+
+            logging.error(f"Erro ao calcular tempo por fase: {e}")
+            proposicao.tempo_por_fase = None
+
         return _to_response(proposicao)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}") from e
 
 
 @router.get(
     "/proposicoes/estimativa/{tipo}/{tema}", response_model=EstimativaAprovacaoResponse
 )
 def obter_estimativa_aprovacao(
-    tipo: str, tema: str, session: Session = Depends(get_session)
+    tipo: str,
+    tema: str,
+    use_case: GerarEstimativaUseCase = Depends(get_gerar_estimativa_use_case),
 ):
     """
     Retorna a estimativa de tempo de aprovação para um tipo e tema específicos.
     A lógica de negócio e o threshold de 50 registros estão isolados no Domínio.
     """
-    repository = SQLProposicaoRepository(session)
-    use_case = GerarEstimativaUseCase(repository)
-
     try:
         resultado = use_case.executar(tipo, tema)
 
@@ -271,4 +403,21 @@ def obter_estimativa_aprovacao(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Erro ao calcular estimativa: {str(e)}"
-        )
+        ) from e
+
+
+@router.get("/proposicoes/{id}/confiabilidade", response_model=ConfiabilidadeResponse)
+async def obter_confiabilidade_proposicao(
+    id: str,
+    service: ObterConfiabilidadeService = Depends(get_obter_confiabilidade_service),
+):
+    """
+    Retorna metadados detalhados de confiabilidade, cobertura, fontes e limitações
+    para uma proposição legislativa.
+    """
+    try:
+        return await service.executar(id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}") from e

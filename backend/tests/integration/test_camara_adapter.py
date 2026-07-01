@@ -1,20 +1,23 @@
 import pytest
-from infrastructure.adapters.camara_adapter import CamaraAdapter
+
 from domain.entities.proposicao import Proposicao
+from infrastructure.adapters.camara_adapter import CamaraAdapter
 
 
 @pytest.mark.integration
-def test_camara_adapter_buscar_por_id_valido():
+@pytest.mark.asyncio
+async def test_camara_adapter_buscar_por_id_valido():
     """Verifica se o adaptador consegue buscar e converter uma proposição real da Câmara."""
+
     adapter = CamaraAdapter()
     # ID 2368289 -> PL 2981/2023
     id_valido = 2368289
 
-    proposicao = adapter.buscar_por_id(id_valido)
+    proposicao = await adapter.buscar_por_id(id_valido)
 
     assert proposicao is not None
     assert isinstance(proposicao, Proposicao)
-    assert proposicao.id == str(id_valido)
+    assert proposicao.id == f"camara:{id_valido}"
     assert proposicao.tipo == "PL"
     assert proposicao.numero == "2981"
     assert proposicao.ano == 2023
@@ -26,11 +29,28 @@ def test_camara_adapter_buscar_por_id_valido():
 
 
 @pytest.mark.integration
-def test_camara_adapter_buscar_por_id_invalido():
+@pytest.mark.asyncio
+async def test_camara_adapter_buscar_por_id_invalido():
     """Verifica comportamento do adaptador com ID inexistente."""
     adapter = CamaraAdapter()
     id_invalido = 999999999  # Provavelmente inexistente
 
-    proposicao = adapter.buscar_por_id(id_invalido)
+    proposicao = await adapter.buscar_por_id(id_invalido)
 
     assert proposicao is None
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_camara_adapter_emendas_pl2630_2020():
+    """Verifica se o CamaraAdapter consegue contabilizar emendas para o PL 2630/2020 via /relacionadas."""
+    adapter = CamaraAdapter()
+    id_pl_2630 = 2256735  # ID do PL 2630/2020
+
+    proposicao = await adapter.buscar_por_id(id_pl_2630)
+
+    assert proposicao is not None
+    assert proposicao.numero_emendas is not None
+    assert proposicao.numero_emendas > 0, (
+        f"Deveria ter emendas, mas retornou {proposicao.numero_emendas}."
+    )

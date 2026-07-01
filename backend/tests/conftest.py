@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from domain.entities.proposicao import Proposicao
 
 
@@ -18,31 +20,8 @@ def mock_redis(monkeypatch):
 
     # Mock em múltiplos locais para garantir que pegue independentemente da forma de importação
     monkeypatch.setattr("infrastructure.database.get_redis_client", lambda: mock)
-    try:
-        # Pega o local onde é usado nas dependências do FastAPI
-        monkeypatch.setattr(
-            "presentation.auth_dependencies.get_redis_client", lambda: mock
-        )
-    except (ImportError, AttributeError):
-        pass
 
     return mock
-
-
-@pytest.fixture(autouse=True)
-def fast_bcrypt(monkeypatch):
-    """
-    Reduz o custo do bcrypt durante os testes para acelerar a execução.
-    Impacto: 0.18s -> 0.001s por hash.
-    """
-    import bcrypt
-
-    original_gensalt = bcrypt.gensalt
-
-    def mocked_gensalt(rounds=4):
-        return original_gensalt(rounds=4)
-
-    monkeypatch.setattr(bcrypt, "gensalt", mocked_gensalt)
 
 
 @pytest.fixture
@@ -98,3 +77,59 @@ def lista_proposicoes(proposicao_exemplo):
             tags=[],
         ),
     ]
+
+
+@pytest.fixture
+def camara_api_proposicao_json():
+    return {
+        "dados": {
+            "id": 2368289,
+            "siglaTipo": "PL",
+            "numero": 2981,
+            "ano": 2023,
+            "ementa": "Altera a Lei nº...",
+            "dataApresentacao": "2023-06-05T14:32:00",
+            "statusProposicao": {
+                "dataHora": "2023-06-20T10:00:00",
+                "siglaOrgao": "CCJC",
+                "despacho": "Aguardando Parecer",
+                "descricaoSituacao": "Pronta para Pauta",
+            },
+        }
+    }
+
+
+@pytest.fixture
+def camara_api_autores_json():
+    return {"dados": [{"nome": "João das Couves", "siglaUf": "SP"}]}
+
+
+@pytest.fixture
+def senado_api_materia_json():
+    return {
+        "DetalheMateria": {
+            "Materia": {
+                "IdentificacaoMateria": {
+                    "DescricaoIdentificacaoMateria": "PL 1234/2023",
+                    "IdentificacaoProcesso": "1234567",
+                },
+                "DadosBasicosMateria": {
+                    "EmentaMateria": "Ementa de teste Senado",
+                    "DataApresentacao": "2023-01-01",
+                    "Autor": "Senador Fulano",
+                },
+                "SituacaoAtual": {
+                    "Autuacoes": {
+                        "Autuacao": [
+                            {
+                                "Situacao": {
+                                    "DescricaoSituacao": "Aguardando Relator",
+                                    "DataSituacao": "2023-02-01",
+                                }
+                            }
+                        ]
+                    }
+                },
+            }
+        }
+    }

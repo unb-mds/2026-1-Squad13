@@ -80,29 +80,21 @@ O Domínio não importa nada das outras camadas.
 
 MVC foi pensado para aplicações web monolíticas com interface acoplada. O Controller acumula chamadas às APIs externas, cache, regras de negócio e persistência — o chamado "Fat Controller". Difícil de testar e de manter quando as APIs externas mudam.
 
-### Por que não Clean Architecture agora
+### Transição para Clean Architecture / Ports & Adapters
 
-Clean Architecture é a evolução natural da Layered e seria a escolha ideal para um sistema de longa vida. Para um projeto semestral com time em formação, o overhead de abstrações (ports, adapters, interfaces) atrasa entregas. O código será estruturado de forma a facilitar a migração futura.
+O projeto evoluiu da arquitetura em camadas tradicional para adotar **Ports & Adapters (Hexagonal Architecture)**. Isso garante o desacoplamento absoluto do Domínio em relação a frameworks, bancos de dados e redes, invertendo as dependências por meio de portas abstratas (interfaces em Python) na camada de aplicação e adaptadores concretos em infraestrutura.
 
-### Estratégia de Implementação Iterativa
+### Estado Atual do Sistema
 
-O projeto adota a Layered Architecture como objetivo estrutural, evoluindo de mocks iniciais para integrações reais de forma progressiva.
-
-**Estado Atual:**
-O sistema já conta com:
+O sistema está estabilizado com as seguintes entregas:
 - **Banco de dados PostgreSQL** operacional via Docker, usando `SQLModel`.
-- **Integração real com as APIs da Câmara e do Senado**, estabilizada por meio de `Adapters`.
-- **Modelo analítico `EventoTramitacao`** que substituiu o modelo raso de `Tramitacao`. Cada movimentação legislativa é classificada por tipo de evento (20 tipos normalizados) e fase analítica (8 fases do processo legislativo).
-- **Serviços de domínio** como `ClassificarEventoService` e `DeterminarFaseAnaliticaService` que processam as tramitações brutas das APIs.
-- **Autenticação JWT** com endpoints `/auth/login` e `/auth/register`.
-
-**Próximos Passos (R2):**
-1.  Uso de `Redis` para cache de métricas do dashboard.
-2.  Worker de coleta batch diária via Celery (ADR-004).
-3.  Logout com invalidação de token no servidor.
-4.  Funcionalidades preditivas baseadas em volume histórico.
-
-Essa abordagem evita o overhead de abstrações prematuras e permite que a equipe aprenda e aplique os conceitos arquiteturais passo a passo.
+- **Integração com APIs reais da Câmara e do Senado** via adaptadores resilientes.
+- **Modelo analítico de eventos** com 20 tipos normalizados e 8 fases analíticas regimentais.
+- **Métricas de atraso (IAR, IAF, IEI)** calculadas dinamicamente.
+- **Redis** utilizado para cache de consultas agregadas do dashboard, locks de concorrência e sincronização de cursores de coleta.
+- **Workers assíncronos e Celery Beat** operando a coleta diária e o motor adaptativo de preenchimento de lacunas (Gap-Filler).
+- **Inteligência Preditiva** integrada, gerando estimativas estatísticas de tempo de aprovação de proposições.
+- **Autenticação JWT removida** completamente (PR #197), simplificando a segurança da plataforma acadêmica.
 
 ---
 
@@ -126,60 +118,12 @@ O projeto adota uma pirâmide de testes focada em garantir a confiabilidade das 
 ├── ARCHITECTURE.md              ← este arquivo
 ├── README.md                    ← setup e como rodar
 │
-├── docs/
-│   ├── adr/                     ← Architecture Decision Records
-│   ├── MIGRATION_SCOPE.md       ← Escopo da migração para modelo analítico
-│   └── BACKLOG.md               ← Backlog normalizado por release
-│
-├── backend/
-│   └── src/
-│       ├── main.py
-│       ├── presentation/        ← Camada de Apresentação
-│       │   └── controllers/
-│       │       ├── proposicao_controller.py
-│       │       ├── dashboard_controller.py
-│       │       └── auth_controller.py
-│       ├── application/         ← Camada de Aplicação (Services)
-│       │   └── services/
-│       │       ├── buscar_proposicoes_service.py
-│       │       ├── dashboard_service.py
-│       │       ├── listar_movimentacoes_service.py
-│       │       ├── normalizar_tramitacao_service.py
-│       │       ├── detalhe_proposicao_service.py
-│       │       └── auth_service.py
-│       ├── domain/              ← Camada de Domínio
-│       │   ├── entities/
-│       │   │   ├── proposicao.py
-│       │   │   ├── evento_tramitacao.py  ← modelo analítico principal
-│       │   │   ├── fase_analitica.py
-│       │   │   ├── orgao_legislativo.py
-│       │   │   ├── tipo_evento.py        ← enum com 20 tipos
-│       │   │   ├── fase_codigo.py        ← enum das 8 fases
-│       │   │   └── user.py
-│       │   ├── classificar_evento.py     ← funções de domínio
-│       │   └── exceptions.py
-│       └── infrastructure/      ← Camada de Infraestrutura
-│           ├── adapters/        ← Adapters para APIs externas
-│           │   ├── camara_adapter.py
-│           │   ├── senado_adapter.py
-│           │   └── security_adapter.py
-│           ├── repositories/    ← Repositórios SQL
-│           │   ├── sql_proposicao_repository.py
-│           │   ├── sql_evento_tramitacao_repository.py
-│           │   ├── sql_fase_analitica_repository.py
-│           │   ├── sql_orgao_legislativo_repository.py
-│           │   └── sql_user_repository.py
-│           ├── cache/           ← Cache (Redis — planejado para R2)
-│           └── workers/         ← Tarefas agendadas (Celery — planejado para R2)
-│
-├── frontend/
-│   └── src/
-│       ├── app/                 ← Configurações globais, rotas e providers
-│       ├── features/            ← Funcionalidades isoladas (ex: filtros, lista)
-│       ├── pages/               ← Páginas da aplicação
-│       ├── shared/              ← Componentes e libs compartilhados
-│       └── main.tsx
-│
+├── docs/                        ← Documentação técnica, requisitos e ADRs
+│   ├── adr/                    ← Architecture Decision Records (ADRs)
+│   ├── domain/                 ← Modelagem de regras de domínio, fases e métricas
+│   ├── infrastructure/         ← Arquitetura de ingestão Celery/Redis e deploys
+│   └── frontend/               ← Visão geral e manuais de governança de UI
+├── scripts/                     ← Automações (dev, db, ci, gcp)
 └── squad-dashboard/             ← Painel de métricas do time (standalone)
 ```
 
@@ -187,7 +131,7 @@ O projeto adota uma pirâmide de testes focada em garantir a confiabilidade das 
 
 ## Documentação de arquitetura
 
-Utilizamos o **Modelo C4** para documentar a arquitetura em diferentes níveis de detalhe. Os diagramas estão em `docs/diagrams/`.
+Utilizamos diagramas baseados em **Mermaid** incorporados diretamente nos arquivos de documentação (como [status-normalization.md](file:///home/caio_martins/2026-1-Squad13/docs/domain/status-normalization.md) e [ingestion-architecture.md](file:///home/caio_martins/2026-1-Squad13/docs/infrastructure/ingestion-architecture.md)) para modelar a arquitetura física e lógica do sistema.
 
 ---
 
@@ -204,6 +148,8 @@ Utilizamos o **Modelo C4** para documentar a arquitetura em diferentes níveis d
 | ADR-007 | Estratégia de Testes                              | Aceita   |
 | ADR-008 | Pipeline de Dados para o Squad Dashboard          | Aceita   |
 | ADR-009 | Squad Dashboard no GitHub Pages                   | Aceita   |
+| ADR-010 | Separação de status e status_original em Proposições | Aceita |
+| ADR-012 | Governança do Frontend e Baseline Visual          | Aceita   |
 
 ---
 
@@ -223,8 +169,8 @@ SenadoAdapter  ──→ dicts brutos ──┘
 2.  **Normalização: adaptador por fonte + serviço de normalização** (ADR-005)
 3.  **Deduplicação: por número canônico** (ex: `PL 1234/2023`)
 4.  **Falhas: retry com backoff exponencial**
-5.  **Classificação: 20 tipos de evento normalizados, 8 fases analíticas** (ver `docs/MIGRATION_SCOPE.md`)
+5.  **Classificação: 20 tipos de evento normalizados, 8 fases analíticas** (ver [status-normalization.md](file:///home/caio_martins/2026-1-Squad13/docs/domain/status-normalization.md))
 
 ---
 
-_Última atualização: 2026-05-16_
+_Última atualização: 2026-06-03_

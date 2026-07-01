@@ -1,5 +1,6 @@
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
+
 from domain.entities.proposicao import Proposicao
 from infrastructure.repositories.sql_proposicao_repository import (
     SQLProposicaoRepository,
@@ -13,6 +14,8 @@ def session_fixture():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
+    engine.dispose()
 
 
 def test_salvar_proposicao(session: Session):

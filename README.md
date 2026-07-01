@@ -8,22 +8,49 @@ Sistema para busca e acompanhamento de proposições legislativas, com foco inic
 
 ## ⚡ Modo Rápido (Recomendado)
 
-Se você possui **Docker** e **uv** instalados, utilize os scripts de automação na raiz do projeto:
+Se você possui **Docker** instalado, utilize os scripts de automação na pasta `scripts/`:
 
-### 1. Subir o Ambiente Completo (Docker)
-Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend e Frontend automaticamente.
+### 1. Configurar Validação Automática (Git Hooks)
+Este comando instala um script que valida suas mudanças (lint, tipos e testes) automaticamente antes de cada `git push`, garantindo que você nunca envie código quebrado para o repositório.
+
 ```bash
-./start_dev.sh
+./scripts/dev/setup-hooks.sh
+```
+
+### 2. Subir o Ambiente Completo (Docker)
+Este comando sobe o Banco (PostgreSQL), Cache (Redis), Backend, Frontend e Workers automaticamente usando healthchecks para garantir a ordem correta.
+
+```bash
+./scripts/dev/up.sh
 ```
 - **Frontend:** http://localhost:5173
 - **Backend:** http://localhost:8000
 - **Docs (Swagger):** http://localhost:8000/docs
 
-### 2. Rodar Todos os Testes e Validações
-Executa linting, checagem de tipos e todos os testes (Unitários e Integração) de ambos os apps.
+> ⚠️ **Após qualquer `git pull`, execute este script novamente.**
+> O `up.sh` usa `--build` internamente, o que reconstrói as imagens Docker com o código atualizado.
+> Simplesmente rodar `docker compose up -d` **não** reconstrói as imagens — os containers continuariam
+> executando o código antigo, sem refletir as mudanças do repositório (incluindo workers do Celery).
+
+### 2. Encerrar o Ambiente
+Para desligar tudo e limpar recursos (redes e containers órfãos):
 ```bash
-./test_all.sh
+./scripts/dev/down.sh
 ```
+
+### 3. Rodar Todos os Testes e Validações
+Executa linting, checagem de tipos e todos os testes de ambos os apps de forma isolada e segura.
+```bash
+./scripts/ci/test.sh
+```
+
+### 4. Popular o Banco (Seed)
+Para inserir dados de teste ou sincronizar dados reais:
+```bash
+./scripts/dev/seed.sh --type sample --limit 20
+```
+
+> **Dica:** Todos os scripts possuem suporte a `--help` para detalhamento de opções.
 
 ---
 
@@ -68,13 +95,19 @@ O projeto utiliza um **Squad Dashboard** automatizado para monitorar a saúde do
 - **Integração de CI**: O dashboard exibe o percentual de cobertura de código real medido nos pipelines de Pull Request.
 - **Transparência**: Dados de contribuição (commits/tasks) por membro são atualizados a cada push na `main`.
 
-Para mais detalhes sobre como a automação funciona, consulte o [AUTOMATION.md](./squad-dashboard/AUTOMATION.md).
+Para mais detalhes sobre como a automação funciona, consulte o [README.md](./squad-dashboard/README.md#automação-do-dashboard).
 
 ---
 
 ## 🧪 Testes Automatizados
 
-Além do `./test_all.sh`, você pode rodar testes específicos:
+Para uma validação completa e rápida de todo o monorepo (Backend + Frontend + Dashboard), utilize o script central:
+
+```bash
+./scripts/ci/test.sh
+```
+
+Caso precise rodar testes específicos de cada módulo:
 
 ### Backend (Pytest)
 ```bash
@@ -107,7 +140,12 @@ O sistema está configurado para que o frontend consuma dados reais do backend v
 ├── backend/            ← API FastAPI com SQLModel
 ├── frontend/           ← Aplicação React + Vite (Principal)
 ├── squad-dashboard/    ← Painel de métricas e gestão do time
-├── docs/               ← Documentação técnica e ADRs
+├── docs/               ← Documentação técnica, requisitos e ADRs
+│   ├── adr/            ← Architecture Decision Records (ADRs)
+│   ├── domain/         ← Modelagem de regras de domínio, fases e métricas
+│   ├── infrastructure/ ← Arquitetura de ingestão Celery/Redis e deploys
+│   └── frontend/       ← Visão geral e manuais de governança de UI
+├── scripts/            ← Automações (dev, db, ci, gcp)
 └── README.md
 ```
 
@@ -128,11 +166,13 @@ Para entender como o sistema é estruturado, as decisões técnicas tomadas e o 
 | [ADR-007](./docs/adr/ADR-007-testing-strategy.md)     | Estratégia de Testes (Frontend e Backend)        | Aceita   |
 | [ADR-008](./docs/adr/ADR-008-github-actions-data-pipeline.md) | Pipeline de Dados para o Squad Dashboard | Aceita   |
 | [ADR-009](./docs/adr/ADR-009-squad-dashboard-ghpages.md)      | Squad Dashboard no GitHub Pages          | Aceita   |
+| [ADR-010](./docs/adr/ADR-010-status-normalization.md) | Separação de status e status_original em Proposições | Aceita |
+| [ADR-012](./docs/adr/ADR-012-frontend-governance.md)  | Governança do Frontend e Baseline Visual         | Aceita   |
 
 ## Estado atual
 
-- **Backend:** FastAPI com Layered Architecture, modelo analítico `EventoTramitacao` com classificação de eventos e fases legislativas, autenticação JWT (`/auth/login`, `/auth/register`), adaptadores reais para as APIs da Câmara e do Senado, integração com PostgreSQL via SQLModel, e testes automatizados (unitários e de integração) com pytest.
+- **Backend:** FastAPI com Layered Architecture / Ports & Adapters, modelo analítico `EventoTramitacao` com classificação de eventos e fases legislativas, adaptadores reais para as APIs da Câmara e do Senado, cache e controle Redis, ingestão diária e Gap-Filler Celery, integração com PostgreSQL via SQLModel, e testes de unidade/integração com pytest.
 - **Frontend:** React + TypeScript + Vite integrado ao backend real, com ESLint configurado e build validado automaticamente no CI. Dashboard com métricas de fluxo e gráfico de burnup semântico.
-- **CI/CD:** GitHub Actions com workflows separados para frontend, backend e squad-dashboard, disparados automaticamente em PRs para `main` e `develop`.
+- **CI/CD:** GitHub Actions com workflows separados para frontend, backend e squad-dashboard, e deploy automático (CD) para homologação.
 
 Para contribuir, consulte o [CONTRIBUTING.md](./CONTRIBUTING.md).

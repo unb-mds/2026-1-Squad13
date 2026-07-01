@@ -1,7 +1,10 @@
+from application.ports.camara_adapter import CamaraAdapterPort
+from application.ports.proposicao_repository import ProposicaoRepositoryPort
+from application.ports.senado_adapter import SenadoAdapterPort
+from application.services.atualizar_transit_steps_service import (
+    AtualizarTransitStepsService,
+)
 from domain.entities.proposicao import Proposicao
-from infrastructure.repositories.proposicao_repository import ProposicaoRepository
-from infrastructure.adapters.camara_adapter import CamaraAdapter
-from infrastructure.adapters.senado_adapter import SenadoAdapter
 
 
 class DetalheProposicaoService:
@@ -12,15 +15,19 @@ class DetalheProposicaoService:
 
     def __init__(
         self,
-        repository: ProposicaoRepository,
-        camara_adapter: CamaraAdapter,
-        senado_adapter: SenadoAdapter,
+        repository: ProposicaoRepositoryPort,
+        camara_adapter: CamaraAdapterPort,
+        senado_adapter: SenadoAdapterPort,
+        atualizar_transit_steps_service: AtualizarTransitStepsService | None = None,
     ):
         self.repository = repository
         self.camara_adapter = camara_adapter
         self.senado_adapter = senado_adapter
+        self.atualizar_transit_steps_service = atualizar_transit_steps_service
 
-    def executar(self, id_proposicao: str) -> Proposicao:
+    async def executar(self, id_proposicao: str) -> Proposicao:
+        proposicao = None
+
         # 1. Tenta identificar se é um ID numérico ou um Código Canônico (Slug)
         # Formato esperado do Slug: PL-123-2023
         if "-" in id_proposicao:
@@ -30,38 +37,51 @@ class DetalheProposicaoService:
                 try:
                     ano = int(ano_str)
                     proposicao = self.repository.buscar_por_codigo(tipo, numero, ano)
-                    if proposicao:
-                        return proposicao
                 except ValueError:
                     pass
 
         # 2. Tenta buscar no banco local por ID (ID da Câmara/Senado que usamos como PK)
-        proposicao = self.repository.buscar_por_id(id_proposicao)
-        if proposicao:
-            return proposicao
+        if not proposicao:
+            proposicao = self.repository.buscar_por_id(id_proposicao)
 
         # 3. Se não encontrou no banco, tenta nas APIs externas (apenas se o ID for numérico)
-        try:
-            id_int = int(id_proposicao)
-        except ValueError:
-            raise ValueError(f"Proposição não encontrada: {id_proposicao}")
+        if not proposicao:
+            try:
+                id_int = int(id_proposicao)
+            except ValueError:
+                raise ValueError(
+                    f"Proposição não encontrada: {id_proposicao}"
+                ) from None
 
-        # Tenta na Câmara
-        proposicao = self.camara_adapter.buscar_por_id(id_int)
-        if proposicao:
-            proposicao.atualizar_metricas()
-            proposicao.normalizar_campo_status()
-            # Salva no banco para cache
-            return self.repository.salvar(proposicao)
+            # Tenta na Câmara
+            proposicao = await self.camara_adapter.buscar_por_id(id_int)
+            if proposicao:
+                proposicao.atualizar_metricas()
+                proposicao.normalizar_campo_status()
+                proposicao = self.repository.salvar(proposicao)
+            else:
+                # Tenta no Senado
+                proposicao = await self.senado_adapter.buscar_por_id(id_int)
+                if proposicao:
+                    proposicao.atualizar_metricas()
+                    proposicao.normalizar_campo_status()
+                    proposicao = self.repository.salvar(proposicao)
 
-        # Tenta no Senado
-        proposicao = self.senado_adapter.buscar_por_id(id_int)
-        if proposicao:
-            proposicao.atualizar_metricas()
-            proposicao.normalizar_campo_status()
-            # Salva no banco para cache
-            return self.repository.salvar(proposicao)
+        if not proposicao:
+            raise ValueError(
+                f"Proposição com ID {id_proposicao} não encontrada em nenhuma fonte."
+            )
 
-        raise ValueError(
-            f"Proposição com ID {id_proposicao} não encontrada em nenhuma fonte."
-        )
+        # 4. Busca os transit steps do banco (ou calcula se não existirem)
+        steps = self.repository.buscar_transit_steps(proposicao.id)
+        if not steps and self.atualizar_transit_steps_service:
+            try:
+                self.atualizar_transit_steps_service.executar(proposicao.id)
+                steps = self.repository.buscar_transit_steps(proposicao.id)
+            except Exception as e:
+                import logging
+
+                logging.error(f"Erro ao computar transit steps: {e}")
+
+        proposicao.transit_steps = steps or []
+        return proposicao

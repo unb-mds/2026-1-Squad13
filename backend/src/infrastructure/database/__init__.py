@@ -1,19 +1,47 @@
 import redis
-from typing import Optional
-from sqlmodel import SQLModel, create_engine, Session
+from sqlmodel import Session, SQLModel, create_engine
+
+from infrastructure.database.models.apensamento_model import (
+    ApensamentoModel,  # noqa: F401
+)
+from infrastructure.database.models.auditoria_coleta_model import (
+    AuditoriaColetaModel,  # noqa: F401
+)
+from infrastructure.database.models.baseline_tramitacao_model import (
+    BaselineTramitacaoModel,  # noqa: F401
+)
+from infrastructure.database.models.cobertura_snapshot_model import (
+    CoberturaSnapshotModel,  # noqa: F401
+)
+from infrastructure.database.models.evento_tramitacao_model import (
+    EventoTramitacaoModel,  # noqa: F401
+)
+from infrastructure.database.models.fase_analitica_model import (
+    FaseAnaliticaModel,  # noqa: F401
+)
+from infrastructure.database.models.log_coleta_model import LogColetaModel  # noqa: F401
+from infrastructure.database.models.orgao_legislativo_model import (
+    OrgaoLegislativoModel,  # noqa: F401
+)
+from infrastructure.database.models.periodo_fase_model import (
+    PeriodoFaseModel,  # noqa: F401
+)
+from infrastructure.database.models.proposicao_model import (
+    ProposicaoModel,  # noqa: F401
+)
+from infrastructure.database.models.transit_step_model import (
+    TransitStepModel,  # noqa: F401
+)
+
 from ..config import settings
 
-# Importando modelos para garantir que sejam registrados antes de init_db
-from infrastructure.database.models.proposicao_model import ProposicaoModel  # noqa: F401
-from infrastructure.database.models.user_model import UserModel  # noqa: F401
-from infrastructure.database.models.fase_analitica_model import FaseAnaliticaModel  # noqa: F401
-from infrastructure.database.models.orgao_legislativo_model import OrgaoLegislativoModel  # noqa: F401
-from infrastructure.database.models.evento_tramitacao_model import EventoTramitacaoModel  # noqa: F401
-from infrastructure.database.models.apensamento_model import ApensamentoModel  # noqa: F401
-
 # O motor de conexão (Engine)
-# echo=True faz com que o SQLModel imprima os comandos SQL no console (útil para aprender)
-engine = create_engine(settings.database_url, echo=True)
+# echo=False por padrão para evitar poluição de logs; use logging.getLogger('sqlalchemy.engine') para debug
+engine = create_engine(
+    settings.database_url,
+    echo=False,
+    connect_args={"prepare_threshold": None},
+)
 
 
 def init_db():
@@ -31,7 +59,7 @@ def get_session():
 
 
 # Cliente Redis único (Singleton) para gerenciar o pool de conexões
-redis_client: Optional[redis.Redis] = None
+redis_client: redis.Redis | None = None
 
 
 def init_redis():
