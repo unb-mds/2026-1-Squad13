@@ -1,3 +1,4 @@
+from domain.services.ordenacao.merge_sort import merge_sort
 import re
 
 from pydantic import field_validator
@@ -156,7 +157,7 @@ def calcular_tempo_por_fase(eventos: list[EventoTramitacao]) -> list[dict]:
 
     from datetime import datetime
 
-    ordenadas = sorted(eventos, key=lambda e: (e.data_evento, e.sequencia))
+    ordenadas = merge_sort(eventos, key=lambda e: (e.data_evento, e.sequencia))
     tempos: dict[str, int] = {}
 
     for i in range(len(ordenadas) - 1):

@@ -1,3 +1,4 @@
+from domain.services.ordenacao.merge_sort import merge_sort
 """
 Serviço de aplicação para listar as movimentações (eventos) de uma proposição.
 
@@ -434,7 +435,7 @@ class ListarMovimentacoesService:
 
                 # 4. Ordenar e deduplicar
                 # Ordena por data e depois por sequencia
-                eventos_unificados.sort(key=lambda e: (e.data_evento, e.sequencia))
+                eventos_unificados = merge_sort(eventos_unificados, key=lambda e: (e.data_evento, e.sequencia))
 
                 # Deduplicação por data e descrição (caso as casas repitam o mesmo evento de trânsito)
                 vistos = set()

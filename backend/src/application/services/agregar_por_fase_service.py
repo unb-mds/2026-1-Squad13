@@ -1,3 +1,4 @@
+from domain.services.ordenacao.merge_sort import merge_sort
 from datetime import date, datetime
 
 from application.ports.fase_analitica_repository import FaseAnaliticaRepositoryPort
@@ -33,7 +34,7 @@ class AgregarPorFaseService:
             fase = self._fases_map.get(ev.fase_analitica_id)
             return fase.ordem_logica if fase else 0
 
-        eventos_ordenados = sorted(
+        eventos_ordenados = merge_sort(
             eventos,
             key=lambda e: (e.data_evento, get_ordem(e), e.sequencia or 0),
         )
