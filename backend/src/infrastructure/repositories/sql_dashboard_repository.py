@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import and_, case, func
 from sqlmodel import Session, select
 
+from domain.services.ordenacao.heap_sort import heap_sort
 from infrastructure.database.models.proposicao_model import ProposicaoModel
 
 
@@ -439,7 +440,7 @@ class SQLDashboardRepository:
                 }
             )
 
-        return sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
+        return heap_sort(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
 
     def obter_proposicoes_para_temas(self, filtros: dict | None) -> list[dict]:
         status_agrupado = self._status_agrupado_case()

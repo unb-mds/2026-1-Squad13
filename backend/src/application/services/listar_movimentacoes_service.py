@@ -32,6 +32,7 @@ from application.services.reconstruir_periodos_service import ReconstruirPeriodo
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.orgao_legislativo import CasaLegislativa
 from domain.exceptions import ApiException
+from domain.services.ordenacao.merge_sort import merge_sort
 from domain.value_objects.modo_movimentacao import ModoMovimentacao
 from domain.value_objects.periodo_fase import PeriodoFase
 
@@ -434,7 +435,7 @@ class ListarMovimentacoesService:
 
                 # 4. Ordenar e deduplicar
                 # Ordena por data e depois por sequencia
-                eventos_unificados.sort(key=lambda e: (e.data_evento, e.sequencia))
+                eventos_unificados = merge_sort(eventos_unificados, key=lambda e: (e.data_evento, e.sequencia))
 
                 # Deduplicação por data e descrição (caso as casas repitam o mesmo evento de trânsito)
                 vistos = set()

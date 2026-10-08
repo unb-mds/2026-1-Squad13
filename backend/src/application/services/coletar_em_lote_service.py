@@ -23,6 +23,7 @@ from application.services.listar_movimentacoes_service import ListarMovimentacoe
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from domain.entities.proposicao import Proposicao
 from domain.exceptions import ApiException
+from domain.services.ordenacao.radix_sort import radix_sort
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +151,7 @@ class ColetarEmLoteService:
 
             # 2. Priorização dos gaps
             # Prioriza ano mais recente (decrescente) e depois tipo/fonte
-            gaps.sort(key=lambda x: x["ano"], reverse=True)
+            gaps = radix_sort(gaps, key=lambda x: x["ano"], reverse=True)
 
             # Cota global máxima de proposições por rodada para evitar timeouts nas APIs
             # Reduzido de 40 para 20 em 2026-06-17: mitigação de OOM kill

@@ -156,7 +156,9 @@ def calcular_tempo_por_fase(eventos: list[EventoTramitacao]) -> list[dict]:
 
     from datetime import datetime
 
-    ordenadas = sorted(eventos, key=lambda e: (e.data_evento, e.sequencia))
+    from domain.services.ordenacao.merge_sort import merge_sort
+
+    ordenadas = merge_sort(eventos, key=lambda e: (e.data_evento, e.sequencia))
     tempos: dict[str, int] = {}
 
     for i in range(len(ordenadas) - 1):

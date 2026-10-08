@@ -15,6 +15,7 @@ from application.ports.fase_analitica_repository import (
 from application.ports.proposicao_repository import ProposicaoRepositoryPort
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
+from domain.services.ordenacao.quick_sort import quick_sort
 
 
 class DashboardService:
@@ -285,7 +286,7 @@ class DashboardService:
                 }
             )
 
-        resultado = sorted(resultado, key=lambda x: x["tempoMedioDias"])
+        resultado = quick_sort(resultado, key=lambda x: x["tempoMedioDias"])
 
         self._set_cache(cache_key, resultado)
         return resultado
