@@ -1,3 +1,4 @@
+from domain.services.ordenacao.heap_sort import heap_sort
 from datetime import date, timedelta
 from typing import Any
 
@@ -439,7 +440,7 @@ class SQLDashboardRepository:
                 }
             )
 
-        return sorted(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
+        return heap_sort(resultado, key=lambda x: x["taxaAtraso"], reverse=True)
 
     def obter_proposicoes_para_temas(self, filtros: dict | None) -> list[dict]:
         status_agrupado = self._status_agrupado_case()

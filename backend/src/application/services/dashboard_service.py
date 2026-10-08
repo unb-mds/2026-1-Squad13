@@ -1,3 +1,4 @@
+from domain.services.ordenacao.quick_sort import quick_sort
 import hashlib
 import json
 import statistics
@@ -285,7 +286,7 @@ class DashboardService:
                 }
             )
 
-        resultado = sorted(resultado, key=lambda x: x["tempoMedioDias"])
+        resultado = quick_sort(resultado, key=lambda x: x["tempoMedioDias"])
 
         self._set_cache(cache_key, resultado)
         return resultado
