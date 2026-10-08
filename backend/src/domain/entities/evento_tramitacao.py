@@ -1,10 +1,10 @@
-from domain.services.ordenacao.merge_sort import merge_sort
 import re
 
 from pydantic import field_validator
 from sqlmodel import SQLModel
 
 from domain.entities.tipo_evento import TipoEvento
+from domain.services.ordenacao.merge_sort import merge_sort
 
 # Regex para validar formato ISO: YYYY-MM-DD com hora opcional
 _ISO_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?$"

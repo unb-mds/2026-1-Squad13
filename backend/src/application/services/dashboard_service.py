@@ -1,4 +1,3 @@
-from domain.services.ordenacao.quick_sort import quick_sort
 import hashlib
 import json
 import statistics
@@ -16,6 +15,7 @@ from application.ports.fase_analitica_repository import (
 from application.ports.proposicao_repository import ProposicaoRepositoryPort
 from domain.entities.evento_tramitacao import EventoTramitacao
 from domain.entities.tipo_evento import TipoEvento
+from domain.services.ordenacao.quick_sort import quick_sort
 
 
 class DashboardService:

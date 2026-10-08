@@ -1,10 +1,10 @@
-from domain.services.ordenacao.heap_sort import heap_sort
 from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy import and_, case, func
 from sqlmodel import Session, select
 
+from domain.services.ordenacao.heap_sort import heap_sort
 from infrastructure.database.models.proposicao_model import ProposicaoModel
 
 

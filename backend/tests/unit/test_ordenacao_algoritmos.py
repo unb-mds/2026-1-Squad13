@@ -3,6 +3,7 @@ Testes unitários para o módulo de ordenação customizado (EDA2) no LexTrack.
 """
 
 import unittest
+
 from domain.services.ordenacao.heap_sort import heap_sort
 from domain.services.ordenacao.merge_sort import merge_sort
 from domain.services.ordenacao.quick_sort import quick_sort

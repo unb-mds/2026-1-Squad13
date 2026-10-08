@@ -6,7 +6,8 @@ Complexidade de Espaço Adicional: O(N) para particionamento e mescla.
 Propriedade: Estável (mantém a ordem relativa de elementos com chaves iguais).
 """
 
-from typing import Any, Callable, Iterable, Sequence, TypeVar
+from collections.abc import Callable, Iterable
+from typing import Any, TypeVar
 
 from ._keys import make_key_func
 

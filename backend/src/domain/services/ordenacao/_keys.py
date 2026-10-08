@@ -2,7 +2,8 @@
 Helpers de comparação e estabilização de chaves para algoritmos de ordenação.
 """
 
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 

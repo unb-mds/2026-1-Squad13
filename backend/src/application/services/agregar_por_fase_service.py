@@ -1,8 +1,8 @@
-from domain.services.ordenacao.merge_sort import merge_sort
 from datetime import date, datetime
 
 from application.ports.fase_analitica_repository import FaseAnaliticaRepositoryPort
 from domain.entities.evento_tramitacao import EventoTramitacao
+from domain.services.ordenacao.merge_sort import merge_sort
 from domain.value_objects.periodo_fase import PeriodoFase
 
 

@@ -7,7 +7,8 @@ Para assegurar paridade estrita com o comportamento estável de sorted() no LexT
 a ordenação utiliza tuplas com índice de inserção original (chave, idx).
 """
 
-from typing import Any, Callable, Iterable, TypeVar
+from collections.abc import Callable, Iterable
+from typing import Any, TypeVar
 
 from ._keys import make_key_func
 

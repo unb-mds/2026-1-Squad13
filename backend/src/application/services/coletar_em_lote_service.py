@@ -1,4 +1,3 @@
-from domain.services.ordenacao.radix_sort import radix_sort
 import asyncio
 import logging
 
@@ -24,6 +23,7 @@ from application.services.listar_movimentacoes_service import ListarMovimentacoe
 from application.services.reconstruir_periodos_service import ReconstruirPeriodosService
 from domain.entities.proposicao import Proposicao
 from domain.exceptions import ApiException
+from domain.services.ordenacao.radix_sort import radix_sort
 
 logger = logging.getLogger(__name__)
 
